@@ -160,7 +160,7 @@ export default function DashboardPage() {
                           }))}>
                             <XAxis dataKey="date" tick={{ fill: "#94A3B8", fontSize: 10 }} />
                             <YAxis tick={{ fill: "#94A3B8", fontSize: 10 }} domain={["auto", "auto"]} tickFormatter={v => `$${v}`} />
-                            <Tooltip formatter={(v: number) => [`$${v.toFixed(2)}`, "Price"]} contentStyle={{ background: "#0F1420", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }} />
+                            <Tooltip formatter={(v) => [`$${Number(v).toFixed(2)}`, "Price"]} contentStyle={{ background: "#0F1420", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }} />
                             <Line type="monotone" dataKey="price" stroke="#00F5D4" strokeWidth={2} dot={false} />
                           </LineChart>
                         </ResponsiveContainer>
