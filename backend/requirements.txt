@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic[email]
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt==4.0.1
+slowapi
+python-multipart
+python-dotenv
+anthropic
+sendgrid
+apscheduler
