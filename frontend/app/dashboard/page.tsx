@@ -46,9 +46,14 @@ export default function DashboardPage() {
       fetch("/api/token")
         .then(r => r.json())
         .then(async d => {
+          if (!d.token) { router.push("/sign-in"); return; }
           setToken(d.token);
-          const data = await getWishlist(d.token);
-          setItems(data);
+          try {
+            const data = await getWishlist(d.token);
+            setItems(data);
+          } catch (e: any) {
+            setError("Could not load wishlist: " + (e.message || "backend error"));
+          }
         })
         .catch(() => router.push("/sign-in"))
         .finally(() => setFetching(false));

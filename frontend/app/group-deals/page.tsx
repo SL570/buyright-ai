@@ -39,7 +39,11 @@ export default function GroupDealsPage() {
     if (status === "authenticated") {
       fetch("/api/token")
         .then(r => r.json())
-        .then(d => { setToken(d.token); return fetchDeals(d.token); })
+        .then(async d => {
+          if (!d.token) { router.push("/sign-in"); return; }
+          setToken(d.token);
+          try { await fetchDeals(d.token); } catch (e: any) { setError(e.message); }
+        })
         .catch(e => setError(e.message))
         .finally(() => setFetching(false));
     }
