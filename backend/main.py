@@ -29,9 +29,14 @@ app = FastAPI(title="BuyRight AI", version="2.0.0")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-_origins = ["http://localhost:3000"]
+_origins = [
+    "http://localhost:3000",
+    "https://buyright-ai-ten.vercel.app",
+]
 if os.getenv("FRONTEND_URL"):
-    _origins.append(os.getenv("FRONTEND_URL"))
+    url = os.getenv("FRONTEND_URL").rstrip("/")
+    if url not in _origins:
+        _origins.append(url)
 
 app.add_middleware(
     CORSMiddleware,
