@@ -1,12 +1,13 @@
-import { type NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
-export async function GET(req: NextRequest) {
-  const cookieName =
-    process.env.NODE_ENV === "production"
-      ? "__Secure-next-auth.session-token"
-      : "next-auth.session-token";
+export async function GET() {
+  const cookieStore = await cookies();
 
-  const token = req.cookies.get(cookieName)?.value;
+  const token =
+    cookieStore.get("__Secure-next-auth.session-token")?.value ||
+    cookieStore.get("next-auth.session-token")?.value;
+
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   return NextResponse.json({ token });
 }
