@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth, useClerk } from "@clerk/nextjs";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { getWishlist, addWishlistItem, deleteWishlistItem, logout } from "../../lib/api";
+import { getWishlist, addWishlistItem, deleteWishlistItem } from "../../lib/api";
 
 interface PricePoint { price: number; checked_at: string; }
 interface WishlistItem {
@@ -15,6 +16,8 @@ interface WishlistItem {
   history?: PricePoint[];
 }
 
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+
 const VERDICT_STYLE: Record<string, { label: string; color: string; bg: string }> = {
   buy:       { label: "Buy Now",   color: "#10B981", bg: "rgba(16,185,129,0.12)" },
   wait:      { label: "Wait",      color: "#FBBF24", bg: "rgba(251,191,36,0.12)" },
@@ -23,28 +26,37 @@ const VERDICT_STYLE: Record<string, { label: string; color: string; bg: string }
 };
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const [items, setItems]         = useState<WishlistItem[]>([]);
-  const [name, setName]           = useState("");
-  const [url, setUrl]             = useState("");
-  const [price, setPrice]         = useState("");
-  const [target, setTarget]       = useState("");
-  const [error, setError]         = useState("");
-  const [loading, setLoading]     = useState(false);
-  const [fetching, setFetching]   = useState(true);
-  const [expanded, setExpanded]   = useState<number | null>(null);
+  const router             = useRouter();
+  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { signOut }        = useClerk();
+
+  const [items, setItems]       = useState<WishlistItem[]>([]);
+  const [name, setName]         = useState("");
+  const [url, setUrl]           = useState("");
+  const [price, setPrice]       = useState("");
+  const [target, setTarget]     = useState("");
+  const [error, setError]       = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [expanded, setExpanded] = useState<number | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) { router.push("/login"); return; }
-    getWishlist().then(setItems).catch(() => router.push("/login")).finally(() => setFetching(false));
-  }, [router]);
+    if (!isLoaded) return;
+    if (!isSignedIn) { router.push("/sign-in"); return; }
+    (async () => {
+      try {
+        const token = await getToken() ?? "";
+        const data  = await getWishlist(token);
+        setItems(data);
+      } catch { router.push("/sign-in"); }
+      finally  { setFetching(false); }
+    })();
+  }, [isLoaded, isSignedIn, router, getToken]);
 
   async function loadHistory(itemId: number) {
     if (expanded === itemId) { setExpanded(null); return; }
     try {
-      const token = localStorage.getItem("token");
-      const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+      const token = await getToken() ?? "";
       const res   = await fetch(`${BASE_URL}/wishlist/${itemId}/history`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -58,7 +70,8 @@ export default function DashboardPage() {
     e.preventDefault();
     setError(""); setLoading(true);
     try {
-      const item = await addWishlistItem(name, url, parseFloat(price), target ? parseFloat(target) : undefined);
+      const token = await getToken() ?? "";
+      const item  = await addWishlistItem(token, name, url, parseFloat(price), target ? parseFloat(target) : undefined);
       setItems(prev => [...prev, item]);
       setName(""); setUrl(""); setPrice(""); setTarget("");
     } catch (err: any) { setError(err.message); }
@@ -67,13 +80,14 @@ export default function DashboardPage() {
 
   async function handleDelete(id: number) {
     try {
-      await deleteWishlistItem(id);
+      const token = await getToken() ?? "";
+      await deleteWishlistItem(token, id);
       setItems(prev => prev.filter(i => i.id !== id));
       if (expanded === id) setExpanded(null);
     } catch (err: any) { setError(err.message); }
   }
 
-  if (fetching) return <main style={S.page}><p style={{ color: "#94A3B8", fontFamily: "system-ui" }}>Loading...</p></main>;
+  if (!isLoaded || fetching) return <main style={S.page}><p style={{ color: "#94A3B8", fontFamily: "system-ui" }}>Loading...</p></main>;
 
   return (
     <main style={S.page}>
@@ -84,7 +98,7 @@ export default function DashboardPage() {
           <h1 style={S.title}>BuyRight <span style={{ color: "#00F5D4" }}>AI</span></h1>
           <div style={{ display: "flex", gap: 10 }}>
             <Link href="/group-deals" style={S.navLink}>Group Deals</Link>
-            <button onClick={() => { logout(); router.push("/login"); }} style={S.ghostBtn}>Sign out</button>
+            <button onClick={() => signOut(() => router.push("/sign-in"))} style={S.ghostBtn}>Sign out</button>
           </div>
         </div>
 
@@ -106,7 +120,7 @@ export default function DashboardPage() {
           </form>
         </div>
 
-        {/* Wishlist */}
+        {/* Watchlist */}
         <div style={S.card}>
           <h2 style={S.cardTitle}>Your watchlist</h2>
           {items.length === 0 ? (
@@ -120,44 +134,23 @@ export default function DashboardPage() {
                     <div style={S.itemTop}>
                       <div style={S.itemLeft}>
                         <span style={S.itemName}>{item.name}</span>
-                        {v && (
-                          <span style={{ ...S.badge, color: v.color, background: v.bg }}>
-                            {v.label}
-                          </span>
-                        )}
-                        {!item.ai_verdict && (
-                          <span style={{ ...S.badge, color: "#94A3B8", background: "rgba(255,255,255,0.05)" }}>
-                            Analyzing...
-                          </span>
-                        )}
+                        {v && <span style={{ ...S.badge, color: v.color, background: v.bg }}>{v.label}</span>}
+                        {!item.ai_verdict && <span style={{ ...S.badge, color: "#94A3B8", background: "rgba(255,255,255,0.05)" }}>Analyzing...</span>}
                       </div>
                       <div style={S.itemRight}>
                         <span style={S.price}>${item.price.toFixed(2)}</span>
-                        {item.target_price && (
-                          <span style={S.targetPrice}>Target: ${item.target_price.toFixed(2)}</span>
-                        )}
+                        {item.target_price && <span style={S.targetPrice}>Target: ${item.target_price.toFixed(2)}</span>}
                         <a href={item.url} target="_blank" rel="noopener noreferrer" style={S.viewLink}>View →</a>
-                        <button onClick={() => loadHistory(item.id)} style={S.chartBtn}>
-                          {expanded === item.id ? "Hide chart" : "Price chart"}
-                        </button>
+                        <button onClick={() => loadHistory(item.id)} style={S.chartBtn}>{expanded === item.id ? "Hide chart" : "Price chart"}</button>
                         <button onClick={() => handleDelete(item.id)} style={S.deleteBtn}>Remove</button>
                       </div>
                     </div>
-
-                    {/* AI reasoning */}
-                    {item.ai_reasoning && (
-                      <p style={S.reasoning}>{item.ai_reasoning}</p>
-                    )}
-
-                    {/* Price chart */}
+                    {item.ai_reasoning && <p style={S.reasoning}>{item.ai_reasoning}</p>}
                     {expanded === item.id && item.history && item.history.length > 0 && (
                       <div style={{ marginTop: 16 }}>
                         <p style={{ ...S.cardSub, marginBottom: 8 }}>Price history</p>
                         <ResponsiveContainer width="100%" height={140}>
-                          <LineChart data={item.history.map(h => ({
-                            price: h.price,
-                            date: new Date(h.checked_at).toLocaleDateString(),
-                          }))}>
+                          <LineChart data={item.history.map(h => ({ price: h.price, date: new Date(h.checked_at).toLocaleDateString() }))}>
                             <XAxis dataKey="date" tick={{ fill: "#94A3B8", fontSize: 10 }} />
                             <YAxis tick={{ fill: "#94A3B8", fontSize: 10 }} domain={["auto", "auto"]} tickFormatter={v => `$${v}`} />
                             <Tooltip formatter={(v) => [`$${Number(v).toFixed(2)}`, "Price"]} contentStyle={{ background: "#0F1420", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }} />

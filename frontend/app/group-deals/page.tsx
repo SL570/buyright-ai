@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { logout } from "../../lib/api";
+import { useAuth, useClerk } from "@clerk/nextjs";
 
 interface GroupDeal {
   id: number; product_name: string; product_url: string;
@@ -15,21 +15,17 @@ interface GroupDeal {
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
-function authHeaders() {
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  return { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
-
 export default function GroupDealsPage() {
-  const router = useRouter();
+  const router                             = useRouter();
+  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { signOut }                        = useClerk();
+
   const [deals, setDeals]       = useState<GroupDeal[]>([]);
   const [fetching, setFetching] = useState(true);
   const [error, setError]       = useState("");
   const [copied, setCopied]     = useState<number | null>(null);
-  const [expanded, setExpanded] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  // Form state
   const [fName,    setFName]    = useState("");
   const [fUrl,     setFUrl]     = useState("");
   const [fCurrent, setFCurrent] = useState("");
@@ -39,28 +35,32 @@ export default function GroupDealsPage() {
   const [fLoading, setFLoading] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) { router.push("/login"); return; }
+    if (!isLoaded) return;
+    if (!isSignedIn) { router.push("/sign-in"); return; }
     fetchDeals();
-  }, [router]);
+  }, [isLoaded, isSignedIn, router]);
+
+  async function authHeaders() {
+    const token = await getToken() ?? "";
+    return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+  }
 
   async function fetchDeals() {
     try {
-      const res  = await fetch(`${BASE}/group-deals`, { headers: authHeaders() });
-      const data = await res.json();
+      const headers = await authHeaders();
+      const res     = await fetch(`${BASE}/group-deals`, { headers });
+      const data    = await res.json();
       if (!res.ok) throw new Error(data.detail || "Failed to load");
       setDeals(data);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setFetching(false);
-    }
+    } catch (e: any) { setError(e.message); }
+    finally { setFetching(false); }
   }
 
   async function handleJoin(id: number) {
     try {
-      const res  = await fetch(`${BASE}/group-deals/${id}/join`, { method: "POST", headers: authHeaders() });
-      const data = await res.json();
+      const headers = await authHeaders();
+      const res     = await fetch(`${BASE}/group-deals/${id}/join`, { method: "POST", headers });
+      const data    = await res.json();
       if (!res.ok) throw new Error(data.detail);
       setDeals(prev => prev.map(d => d.id === id ? data : d));
     } catch (e: any) { setError(e.message); }
@@ -68,7 +68,8 @@ export default function GroupDealsPage() {
 
   async function handleLeave(id: number) {
     try {
-      await fetch(`${BASE}/group-deals/${id}/leave`, { method: "POST", headers: authHeaders() });
+      const headers = await authHeaders();
+      await fetch(`${BASE}/group-deals/${id}/leave`, { method: "POST", headers });
       setDeals(prev => prev.map(d => d.id === id ? { ...d, is_member: false, member_count: d.member_count - 1 } : d));
     } catch (e: any) { setError(e.message); }
   }
@@ -77,8 +78,9 @@ export default function GroupDealsPage() {
     e.preventDefault();
     setFError(""); setFLoading(true);
     try {
-      const res  = await fetch(`${BASE}/group-deals`, {
-        method: "POST", headers: authHeaders(),
+      const headers = await authHeaders();
+      const res     = await fetch(`${BASE}/group-deals`, {
+        method: "POST", headers,
         body: JSON.stringify({ product_name: fName, product_url: fUrl, current_price: parseFloat(fCurrent), target_price: parseFloat(fTarget), target_members: parseInt(fMembers) }),
       });
       const data = await res.json();
@@ -96,22 +98,20 @@ export default function GroupDealsPage() {
     setTimeout(() => setCopied(null), 2000);
   }
 
-  if (fetching) return <main style={S.page}><p style={{ color: "#94A3B8", fontFamily: "system-ui" }}>Loading...</p></main>;
+  if (!isLoaded || fetching) return <main style={S.page}><p style={{ color: "#94A3B8", fontFamily: "system-ui" }}>Loading...</p></main>;
 
   return (
     <main style={S.page}>
       <div style={S.container}>
 
-        {/* Header */}
         <div style={S.header}>
           <h1 style={S.title}>BuyRight <span style={{ color: "#818CF8" }}>AI</span></h1>
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <Link href="/dashboard" style={S.navLink}>My Watchlist</Link>
-            <button onClick={() => { logout(); router.push("/login"); }} style={S.ghostBtn}>Sign out</button>
+            <button onClick={() => signOut(() => router.push("/sign-in"))} style={S.ghostBtn}>Sign out</button>
           </div>
         </div>
 
-        {/* Page title */}
         <div style={{ marginBottom: 24 }}>
           <h2 style={{ color: "#F1F5F9", fontSize: 20, fontWeight: 700, margin: "0 0 6px", fontFamily: "system-ui" }}>
             Collective Bargaining
@@ -123,23 +123,21 @@ export default function GroupDealsPage() {
 
         {error && <p style={S.error}>{error}</p>}
 
-        {/* Create deal button */}
         <div style={{ marginBottom: 16 }}>
           <button onClick={() => setShowForm(!showForm)} style={S.createBtn}>
             {showForm ? "Cancel" : "+ Start a group deal"}
           </button>
         </div>
 
-        {/* Create deal form */}
         {showForm && (
           <div style={S.card}>
             <h3 style={{ ...S.cardTitle, marginBottom: 16 }}>New group deal</h3>
             <form onSubmit={handleCreate} style={S.form}>
               <div style={S.row}>
-                <input type="text"   placeholder="Product name"     value={fName}    onChange={e => setFName(e.target.value)}    required style={{ ...S.input, flex: 1 }} />
-                <input type="number" placeholder="Current price"    value={fCurrent} onChange={e => setFCurrent(e.target.value)} required min="0.01" max="10000" step="0.01" style={{ ...S.input, width: 130 }} />
-                <input type="number" placeholder="Target price"     value={fTarget}  onChange={e => setFTarget(e.target.value)}  required min="0.01" max="10000" step="0.01" style={{ ...S.input, width: 130 }} />
-                <input type="number" placeholder="People needed"    value={fMembers} onChange={e => setFMembers(e.target.value)} required min="2"    max="100"         style={{ ...S.input, width: 120 }} />
+                <input type="text"   placeholder="Product name"  value={fName}    onChange={e => setFName(e.target.value)}    required style={{ ...S.input, flex: 1 }} />
+                <input type="number" placeholder="Current price" value={fCurrent} onChange={e => setFCurrent(e.target.value)} required min="0.01" max="10000" step="0.01" style={{ ...S.input, width: 130 }} />
+                <input type="number" placeholder="Target price"  value={fTarget}  onChange={e => setFTarget(e.target.value)}  required min="0.01" max="10000" step="0.01" style={{ ...S.input, width: 130 }} />
+                <input type="number" placeholder="People needed" value={fMembers} onChange={e => setFMembers(e.target.value)} required min="2"    max="100"         style={{ ...S.input, width: 120 }} />
               </div>
               <input type="url" placeholder="Product URL (amazon.com, walmart.com, bestbuy.com, target.com)" value={fUrl} onChange={e => setFUrl(e.target.value)} required style={S.input} />
               {fError && <p style={S.error}>{fError}</p>}
@@ -150,18 +148,16 @@ export default function GroupDealsPage() {
           </div>
         )}
 
-        {/* Deals list */}
         {deals.length === 0 ? (
           <div style={S.card}>
-            <p style={S.empty}>No group deals yet. Start one above and share the link with others who want the same product.</p>
+            <p style={S.empty}>No group deals yet. Start one above and share it with others who want the same product.</p>
           </div>
         ) : (
           <div style={S.list}>
             {deals.map(deal => {
-              const pct     = Math.round((deal.member_count / deal.target_members) * 100);
-              const savings = ((deal.current_price - deal.target_price) / deal.current_price * 100).toFixed(0);
-              const isActive  = deal.status === "active";
-              const isForming = deal.status === "forming";
+              const pct      = Math.round((deal.member_count / deal.target_members) * 100);
+              const savings  = ((deal.current_price - deal.target_price) / deal.current_price * 100).toFixed(0);
+              const isActive = deal.status === "active";
 
               return (
                 <div key={deal.id} style={{ ...S.card, borderColor: isActive ? "rgba(129,140,248,0.3)" : "rgba(255,255,255,0.08)" }}>
@@ -172,9 +168,7 @@ export default function GroupDealsPage() {
                         <span style={{ ...S.badge, ...(isActive ? S.badgeActive : S.badgeForming) }}>
                           {isActive ? "Deal Ready" : "Forming"}
                         </span>
-                        <span style={{ ...S.badge, background: "rgba(16,185,129,0.12)", color: "#10B981" }}>
-                          Save ~{savings}%
-                        </span>
+                        <span style={{ ...S.badge, background: "rgba(16,185,129,0.12)", color: "#10B981" }}>Save ~{savings}%</span>
                       </div>
                       <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
                         <span style={{ color: "#94A3B8", fontSize: 12, fontFamily: "system-ui" }}>
@@ -197,7 +191,6 @@ export default function GroupDealsPage() {
                     </div>
                   </div>
 
-                  {/* Progress bar */}
                   <div style={S.progressTrack}>
                     <div style={{ ...S.progressFill, width: `${Math.min(pct, 100)}%`, background: isActive ? "#818CF8" : "#00F5D4" }} />
                   </div>
@@ -205,13 +198,10 @@ export default function GroupDealsPage() {
                     {isActive ? "Target reached — negotiation script ready below" : `Need ${deal.target_members - deal.member_count} more to unlock the negotiation script`}
                   </p>
 
-                  {/* Negotiation script */}
                   {isActive && deal.negotiation_script && (
                     <div style={S.scriptBox}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                        <span style={{ color: "#818CF8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: "system-ui" }}>
-                          Negotiation script
-                        </span>
+                        <span style={{ color: "#818CF8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: "system-ui" }}>Negotiation script</span>
                         <button onClick={() => copyScript(deal.id, deal.negotiation_script!)} style={S.copyBtn}>
                           {copied === deal.id ? "Copied!" : "Copy"}
                         </button>
@@ -224,7 +214,6 @@ export default function GroupDealsPage() {
             })}
           </div>
         )}
-
       </div>
     </main>
   );
