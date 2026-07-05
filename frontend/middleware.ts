@@ -7,7 +7,7 @@ export default clerkMiddleware(async (auth, request) => {
   if (isProtected(request)) {
     const { userId } = await auth();
     if (!userId) {
-      const signInUrl = new URL("/sign-in", request.url);
+      const signInUrl = new URL("https://sincere-foal-87.accounts.dev/sign-in");
       signInUrl.searchParams.set("redirect_url", request.url);
       return NextResponse.redirect(signInUrl);
     }
