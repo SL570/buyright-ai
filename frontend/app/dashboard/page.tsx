@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import { useAuth, useClerk } from "@clerk/nextjs";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { getWishlist, addWishlistItem, deleteWishlistItem } from "../../lib/api";
 
@@ -26,10 +26,10 @@ const VERDICT_STYLE: Record<string, { label: string; color: string; bg: string }
 };
 
 export default function DashboardPage() {
-  const router             = useRouter();
-  const { isLoaded, isSignedIn, getToken } = useAuth();
-  const { signOut }        = useClerk();
+  const router = useRouter();
+  const { status } = useSession();
 
+  const [token, setToken]       = useState("");
   const [items, setItems]       = useState<WishlistItem[]>([]);
   const [name, setName]         = useState("");
   const [url, setUrl]           = useState("");
@@ -41,23 +41,24 @@ export default function DashboardPage() {
   const [expanded, setExpanded] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!isLoaded) return;
-    if (!isSignedIn) { router.push("/sign-in"); return; }
-    (async () => {
-      try {
-        const token = await getToken() ?? "";
-        const data  = await getWishlist(token);
-        setItems(data);
-      } catch { router.push("/sign-in"); }
-      finally  { setFetching(false); }
-    })();
-  }, [isLoaded, isSignedIn, router, getToken]);
+    if (status === "unauthenticated") { router.push("/sign-in"); return; }
+    if (status === "authenticated") {
+      fetch("/api/token")
+        .then(r => r.json())
+        .then(async d => {
+          setToken(d.token);
+          const data = await getWishlist(d.token);
+          setItems(data);
+        })
+        .catch(() => router.push("/sign-in"))
+        .finally(() => setFetching(false));
+    }
+  }, [status, router]);
 
   async function loadHistory(itemId: number) {
     if (expanded === itemId) { setExpanded(null); return; }
     try {
-      const token = await getToken() ?? "";
-      const res   = await fetch(`${BASE_URL}/wishlist/${itemId}/history`, {
+      const res = await fetch(`${BASE_URL}/wishlist/${itemId}/history`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const history: PricePoint[] = await res.json();
@@ -70,8 +71,7 @@ export default function DashboardPage() {
     e.preventDefault();
     setError(""); setLoading(true);
     try {
-      const token = await getToken() ?? "";
-      const item  = await addWishlistItem(token, name, url, parseFloat(price), target ? parseFloat(target) : undefined);
+      const item = await addWishlistItem(token, name, url, parseFloat(price), target ? parseFloat(target) : undefined);
       setItems(prev => [...prev, item]);
       setName(""); setUrl(""); setPrice(""); setTarget("");
     } catch (err: any) { setError(err.message); }
@@ -80,29 +80,26 @@ export default function DashboardPage() {
 
   async function handleDelete(id: number) {
     try {
-      const token = await getToken() ?? "";
       await deleteWishlistItem(token, id);
       setItems(prev => prev.filter(i => i.id !== id));
       if (expanded === id) setExpanded(null);
     } catch (err: any) { setError(err.message); }
   }
 
-  if (!isLoaded || fetching) return <main style={S.page}><p style={{ color: "#94A3B8", fontFamily: "system-ui" }}>Loading...</p></main>;
+  if (status === "loading" || fetching) return <main style={S.page}><p style={{ color: "#94A3B8", fontFamily: "system-ui" }}>Loading...</p></main>;
 
   return (
     <main style={S.page}>
       <div style={S.container}>
 
-        {/* Header */}
         <div style={S.header}>
           <h1 style={S.title}>BuyRight <span style={{ color: "#00F5D4" }}>AI</span></h1>
           <div style={{ display: "flex", gap: 10 }}>
             <Link href="/group-deals" style={S.navLink}>Group Deals</Link>
-            <button onClick={() => signOut(() => router.push("/sign-in"))} style={S.ghostBtn}>Sign out</button>
+            <button onClick={() => signOut({ callbackUrl: "/sign-in" })} style={S.ghostBtn}>Sign out</button>
           </div>
         </div>
 
-        {/* Add item */}
         <div style={S.card}>
           <h2 style={S.cardTitle}>Track a new item</h2>
           <p style={S.cardSub}>Supported: Amazon · Walmart · Best Buy · Target</p>
@@ -120,7 +117,6 @@ export default function DashboardPage() {
           </form>
         </div>
 
-        {/* Watchlist */}
         <div style={S.card}>
           <h2 style={S.cardTitle}>Your watchlist</h2>
           {items.length === 0 ? (

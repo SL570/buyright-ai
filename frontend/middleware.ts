@@ -1,22 +1,9 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { withAuth } from "next-auth/middleware";
 
-const isProtected = createRouteMatcher(["/dashboard(.*)", "/group-deals(.*)"]);
-
-export default clerkMiddleware(async (auth, request) => {
-  if (isProtected(request)) {
-    const { userId } = await auth();
-    if (!userId) {
-      const signInUrl = new URL("https://sincere-foal-87.accounts.dev/sign-in");
-      signInUrl.searchParams.set("redirect_url", request.url);
-      return NextResponse.redirect(signInUrl);
-    }
-  }
+export default withAuth({
+  pages: { signIn: "/sign-in" },
 });
 
 export const config = {
-  matcher: [
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    "/(api|trpc)(.*)",
-  ],
+  matcher: ["/dashboard/:path*", "/group-deals/:path*"],
 };

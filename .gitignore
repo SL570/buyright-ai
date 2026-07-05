@@ -1,3 +1,6 @@
 frontendcd/
 .DS_Store
 *.db
+
+.vercel
+.env*

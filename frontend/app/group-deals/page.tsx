@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import { useAuth, useClerk } from "@clerk/nextjs";
 
 interface GroupDeal {
   id: number; product_name: string; product_url: string;
@@ -16,10 +16,10 @@ interface GroupDeal {
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
 export default function GroupDealsPage() {
-  const router                             = useRouter();
-  const { isLoaded, isSignedIn, getToken } = useAuth();
-  const { signOut }                        = useClerk();
+  const router = useRouter();
+  const { status } = useSession();
 
+  const [token, setToken]       = useState("");
   const [deals, setDeals]       = useState<GroupDeal[]>([]);
   const [fetching, setFetching] = useState(true);
   const [error, setError]       = useState("");
@@ -35,32 +35,33 @@ export default function GroupDealsPage() {
   const [fLoading, setFLoading] = useState(false);
 
   useEffect(() => {
-    if (!isLoaded) return;
-    if (!isSignedIn) { router.push("/sign-in"); return; }
-    fetchDeals();
-  }, [isLoaded, isSignedIn, router]);
+    if (status === "unauthenticated") { router.push("/sign-in"); return; }
+    if (status === "authenticated") {
+      fetch("/api/token")
+        .then(r => r.json())
+        .then(d => { setToken(d.token); return fetchDeals(d.token); })
+        .catch(e => setError(e.message))
+        .finally(() => setFetching(false));
+    }
+  }, [status, router]);
 
-  async function authHeaders() {
-    const token = await getToken() ?? "";
-    return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+  async function authHeaders(t: string) {
+    return { "Content-Type": "application/json", Authorization: `Bearer ${t}` };
   }
 
-  async function fetchDeals() {
-    try {
-      const headers = await authHeaders();
-      const res     = await fetch(`${BASE}/group-deals`, { headers });
-      const data    = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Failed to load");
-      setDeals(data);
-    } catch (e: any) { setError(e.message); }
-    finally { setFetching(false); }
+  async function fetchDeals(t: string) {
+    const headers = await authHeaders(t);
+    const res = await fetch(`${BASE}/group-deals`, { headers });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Failed to load");
+    setDeals(data);
   }
 
   async function handleJoin(id: number) {
     try {
-      const headers = await authHeaders();
-      const res     = await fetch(`${BASE}/group-deals/${id}/join`, { method: "POST", headers });
-      const data    = await res.json();
+      const headers = await authHeaders(token);
+      const res = await fetch(`${BASE}/group-deals/${id}/join`, { method: "POST", headers });
+      const data = await res.json();
       if (!res.ok) throw new Error(data.detail);
       setDeals(prev => prev.map(d => d.id === id ? data : d));
     } catch (e: any) { setError(e.message); }
@@ -68,7 +69,7 @@ export default function GroupDealsPage() {
 
   async function handleLeave(id: number) {
     try {
-      const headers = await authHeaders();
+      const headers = await authHeaders(token);
       await fetch(`${BASE}/group-deals/${id}/leave`, { method: "POST", headers });
       setDeals(prev => prev.map(d => d.id === id ? { ...d, is_member: false, member_count: d.member_count - 1 } : d));
     } catch (e: any) { setError(e.message); }
@@ -78,8 +79,8 @@ export default function GroupDealsPage() {
     e.preventDefault();
     setFError(""); setFLoading(true);
     try {
-      const headers = await authHeaders();
-      const res     = await fetch(`${BASE}/group-deals`, {
+      const headers = await authHeaders(token);
+      const res = await fetch(`${BASE}/group-deals`, {
         method: "POST", headers,
         body: JSON.stringify({ product_name: fName, product_url: fUrl, current_price: parseFloat(fCurrent), target_price: parseFloat(fTarget), target_members: parseInt(fMembers) }),
       });
@@ -98,7 +99,7 @@ export default function GroupDealsPage() {
     setTimeout(() => setCopied(null), 2000);
   }
 
-  if (!isLoaded || fetching) return <main style={S.page}><p style={{ color: "#94A3B8", fontFamily: "system-ui" }}>Loading...</p></main>;
+  if (status === "loading" || fetching) return <main style={S.page}><p style={{ color: "#94A3B8", fontFamily: "system-ui" }}>Loading...</p></main>;
 
   return (
     <main style={S.page}>
@@ -108,14 +109,12 @@ export default function GroupDealsPage() {
           <h1 style={S.title}>BuyRight <span style={{ color: "#818CF8" }}>AI</span></h1>
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <Link href="/dashboard" style={S.navLink}>My Watchlist</Link>
-            <button onClick={() => signOut(() => router.push("/sign-in"))} style={S.ghostBtn}>Sign out</button>
+            <button onClick={() => signOut({ callbackUrl: "/sign-in" })} style={S.ghostBtn}>Sign out</button>
           </div>
         </div>
 
         <div style={{ marginBottom: 24 }}>
-          <h2 style={{ color: "#F1F5F9", fontSize: 20, fontWeight: 700, margin: "0 0 6px", fontFamily: "system-ui" }}>
-            Collective Bargaining
-          </h2>
+          <h2 style={{ color: "#F1F5F9", fontSize: 20, fontWeight: 700, margin: "0 0 6px", fontFamily: "system-ui" }}>Collective Bargaining</h2>
           <p style={{ color: "#94A3B8", fontSize: 13, margin: 0, fontFamily: "system-ui" }}>
             Pool buying power with other shoppers. When your group hits the target size, we generate a bulk discount request you can send to the retailer.
           </p>
@@ -155,19 +154,16 @@ export default function GroupDealsPage() {
         ) : (
           <div style={S.list}>
             {deals.map(deal => {
-              const pct      = Math.round((deal.member_count / deal.target_members) * 100);
-              const savings  = ((deal.current_price - deal.target_price) / deal.current_price * 100).toFixed(0);
+              const pct = Math.round((deal.member_count / deal.target_members) * 100);
+              const savings = ((deal.current_price - deal.target_price) / deal.current_price * 100).toFixed(0);
               const isActive = deal.status === "active";
-
               return (
                 <div key={deal.id} style={{ ...S.card, borderColor: isActive ? "rgba(129,140,248,0.3)" : "rgba(255,255,255,0.08)" }}>
                   <div style={S.dealTop}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                         <span style={S.dealName}>{deal.product_name}</span>
-                        <span style={{ ...S.badge, ...(isActive ? S.badgeActive : S.badgeForming) }}>
-                          {isActive ? "Deal Ready" : "Forming"}
-                        </span>
+                        <span style={{ ...S.badge, ...(isActive ? S.badgeActive : S.badgeForming) }}>{isActive ? "Deal Ready" : "Forming"}</span>
                         <span style={{ ...S.badge, background: "rgba(16,185,129,0.12)", color: "#10B981" }}>Save ~{savings}%</span>
                       </div>
                       <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
@@ -180,31 +176,24 @@ export default function GroupDealsPage() {
                       </div>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <p style={{ color: "#F1F5F9", fontSize: 13, fontWeight: 600, margin: "0 0 4px", fontFamily: "system-ui" }}>
-                        {deal.member_count} / {deal.target_members} joined
-                      </p>
-                      {!isActive && (
-                        deal.is_member
-                          ? <button onClick={() => handleLeave(deal.id)} style={S.leaveBtn}>Leave</button>
-                          : <button onClick={() => handleJoin(deal.id)}  style={S.joinBtn}>Join deal</button>
+                      <p style={{ color: "#F1F5F9", fontSize: 13, fontWeight: 600, margin: "0 0 4px", fontFamily: "system-ui" }}>{deal.member_count} / {deal.target_members} joined</p>
+                      {!isActive && (deal.is_member
+                        ? <button onClick={() => handleLeave(deal.id)} style={S.leaveBtn}>Leave</button>
+                        : <button onClick={() => handleJoin(deal.id)} style={S.joinBtn}>Join deal</button>
                       )}
                     </div>
                   </div>
-
                   <div style={S.progressTrack}>
                     <div style={{ ...S.progressFill, width: `${Math.min(pct, 100)}%`, background: isActive ? "#818CF8" : "#00F5D4" }} />
                   </div>
                   <p style={S.progressLabel}>
                     {isActive ? "Target reached — negotiation script ready below" : `Need ${deal.target_members - deal.member_count} more to unlock the negotiation script`}
                   </p>
-
                   {isActive && deal.negotiation_script && (
                     <div style={S.scriptBox}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                         <span style={{ color: "#818CF8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: "system-ui" }}>Negotiation script</span>
-                        <button onClick={() => copyScript(deal.id, deal.negotiation_script!)} style={S.copyBtn}>
-                          {copied === deal.id ? "Copied!" : "Copy"}
-                        </button>
+                        <button onClick={() => copyScript(deal.id, deal.negotiation_script!)} style={S.copyBtn}>{copied === deal.id ? "Copied!" : "Copy"}</button>
                       </div>
                       <p style={S.scriptText}>{deal.negotiation_script}</p>
                     </div>
