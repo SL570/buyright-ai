@@ -10,7 +10,13 @@ async function request(path: string, token: string, options: RequestInit = {}) {
     },
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || "Request failed");
+  if (!res.ok) {
+    const detail = data.detail;
+    const msg = Array.isArray(detail)
+      ? detail.map((e: any) => e.msg).join(", ")
+      : typeof detail === "string" ? detail : "Request failed";
+    throw new Error(msg);
+  }
   return data;
 }
 
