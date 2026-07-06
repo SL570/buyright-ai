@@ -45,11 +45,12 @@ def chat(req: ChatRequest, user=Depends(get_current_user)):
     try:
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
         response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model="claude-sonnet-4-6",
             max_tokens=600,
             system=SYSTEM_PROMPT,
             messages=[{"role": m.role, "content": m.content} for m in history],
         )
         return {"reply": response.content[0].text}
     except Exception as e:
-        raise HTTPException(status_code=500, detail="AI service unavailable. Try again.")
+        print(f"[CHAT ERROR] {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=f"AI error: {str(e)}")
