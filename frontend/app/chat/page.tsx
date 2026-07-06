@@ -62,7 +62,7 @@ export default function ChatPage() {
       if (!res.ok) throw new Error(data.detail || "Error");
       setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
     } catch (e: any) {
-      setMessages(prev => [...prev, { role: "assistant", content: "Sorry, I couldn't connect right now. Try again." }]);
+      setMessages(prev => [...prev, { role: "assistant", content: `Error: ${e.message || "Could not reach AI service. Try again."}` }]);
     } finally {
       setLoading(false);
     }
