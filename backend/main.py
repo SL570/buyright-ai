@@ -14,6 +14,7 @@ from database import engine, Base
 from routers import auth as auth_router
 from routers import wishlist as wishlist_router
 from routers import group_deals as group_deals_router
+from routers import chat as chat_router
 from tasks.price_monitor import check_prices
 
 load_dotenv()
@@ -49,6 +50,7 @@ app.add_middleware(
 app.include_router(auth_router.router)
 app.include_router(wishlist_router.router)
 app.include_router(group_deals_router.router)
+app.include_router(chat_router.router)
 
 
 @app.exception_handler(Exception)

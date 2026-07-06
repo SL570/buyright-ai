@@ -101,6 +101,7 @@ export default function DashboardPage() {
           <h1 style={S.title}>BuyRight <span style={{ color: "#00F5D4" }}>AI</span></h1>
           <div style={{ display: "flex", gap: 10 }}>
             <Link href="/group-deals" style={S.navLink}>Group Deals</Link>
+            <Link href="/chat" style={S.navLink}>AI Advisor</Link>
             <button onClick={() => signOut({ callbackUrl: "/sign-in" })} style={S.ghostBtn}>Sign out</button>
           </div>
         </div>
