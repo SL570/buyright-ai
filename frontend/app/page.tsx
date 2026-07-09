@@ -30,8 +30,8 @@ export default function Home() {
             <span style={{ color: "#00F5D4" }}>Buy right, every time.</span>
           </h1>
           <p style={S.sub}>
-            Track prices across Amazon, Walmart, Best Buy & Target. Get AI verdicts on
-            when to buy, wait, or negotiate — and pool buying power with others for group discounts.
+            Collective bargaining, AI-powered procurement, and post-purchase fulfillment —
+            the shopping intelligence layer between you and every retailer.
           </p>
           <div style={S.ctaRow}>
             <Link href="/sign-in" style={S.ctaBtn}>Get started free →</Link>
@@ -44,34 +44,34 @@ export default function Home() {
       <section style={S.features}>
         <div style={S.featureGrid}>
           <div style={S.card}>
-            <div style={{ ...S.icon, background: "rgba(0,245,212,0.1)", color: "#00F5D4" }}>📊</div>
-            <h3 style={S.cardTitle}>Price Tracking</h3>
+            <div style={{ ...S.icon, background: "rgba(129,140,248,0.1)", color: "#818CF8" }}>🤝</div>
+            <h3 style={S.cardTitle}>Collective Bargaining</h3>
             <p style={S.cardText}>
-              Add any product and we monitor the price 24/7. Get alerts the moment it drops below your target.
+              Pool buying power with other shoppers. When your group hits the target size, we generate a bulk discount negotiation script to send to the retailer.
             </p>
           </div>
 
           <div style={S.card}>
-            <div style={{ ...S.icon, background: "rgba(129,140,248,0.1)", color: "#818CF8" }}>🤖</div>
-            <h3 style={S.cardTitle}>AI Verdicts</h3>
+            <div style={{ ...S.icon, background: "rgba(0,245,212,0.1)", color: "#00F5D4" }}>🛒</div>
+            <h3 style={S.cardTitle}>Consumer Procurement</h3>
             <p style={S.cardText}>
-              Claude analyzes every item and tells you: Buy Now, Wait for a better price, or Negotiate with the seller.
+              Tell us what you need. We research options, compare prices across every retailer, negotiate, and handle the entire purchase process for you.
             </p>
           </div>
 
           <div style={S.card}>
-            <div style={{ ...S.icon, background: "rgba(251,191,36,0.1)", color: "#FBBF24" }}>🤝</div>
-            <h3 style={S.cardTitle}>Group Deals</h3>
+            <div style={{ ...S.icon, background: "rgba(248,113,113,0.1)", color: "#F87171" }}>📦</div>
+            <h3 style={S.cardTitle}>Fulfillment</h3>
             <p style={S.cardText}>
-              Pool buying power with other shoppers. When your group reaches the target size, we generate a bulk discount script.
+              Already bought something? We monitor price drops for refunds, handle returns, track late orders, and generate price match claims automatically.
             </p>
           </div>
 
           <div style={S.card}>
-            <div style={{ ...S.icon, background: "rgba(248,113,113,0.1)", color: "#F87171" }}>💬</div>
+            <div style={{ ...S.icon, background: "rgba(251,191,36,0.1)", color: "#FBBF24" }}>💬</div>
             <h3 style={S.cardTitle}>AI Advisor</h3>
             <p style={S.cardText}>
-              Ask our AI anything. "Is this a good deal?", "When do TVs go on sale?", "How do I negotiate a discount?" — answered instantly.
+              Ask our AI anything — deal timing, negotiation scripts, product comparisons. Real answers, not search results.
             </p>
           </div>
         </div>

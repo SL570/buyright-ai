@@ -106,7 +106,8 @@ export default function GroupDealsPage() {
         <div style={S.header}>
           <h1 style={S.title}>BuyRight <span style={{ color: "#818CF8" }}>AI</span></h1>
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <Link href="/dashboard" style={S.navLink}>My Watchlist</Link>
+            <Link href="/procurement" style={S.navLink}>Procurement</Link>
+            <Link href="/fulfillment" style={S.navLink}>Fulfillment</Link>
             <Link href="/chat" style={S.navLink}>AI Advisor</Link>
             <button onClick={() => signOut({ callbackUrl: "/sign-in" })} style={S.ghostBtn}>Sign out</button>
           </div>

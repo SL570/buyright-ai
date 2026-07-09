@@ -7,7 +7,7 @@ export default function SignInPage() {
 
   async function handleSignIn(provider: string) {
     setLoading(provider);
-    await signIn(provider, { callbackUrl: "/dashboard" });
+    await signIn(provider, { callbackUrl: "/procurement" });
   }
 
   return (

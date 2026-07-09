@@ -13,13 +13,13 @@ interface Message {
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
 const STARTERS = [
-  "Is $1,299 a good price for a MacBook Air M3?",
-  "When do TVs usually go on sale?",
-  "How do I negotiate a discount on a laptop?",
-  "Should I wait for Black Friday to buy a PS5?",
+  "I bought a Sony TV at Best Buy for $799 last week — check if I can get a price match",
+  "My Amazon order hasn't arrived and it's 5 days late — what do I do?",
+  "I want to return a laptop I bought 28 days ago from Best Buy",
+  "Track my order and alert me if the price drops so I can claim a refund",
 ];
 
-export default function ChatPage() {
+export default function FulfillmentPage() {
   const router = useRouter();
   const { status } = useSession();
 
@@ -53,7 +53,7 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${BASE}/chat`, {
+      const res = await fetch(`${BASE}/fulfillment`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ messages: next }),
@@ -62,7 +62,7 @@ export default function ChatPage() {
       if (!res.ok) throw new Error(data.detail || "Error");
       setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
     } catch (e: any) {
-      setMessages(prev => [...prev, { role: "assistant", content: `Error: ${e.message || "Could not reach AI service. Try again."}` }]);
+      setMessages(prev => [...prev, { role: "assistant", content: `Error: ${e.message}` }]);
     } finally {
       setLoading(false);
     }
@@ -74,28 +74,27 @@ export default function ChatPage() {
 
   return (
     <main style={S.page}>
-      {/* Header */}
       <div style={S.header}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Link href="/procurement" style={S.backLink}>Procurement</Link>
+          <Link href="/procurement" style={S.navLink}>Procurement</Link>
           <span style={S.divider}>|</span>
-          <Link href="/group-deals" style={S.backLink}>Group Deals</Link>
+          <Link href="/group-deals" style={S.navLink}>Group Deals</Link>
           <span style={S.divider}>|</span>
-          <Link href="/fulfillment" style={S.backLink}>Fulfillment</Link>
+          <Link href="/chat" style={S.navLink}>AI Advisor</Link>
         </div>
-        <span style={S.brand}>BuyRight <span style={{ color: "#818CF8" }}>AI</span></span>
+        <span style={S.brand}>BuyRight <span style={{ color: "#F87171" }}>AI</span></span>
         <button onClick={() => signOut({ callbackUrl: "/sign-in" })} style={S.ghostBtn}>Sign out</button>
       </div>
 
-      {/* Chat area */}
       <div style={S.chatWrap}>
         <div style={S.chatInner}>
-
           {messages.length === 0 && (
             <div style={S.emptyState}>
-              <div style={S.avatarLarge}>🤖</div>
-              <h2 style={S.emptyTitle}>AI Shopping Advisor</h2>
-              <p style={S.emptySub}>Ask me anything about a product, price timing, or negotiation strategy.</p>
+              <div style={S.avatarLarge}>📦</div>
+              <h2 style={S.emptyTitle}>Fulfillment & Post-Purchase</h2>
+              <p style={S.emptySub}>
+                Already bought something? I monitor price drops for refunds, handle returns, track late orders, and generate price match claims — so you never leave money on the table.
+              </p>
               <div style={S.starters}>
                 {STARTERS.map(s => (
                   <button key={s} onClick={() => send(s)} style={S.starterBtn}>{s}</button>
@@ -106,7 +105,7 @@ export default function ChatPage() {
 
           {messages.map((m, i) => (
             <div key={i} style={{ ...S.msgRow, justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
-              {m.role === "assistant" && <div style={S.avatar}>🤖</div>}
+              {m.role === "assistant" && <div style={S.avatar}>📦</div>}
               <div style={m.role === "user" ? S.userBubble : S.aiBubble}>
                 {m.content}
               </div>
@@ -115,7 +114,7 @@ export default function ChatPage() {
 
           {loading && (
             <div style={{ ...S.msgRow, justifyContent: "flex-start" }}>
-              <div style={S.avatar}>🤖</div>
+              <div style={S.avatar}>📦</div>
               <div style={{ ...S.aiBubble, ...S.typing }}>
                 <span style={S.dot} />
                 <span style={{ ...S.dot, animationDelay: "0.2s" }} />
@@ -128,7 +127,6 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Input */}
       <div style={S.inputArea}>
         <div style={S.inputRow}>
           <input
@@ -136,14 +134,14 @@ export default function ChatPage() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-            placeholder="Ask about any product, price, or deal..."
+            placeholder="Describe your order, return, or price match situation..."
             disabled={loading}
           />
           <button onClick={() => send()} disabled={loading || !input.trim()} style={S.sendBtn}>
             Send
           </button>
         </div>
-        <p style={S.hint}>Powered by Claude · Press Enter to send</p>
+        <p style={S.hint}>Powered by Claude · Price match claims, returns, late orders, refunds</p>
       </div>
 
       <style>{`
@@ -160,7 +158,7 @@ const S: Record<string, React.CSSProperties> = {
   page:       { height: "100vh", background: "#0B0F19", display: "flex", flexDirection: "column", fontFamily: "system-ui", overflow: "hidden" },
   header:     { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 24px", borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 },
   brand:      { color: "#F1F5F9", fontSize: 16, fontWeight: 700 },
-  backLink:   { color: "#94A3B8", fontSize: 13, textDecoration: "none" },
+  navLink:    { color: "#94A3B8", fontSize: 13, textDecoration: "none" },
   divider:    { color: "#334155", fontSize: 13 },
   ghostBtn:   { background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#94A3B8", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 13 },
   chatWrap:   { flex: 1, overflowY: "auto", padding: "24px 16px 0" },
@@ -168,18 +166,18 @@ const S: Record<string, React.CSSProperties> = {
   emptyState: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingTop: 60, gap: 12 },
   avatarLarge:{ fontSize: 48, marginBottom: 8 },
   emptyTitle: { color: "#F1F5F9", fontSize: 22, fontWeight: 700, margin: 0 },
-  emptySub:   { color: "#94A3B8", fontSize: 14, margin: 0, textAlign: "center", maxWidth: 400, lineHeight: 1.6 },
+  emptySub:   { color: "#94A3B8", fontSize: 14, margin: 0, textAlign: "center", maxWidth: 460, lineHeight: 1.6 },
   starters:   { display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginTop: 8 },
   starterBtn: { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "#94A3B8", borderRadius: 99, padding: "8px 16px", fontSize: 12, cursor: "pointer" },
   msgRow:     { display: "flex", gap: 10, alignItems: "flex-end" },
-  avatar:     { width: 30, height: 30, borderRadius: "50%", background: "rgba(129,140,248,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 },
+  avatar:     { width: 30, height: 30, borderRadius: "50%", background: "rgba(248,113,113,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 },
   userBubble: { background: "#1E293B", color: "#F1F5F9", borderRadius: "16px 16px 4px 16px", padding: "12px 16px", fontSize: 14, lineHeight: 1.6, maxWidth: "75%", whiteSpace: "pre-wrap" },
-  aiBubble:   { background: "rgba(129,140,248,0.08)", border: "1px solid rgba(129,140,248,0.15)", color: "#E2E8F0", borderRadius: "16px 16px 16px 4px", padding: "12px 16px", fontSize: 14, lineHeight: 1.7, maxWidth: "75%", whiteSpace: "pre-wrap" },
+  aiBubble:   { background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.15)", color: "#E2E8F0", borderRadius: "16px 16px 16px 4px", padding: "12px 16px", fontSize: 14, lineHeight: 1.7, maxWidth: "75%", whiteSpace: "pre-wrap" },
   typing:     { display: "flex", gap: 4, alignItems: "center", padding: "14px 18px" },
-  dot:        { width: 7, height: 7, borderRadius: "50%", background: "#818CF8", display: "inline-block", animation: "blink 1.2s infinite" },
+  dot:        { width: 7, height: 7, borderRadius: "50%", background: "#F87171", display: "inline-block", animation: "blink 1.2s infinite" },
   inputArea:  { flexShrink: 0, padding: "12px 16px 16px", borderTop: "1px solid rgba(255,255,255,0.07)" },
   inputRow:   { maxWidth: 700, margin: "0 auto", display: "flex", gap: 10 },
   input:      { flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "12px 16px", color: "#F1F5F9", fontSize: 14, outline: "none" },
-  sendBtn:    { background: "#818CF8", color: "#fff", border: "none", borderRadius: 10, padding: "12px 22px", fontWeight: 700, fontSize: 14, cursor: "pointer" },
+  sendBtn:    { background: "#F87171", color: "#fff", border: "none", borderRadius: 10, padding: "12px 22px", fontWeight: 700, fontSize: 14, cursor: "pointer" },
   hint:       { color: "#334155", fontSize: 11, textAlign: "center", margin: "6px 0 0" },
 };
