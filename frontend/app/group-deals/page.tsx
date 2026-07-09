@@ -23,7 +23,6 @@ export default function GroupDealsPage() {
   const [deals, setDeals]       = useState<GroupDeal[]>([]);
   const [fetching, setFetching] = useState(true);
   const [error, setError]       = useState("");
-  const [copied, setCopied]     = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
 
   const [fName,    setFName]    = useState("");
@@ -97,11 +96,6 @@ export default function GroupDealsPage() {
     finally { setFLoading(false); }
   }
 
-  function copyScript(id: number, script: string) {
-    navigator.clipboard.writeText(script);
-    setCopied(id);
-    setTimeout(() => setCopied(null), 2000);
-  }
 
   if (status === "loading" || fetching) return <main style={S.page}><p style={{ color: "#94A3B8", fontFamily: "system-ui" }}>Loading...</p></main>;
 
@@ -196,9 +190,8 @@ export default function GroupDealsPage() {
                   </p>
                   {isActive && deal.negotiation_script && (
                     <div style={S.scriptBox}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <div style={{ marginBottom: 8 }}>
                         <span style={{ color: "#818CF8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: "system-ui" }}>Negotiation script</span>
-                        <button onClick={() => copyScript(deal.id, deal.negotiation_script!)} style={S.copyBtn}>{copied === deal.id ? "Copied!" : "Copy"}</button>
                       </div>
                       <p style={S.scriptText}>{deal.negotiation_script}</p>
                     </div>
@@ -243,5 +236,4 @@ const S: Record<string, React.CSSProperties> = {
   progressLabel: { color: "#94A3B8", fontSize: 11, margin: 0 },
   scriptBox:     { marginTop: 14, background: "rgba(129,140,248,0.06)", border: "1px solid rgba(129,140,248,0.2)", borderRadius: 10, padding: "14px 16px" },
   scriptText:    { color: "#D1D5DB", fontSize: 13, lineHeight: 1.65, margin: 0, whiteSpace: "pre-wrap" },
-  copyBtn:       { background: "#818CF8", color: "#fff", border: "none", borderRadius: 6, padding: "4px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" },
 };
