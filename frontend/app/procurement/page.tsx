@@ -27,7 +27,9 @@ export default function ProcurementPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [listening, setListening] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const recogRef = useRef<any>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/sign-in"); return; }
@@ -42,6 +44,19 @@ export default function ProcurementPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  function startVoice() {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { alert("Voice input not supported. Try Chrome."); return; }
+    const r = new SR();
+    recogRef.current = r;
+    r.continuous = false; r.interimResults = false; r.lang = "en-US";
+    r.onstart = () => setListening(true);
+    r.onend = () => setListening(false);
+    r.onresult = (e: any) => setInput(e.results[0][0].transcript);
+    r.onerror = () => setListening(false);
+    r.start();
+  }
 
   async function send(text?: string) {
     const userText = (text ?? input).trim();
@@ -129,19 +144,18 @@ export default function ProcurementPage() {
 
       <div style={S.inputArea}>
         <div style={S.inputRow}>
+          <button onClick={startVoice} style={{ ...S.micBtn, background: listening ? "rgba(0,245,212,0.3)" : "rgba(255,255,255,0.05)" }} title="Voice input">🎤</button>
           <input
             style={S.input}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-            placeholder="What do you need to buy? Include budget and timeline..."
+            placeholder={listening ? "Listening..." : "What do you need to buy? Include budget and timeline..."}
             disabled={loading}
           />
-          <button onClick={() => send()} disabled={loading || !input.trim()} style={S.sendBtn}>
-            Send
-          </button>
+          <button onClick={() => send()} disabled={loading || !input.trim()} style={S.sendBtn}>Send</button>
         </div>
-        <p style={S.hint}>Powered by Claude · I'll research, compare, and negotiate on your behalf</p>
+        <p style={S.hint}>Press 🎤 to speak · Powered by Claude</p>
       </div>
 
       <style>{`
@@ -178,6 +192,7 @@ const S: Record<string, React.CSSProperties> = {
   inputArea:  { flexShrink: 0, padding: "12px 16px 16px", borderTop: "1px solid rgba(255,255,255,0.07)" },
   inputRow:   { maxWidth: 700, margin: "0 auto", display: "flex", gap: 10 },
   input:      { flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "12px 16px", color: "#F1F5F9", fontSize: 14, outline: "none" },
+  micBtn:     { border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "0 14px", fontSize: 18, cursor: "pointer", flexShrink: 0 },
   sendBtn:    { background: "#00F5D4", color: "#0B0F19", border: "none", borderRadius: 10, padding: "12px 22px", fontWeight: 700, fontSize: 14, cursor: "pointer" },
   hint:       { color: "#334155", fontSize: 11, textAlign: "center", margin: "6px 0 0" },
 };

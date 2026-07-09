@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
+import os
+import anthropic
+from pydantic import BaseModel
 
 from database import get_db
 from models import User, GroupDeal, GroupDealMember
@@ -162,3 +165,51 @@ def leave_deal(
         raise HTTPException(status_code=404, detail="Not a member of this deal")
     db.delete(membership)
     db.commit()
+
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+class GroupChatRequest(BaseModel):
+    messages: List[ChatMessage]
+
+GROUP_DEAL_PROMPT = """You are BuyRight AI's Collective Bargaining Agent.
+
+You help users organize group buying deals to get bulk discounts from retailers.
+
+Your role:
+1. Help users understand how collective bargaining works
+2. Guide them on what product to group buy and at what price target
+3. Explain how many people are typically needed for a bulk discount (usually 5-20+)
+4. Generate professional bulk discount request scripts they can send to retailers
+5. Advise on which retailers are most open to bulk negotiations (Costco, B2B portals, smaller retailers)
+6. Explain negotiation tactics for group deals
+
+Key facts to share:
+- Most retailers will offer 10-30% off for bulk orders of 5+ units
+- Best Buy, Costco, and Sam's Club have formal bulk buying programs
+- Email is better than calling for bulk requests
+- Group deal requests should emphasize committed buyers, not "interested" people
+
+Be conversational, practical, and generate actual negotiation scripts when asked.
+When a user describes their group deal, help them structure it and give them the exact script to use."""
+
+
+@router.post("/chat")
+def group_chat(req: GroupChatRequest, user: User = Depends(get_current_user)):
+    if not req.messages:
+        raise HTTPException(status_code=400, detail="No messages provided")
+    history = req.messages[-20:]
+    try:
+        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=700,
+            system=GROUP_DEAL_PROMPT,
+            messages=[{"role": m.role, "content": m.content} for m in history],
+        )
+        return {"reply": response.content[0].text}
+    except Exception as e:
+        print(f"[GROUP CHAT ERROR] {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=f"AI error: {str(e)}")

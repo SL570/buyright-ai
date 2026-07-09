@@ -1,240 +1,200 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 
-interface GroupDeal {
-  id: number; product_name: string; product_url: string;
-  current_price: number; target_price: number; target_members: number;
-  status: string; negotiation_script: string | null;
-  created_by: number; created_at: string;
-  member_count: number; is_member: boolean;
+interface Message {
+  role: "user" | "assistant";
+  content: string;
 }
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+
+const STARTERS = [
+  "I want to get a group deal on a PS5 — how many people do I need?",
+  "Can we group buy a Dyson V15 vacuum and get a discount?",
+  "Start a group deal for MacBook Air M3 at $999 target price",
+  "How does collective bargaining work for electronics?",
+];
 
 export default function GroupDealsPage() {
   const router = useRouter();
   const { status } = useSession();
 
-  const [token, setToken]       = useState("");
-  const [deals, setDeals]       = useState<GroupDeal[]>([]);
-  const [fetching, setFetching] = useState(true);
-  const [error, setError]       = useState("");
-  const [showForm, setShowForm] = useState(false);
-
-  const [fName,    setFName]    = useState("");
-  const [fUrl,     setFUrl]     = useState("");
-  const [fCurrent, setFCurrent] = useState("");
-  const [fTarget,  setFTarget]  = useState("");
-  const [fMembers, setFMembers] = useState("5");
-  const [fError,   setFError]   = useState("");
-  const [fLoading, setFLoading] = useState(false);
+  const [token, setToken] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [listening, setListening] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const recogRef = useRef<any>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/sign-in"); return; }
     if (status === "authenticated") {
       fetch("/api/token")
         .then(r => r.json())
-        .then(async d => {
-          if (!d.token) { router.push("/sign-in"); return; }
-          setToken(d.token);
-          try { await fetchDeals(d.token); } catch (e: any) { setError(e.message); }
-        })
-        .catch(e => setError(e.message))
-        .finally(() => setFetching(false));
+        .then(d => { if (d.token) setToken(d.token); else router.push("/sign-in"); })
+        .catch(() => router.push("/sign-in"));
     }
   }, [status, router]);
 
-  async function authHeaders(t: string) {
-    return { "Content-Type": "application/json", Authorization: `Bearer ${t}` };
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  function startVoice() {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { alert("Voice input not supported in this browser. Try Chrome."); return; }
+    const r = new SR();
+    recogRef.current = r;
+    r.continuous = false;
+    r.interimResults = false;
+    r.lang = "en-US";
+    r.onstart = () => setListening(true);
+    r.onend = () => setListening(false);
+    r.onresult = (e: any) => {
+      const transcript = e.results[0][0].transcript;
+      setInput(transcript);
+    };
+    r.onerror = () => setListening(false);
+    r.start();
   }
 
-  async function fetchDeals(t: string) {
-    const headers = await authHeaders(t);
-    const res = await fetch(`${BASE}/group-deals`, { headers });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || "Failed to load");
-    setDeals(data);
-  }
-
-  async function handleJoin(id: number) {
+  async function send(text?: string) {
+    const userText = (text ?? input).trim();
+    if (!userText || loading) return;
+    setInput("");
+    const next: Message[] = [...messages, { role: "user", content: userText }];
+    setMessages(next);
+    setLoading(true);
     try {
-      const headers = await authHeaders(token);
-      const res = await fetch(`${BASE}/group-deals/${id}/join`, { method: "POST", headers });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail);
-      setDeals(prev => prev.map(d => d.id === id ? data : d));
-    } catch (e: any) { setError(e.message); }
-  }
-
-  async function handleLeave(id: number) {
-    try {
-      const headers = await authHeaders(token);
-      await fetch(`${BASE}/group-deals/${id}/leave`, { method: "POST", headers });
-      setDeals(prev => prev.map(d => d.id === id ? { ...d, is_member: false, member_count: d.member_count - 1 } : d));
-    } catch (e: any) { setError(e.message); }
-  }
-
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    setFError(""); setFLoading(true);
-    try {
-      const headers = await authHeaders(token);
-      const res = await fetch(`${BASE}/group-deals`, {
-        method: "POST", headers,
-        body: JSON.stringify({ product_name: fName, product_url: fUrl, current_price: parseFloat(fCurrent), target_price: parseFloat(fTarget), target_members: parseInt(fMembers) }),
+      const res = await fetch(`${BASE}/group-deals/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ messages: next }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || JSON.stringify(data));
-      setDeals(prev => [data, ...prev]);
-      setFName(""); setFUrl(""); setFCurrent(""); setFTarget(""); setFMembers("5");
-      setShowForm(false);
-    } catch (e: any) { setFError(e.message); }
-    finally { setFLoading(false); }
+      if (!res.ok) throw new Error(data.detail || "Error");
+      setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
+    } catch (e: any) {
+      setMessages(prev => [...prev, { role: "assistant", content: `Error: ${e.message}` }]);
+    } finally {
+      setLoading(false);
+    }
   }
 
-
-  if (status === "loading" || fetching) return <main style={S.page}><p style={{ color: "#94A3B8", fontFamily: "system-ui" }}>Loading...</p></main>;
+  if (status === "loading" || !token) {
+    return <main style={S.page}><p style={{ color: "#94A3B8" }}>Loading...</p></main>;
+  }
 
   return (
     <main style={S.page}>
-      <div style={S.container}>
-
-        <div style={S.header}>
-          <h1 style={S.title}>BuyRight <span style={{ color: "#818CF8" }}>AI</span></h1>
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <Link href="/procurement" style={S.navLink}>Procurement</Link>
-            <Link href="/fulfillment" style={S.navLink}>Fulfillment</Link>
-            <Link href="/chat" style={S.navLink}>AI Advisor</Link>
-            <button onClick={() => signOut({ callbackUrl: "/sign-in" })} style={S.ghostBtn}>Sign out</button>
-          </div>
+      <div style={S.header}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Link href="/procurement" style={S.navLink}>Procurement</Link>
+          <span style={S.divider}>|</span>
+          <Link href="/fulfillment" style={S.navLink}>Fulfillment</Link>
+          <span style={S.divider}>|</span>
+          <Link href="/chat" style={S.navLink}>AI Advisor</Link>
         </div>
-
-        <div style={{ marginBottom: 24 }}>
-          <h2 style={{ color: "#F1F5F9", fontSize: 20, fontWeight: 700, margin: "0 0 6px", fontFamily: "system-ui" }}>Collective Bargaining</h2>
-          <p style={{ color: "#94A3B8", fontSize: 13, margin: 0, fontFamily: "system-ui" }}>
-            Pool buying power with other shoppers. When your group hits the target size, we generate a bulk discount request you can send to the retailer.
-          </p>
-        </div>
-
-        {error && <p style={S.error}>{error}</p>}
-
-        <div style={{ marginBottom: 16 }}>
-          <button onClick={() => setShowForm(!showForm)} style={S.createBtn}>
-            {showForm ? "Cancel" : "+ Start a group deal"}
-          </button>
-        </div>
-
-        {showForm && (
-          <div style={S.card}>
-            <h3 style={{ ...S.cardTitle, marginBottom: 16 }}>New group deal</h3>
-            <form onSubmit={handleCreate} style={S.form}>
-              <div style={S.row}>
-                <input type="text"   placeholder="Product name"  value={fName}    onChange={e => setFName(e.target.value)}    required style={{ ...S.input, flex: 1 }} />
-                <input type="number" placeholder="Current price" value={fCurrent} onChange={e => setFCurrent(e.target.value)} required min="0.01" max="10000" step="0.01" style={{ ...S.input, width: 130 }} />
-                <input type="number" placeholder="Target price"  value={fTarget}  onChange={e => setFTarget(e.target.value)}  required min="0.01" max="10000" step="0.01" style={{ ...S.input, width: 130 }} />
-                <input type="number" placeholder="People needed" value={fMembers} onChange={e => setFMembers(e.target.value)} required min="2"    max="100"         style={{ ...S.input, width: 120 }} />
-              </div>
-              <input type="url" placeholder="Product URL (amazon.com, walmart.com, bestbuy.com, target.com)" value={fUrl} onChange={e => setFUrl(e.target.value)} required style={S.input} />
-              {fError && <p style={S.error}>{fError}</p>}
-              <button type="submit" disabled={fLoading} style={S.addBtn}>
-                {fLoading ? "Creating..." : "Create group deal"}
-              </button>
-            </form>
-          </div>
-        )}
-
-        {deals.length === 0 ? (
-          <div style={S.card}>
-            <p style={S.empty}>No group deals yet. Start one above and share it with others who want the same product.</p>
-          </div>
-        ) : (
-          <div style={S.list}>
-            {deals.map(deal => {
-              const pct = Math.round((deal.member_count / deal.target_members) * 100);
-              const savings = ((deal.current_price - deal.target_price) / deal.current_price * 100).toFixed(0);
-              const isActive = deal.status === "active";
-              return (
-                <div key={deal.id} style={{ ...S.card, borderColor: isActive ? "rgba(129,140,248,0.3)" : "rgba(255,255,255,0.08)" }}>
-                  <div style={S.dealTop}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                        <span style={S.dealName}>{deal.product_name}</span>
-                        <span style={{ ...S.badge, ...(isActive ? S.badgeActive : S.badgeForming) }}>{isActive ? "Deal Ready" : "Forming"}</span>
-                        <span style={{ ...S.badge, background: "rgba(16,185,129,0.12)", color: "#10B981" }}>Save ~{savings}%</span>
-                      </div>
-                      <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-                        <span style={{ color: "#94A3B8", fontSize: 12, fontFamily: "system-ui" }}>
-                          Currently <span style={{ color: "#F87171", textDecoration: "line-through", fontFamily: "monospace" }}>${deal.current_price.toFixed(2)}</span>
-                          {" → "}
-                          <span style={{ color: "#10B981", fontFamily: "monospace", fontWeight: 700 }}>${deal.target_price.toFixed(2)}</span>
-                        </span>
-                        <a href={deal.product_url} target="_blank" rel="noopener noreferrer" style={S.viewLink}>View product →</a>
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <p style={{ color: "#F1F5F9", fontSize: 13, fontWeight: 600, margin: "0 0 4px", fontFamily: "system-ui" }}>{deal.member_count} / {deal.target_members} joined</p>
-                      {!isActive && (deal.is_member
-                        ? <button onClick={() => handleLeave(deal.id)} style={S.leaveBtn}>Leave</button>
-                        : <button onClick={() => handleJoin(deal.id)} style={S.joinBtn}>Join deal</button>
-                      )}
-                    </div>
-                  </div>
-                  <div style={S.progressTrack}>
-                    <div style={{ ...S.progressFill, width: `${Math.min(pct, 100)}%`, background: isActive ? "#818CF8" : "#00F5D4" }} />
-                  </div>
-                  <p style={S.progressLabel}>
-                    {isActive ? "Target reached — negotiation script ready below" : `Need ${deal.target_members - deal.member_count} more to unlock the negotiation script`}
-                  </p>
-                  {isActive && deal.negotiation_script && (
-                    <div style={S.scriptBox}>
-                      <div style={{ marginBottom: 8 }}>
-                        <span style={{ color: "#818CF8", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: "system-ui" }}>Negotiation script</span>
-                      </div>
-                      <p style={S.scriptText}>{deal.negotiation_script}</p>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <span style={S.brand}>BuyRight <span style={{ color: "#818CF8" }}>AI</span></span>
+        <button onClick={() => signOut({ callbackUrl: "/sign-in" })} style={S.ghostBtn}>Sign out</button>
       </div>
+
+      <div style={S.chatWrap}>
+        <div style={S.chatInner}>
+          {messages.length === 0 && (
+            <div style={S.emptyState}>
+              <div style={S.avatarLarge}>🤝</div>
+              <h2 style={S.emptyTitle}>Collective Bargaining</h2>
+              <p style={S.emptySub}>
+                Tell me what you want to buy as a group. I'll help you pool buying power, set a target price, and generate a bulk discount request to send to the retailer.
+              </p>
+              <div style={S.starters}>
+                {STARTERS.map(s => (
+                  <button key={s} onClick={() => send(s)} style={S.starterBtn}>{s}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {messages.map((m, i) => (
+            <div key={i} style={{ ...S.msgRow, justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
+              {m.role === "assistant" && <div style={S.avatar}>🤝</div>}
+              <div style={m.role === "user" ? S.userBubble : S.aiBubble}>
+                {m.content}
+              </div>
+            </div>
+          ))}
+
+          {loading && (
+            <div style={{ ...S.msgRow, justifyContent: "flex-start" }}>
+              <div style={S.avatar}>🤝</div>
+              <div style={{ ...S.aiBubble, ...S.typing }}>
+                <span style={S.dot} /><span style={{ ...S.dot, animationDelay: "0.2s" }} /><span style={{ ...S.dot, animationDelay: "0.4s" }} />
+              </div>
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+      </div>
+
+      <div style={S.inputArea}>
+        <div style={S.inputRow}>
+          <button onClick={startVoice} style={{ ...S.micBtn, background: listening ? "rgba(129,140,248,0.3)" : "rgba(255,255,255,0.05)" }} title="Voice input">
+            🎤
+          </button>
+          <input
+            style={S.input}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+            placeholder={listening ? "Listening..." : "Describe what you want to group buy..."}
+            disabled={loading}
+          />
+          <button onClick={() => send()} disabled={loading || !input.trim()} style={S.sendBtn}>Send</button>
+        </div>
+        <p style={S.hint}>Press 🎤 to speak · Powered by Claude</p>
+      </div>
+
+      <style>{`
+        @keyframes blink {
+          0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+          40% { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
     </main>
   );
 }
 
 const S: Record<string, React.CSSProperties> = {
-  page:          { minHeight: "100vh", background: "#0B0F19", padding: "0 16px 40px", fontFamily: "system-ui" },
-  container:     { maxWidth: 760, margin: "0 auto", paddingTop: 32 },
-  header:        { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 },
-  title:         { color: "#F1F5F9", fontSize: 22, fontWeight: 700, margin: 0 },
-  navLink:       { color: "#94A3B8", fontSize: 13, textDecoration: "none", padding: "6px 14px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8 },
-  ghostBtn:      { background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#94A3B8", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 13 },
-  card:          { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: "20px 24px", marginBottom: 12 },
-  cardTitle:     { color: "#F1F5F9", fontSize: 15, fontWeight: 600, margin: 0 },
-  form:          { display: "flex", flexDirection: "column", gap: 10 },
-  row:           { display: "flex", gap: 10, flexWrap: "wrap" },
-  input:         { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "10px 14px", color: "#F1F5F9", fontSize: 14, outline: "none" },
-  error:         { color: "#F87171", fontSize: 13, margin: "0 0 8px" },
-  addBtn:        { background: "#818CF8", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer", alignSelf: "flex-start" },
-  createBtn:     { background: "rgba(129,140,248,0.12)", color: "#818CF8", border: "1px solid rgba(129,140,248,0.3)", borderRadius: 8, padding: "9px 18px", fontWeight: 600, fontSize: 13, cursor: "pointer" },
-  empty:         { color: "#94A3B8", fontSize: 14, margin: 0 },
-  list:          { display: "flex", flexDirection: "column" },
-  dealTop:       { display: "flex", gap: 16, marginBottom: 14 },
-  dealName:      { color: "#F1F5F9", fontSize: 15, fontWeight: 600 },
-  badge:         { fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99, textTransform: "uppercase" as const, letterSpacing: "0.5px" },
-  badgeActive:   { background: "rgba(129,140,248,0.15)", color: "#818CF8" },
-  badgeForming:  { background: "rgba(251,191,36,0.12)", color: "#FBBF24" },
-  viewLink:      { color: "#818CF8", fontSize: 12, textDecoration: "none" },
-  joinBtn:       { background: "#818CF8", color: "#fff", border: "none", borderRadius: 8, padding: "7px 16px", fontWeight: 600, fontSize: 12, cursor: "pointer" },
-  leaveBtn:      { background: "transparent", border: "1px solid rgba(255,255,255,0.15)", color: "#94A3B8", borderRadius: 8, padding: "7px 16px", fontSize: 12, cursor: "pointer" },
-  progressTrack: { height: 5, background: "rgba(255,255,255,0.06)", borderRadius: 99, overflow: "hidden", marginBottom: 6 },
-  progressFill:  { height: "100%", borderRadius: 99, transition: "width 0.4s ease" },
-  progressLabel: { color: "#94A3B8", fontSize: 11, margin: 0 },
-  scriptBox:     { marginTop: 14, background: "rgba(129,140,248,0.06)", border: "1px solid rgba(129,140,248,0.2)", borderRadius: 10, padding: "14px 16px" },
-  scriptText:    { color: "#D1D5DB", fontSize: 13, lineHeight: 1.65, margin: 0, whiteSpace: "pre-wrap" },
+  page:       { height: "100vh", background: "#0B0F19", display: "flex", flexDirection: "column", fontFamily: "system-ui", overflow: "hidden" },
+  header:     { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 24px", borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 },
+  brand:      { color: "#F1F5F9", fontSize: 16, fontWeight: 700 },
+  navLink:    { color: "#94A3B8", fontSize: 13, textDecoration: "none" },
+  divider:    { color: "#334155", fontSize: 13 },
+  ghostBtn:   { background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#94A3B8", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 13 },
+  chatWrap:   { flex: 1, overflowY: "auto", padding: "24px 16px 0" },
+  chatInner:  { maxWidth: 700, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16, paddingBottom: 16 },
+  emptyState: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingTop: 60, gap: 12 },
+  avatarLarge:{ fontSize: 48, marginBottom: 8 },
+  emptyTitle: { color: "#F1F5F9", fontSize: 22, fontWeight: 700, margin: 0 },
+  emptySub:   { color: "#94A3B8", fontSize: 14, margin: 0, textAlign: "center", maxWidth: 460, lineHeight: 1.6 },
+  starters:   { display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginTop: 8 },
+  starterBtn: { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "#94A3B8", borderRadius: 99, padding: "8px 16px", fontSize: 12, cursor: "pointer" },
+  msgRow:     { display: "flex", gap: 10, alignItems: "flex-end" },
+  avatar:     { width: 30, height: 30, borderRadius: "50%", background: "rgba(129,140,248,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 },
+  userBubble: { background: "#1E293B", color: "#F1F5F9", borderRadius: "16px 16px 4px 16px", padding: "12px 16px", fontSize: 14, lineHeight: 1.6, maxWidth: "75%", whiteSpace: "pre-wrap" },
+  aiBubble:   { background: "rgba(129,140,248,0.08)", border: "1px solid rgba(129,140,248,0.15)", color: "#E2E8F0", borderRadius: "16px 16px 16px 4px", padding: "12px 16px", fontSize: 14, lineHeight: 1.7, maxWidth: "75%", whiteSpace: "pre-wrap" },
+  typing:     { display: "flex", gap: 4, alignItems: "center", padding: "14px 18px" },
+  dot:        { width: 7, height: 7, borderRadius: "50%", background: "#818CF8", display: "inline-block", animation: "blink 1.2s infinite" },
+  inputArea:  { flexShrink: 0, padding: "12px 16px 16px", borderTop: "1px solid rgba(255,255,255,0.07)" },
+  inputRow:   { maxWidth: 700, margin: "0 auto", display: "flex", gap: 10 },
+  micBtn:     { border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "0 14px", fontSize: 18, cursor: "pointer", flexShrink: 0 },
+  input:      { flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "12px 16px", color: "#F1F5F9", fontSize: 14, outline: "none" },
+  sendBtn:    { background: "#818CF8", color: "#fff", border: "none", borderRadius: 10, padding: "12px 22px", fontWeight: 700, fontSize: 14, cursor: "pointer" },
+  hint:       { color: "#334155", fontSize: 11, textAlign: "center", margin: "6px 0 0" },
 };
