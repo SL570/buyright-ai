@@ -17,7 +17,15 @@ FRONTEND_URL   = "https://buyright-ai-ten.vercel.app"
 
 
 @router.get("/status")
-def billing_status(user: User = Depends(get_current_user)):
+def billing_status(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not user.is_subscribed and user.stripe_customer_id and stripe.api_key:
+        try:
+            subs = stripe.Subscription.list(customer=user.stripe_customer_id, status="active", limit=1)
+            if subs.data:
+                user.is_subscribed = True
+                db.commit()
+        except Exception:
+            pass
     return {"subscribed": user.is_subscribed, "email": user.email}
 
 
