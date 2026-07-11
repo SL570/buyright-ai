@@ -90,6 +90,27 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     return {"received": True}
 
 
+@router.post("/activate")
+def activate_subscription(
+    session_id: str,
+    user: User    = Depends(get_current_user),
+    db:   Session = Depends(get_db),
+):
+    """Called from success page to activate subscription after Stripe checkout."""
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+        if session.payment_status == "paid" and session.customer:
+            user.stripe_customer_id = session.customer
+            user.is_subscribed = True
+            db.commit()
+            return {"activated": True}
+        raise HTTPException(status_code=400, detail="Payment not confirmed")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/cancel-subscription")
 def cancel_subscription(
     user: User    = Depends(get_current_user),
