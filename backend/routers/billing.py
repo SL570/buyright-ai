@@ -13,7 +13,7 @@ router = APIRouter(prefix="/billing", tags=["billing"])
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
 PRICE_ID       = os.getenv("STRIPE_PRICE_ID", "")
 WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
-FRONTEND_URL   = os.getenv("FRONTEND_URL", "https://buyright-ai-ten.vercel.app")
+FRONTEND_URL   = "https://buyright-ai-ten.vercel.app"
 
 
 @router.get("/status")
