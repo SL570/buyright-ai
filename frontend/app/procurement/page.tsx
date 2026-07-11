@@ -23,20 +23,28 @@ export default function ProcurementPage() {
   const router = useRouter();
   const { status } = useSession();
 
-  const [token, setToken] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [listening, setListening] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const recogRef = useRef<any>(null);
+  const [token, setToken]           = useState("");
+  const [subscribed, setSubscribed] = useState<boolean | null>(null);
+  const [messages, setMessages]     = useState<Message[]>([]);
+  const [input, setInput]           = useState("");
+  const [loading, setLoading]       = useState(false);
+  const [listening, setListening]   = useState(false);
+  const bottomRef                   = useRef<HTMLDivElement>(null);
+  const recogRef                    = useRef<any>(null);
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/sign-in"); return; }
     if (status === "authenticated") {
       fetch("/api/token")
         .then(r => r.json())
-        .then(d => { if (d.token) setToken(d.token); else router.push("/sign-in"); })
+        .then(async d => {
+          if (!d.token) { router.push("/sign-in"); return; }
+          setToken(d.token);
+          const res = await fetch(`${BASE_URL}/billing/status`, { headers: { Authorization: `Bearer ${d.token}` } });
+          const data = await res.json();
+          setSubscribed(data.subscribed);
+        })
         .catch(() => router.push("/sign-in"));
     }
   }, [status, router]);
@@ -83,8 +91,29 @@ export default function ProcurementPage() {
     }
   }
 
-  if (status === "loading" || !token) {
+  if (status === "loading" || !token || subscribed === null) {
     return <main style={S.page}><p style={{ color: "#94A3B8" }}>Loading...</p></main>;
+  }
+
+  if (!subscribed) {
+    return (
+      <main style={S.page}>
+        <div style={S.header}>
+          <span style={S.brand}>BuyRight <span style={{ color: "#00F5D4" }}>AI</span></span>
+          <button onClick={() => signOut({ callbackUrl: "/sign-in" })} style={S.ghostBtn}>Sign out</button>
+        </div>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 24, textAlign: "center" }}>
+          <div style={{ fontSize: 48 }}>🔒</div>
+          <h2 style={{ color: "#F1F5F9", fontSize: 22, fontWeight: 700, margin: 0 }}>Pro feature</h2>
+          <p style={{ color: "#94A3B8", fontSize: 14, maxWidth: 360, lineHeight: 1.6, margin: 0 }}>
+            Consumer Procurement is available on the Pro plan. Upgrade to get full AI-powered purchasing, fulfillment, and collective bargaining.
+          </p>
+          <Link href="/pricing" style={{ background: "#00F5D4", color: "#0B0F19", textDecoration: "none", borderRadius: 10, padding: "13px 28px", fontWeight: 800, fontSize: 15, marginTop: 8 }}>
+            View pricing →
+          </Link>
+        </div>
+      </main>
+    );
   }
 
   return (

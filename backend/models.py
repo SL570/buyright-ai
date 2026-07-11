@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text, UniqueConstraint, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
@@ -7,11 +7,13 @@ from database import Base
 class User(Base):
     __tablename__ = "users"
 
-    id              = Column(Integer, primary_key=True, index=True)
-    email           = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=True)   # null for OAuth-only users
-    clerk_id        = Column(String, unique=True, index=True, nullable=True)
-    created_at      = Column(DateTime, default=datetime.utcnow)
+    id                 = Column(Integer, primary_key=True, index=True)
+    email              = Column(String, unique=True, index=True, nullable=False)
+    hashed_password    = Column(String, nullable=True)
+    clerk_id           = Column(String, unique=True, index=True, nullable=True)
+    created_at         = Column(DateTime, default=datetime.utcnow)
+    is_subscribed      = Column(Boolean, default=False)
+    stripe_customer_id = Column(String, nullable=True)
 
     wishlist_items    = relationship("WishlistItem", back_populates="owner", cascade="all, delete")
     group_memberships = relationship("GroupDealMember", back_populates="user", cascade="all, delete")
