@@ -14,6 +14,7 @@ class User(Base):
     created_at         = Column(DateTime, default=datetime.utcnow)
     is_subscribed      = Column(Boolean, default=False)
     stripe_customer_id = Column(String, nullable=True)
+    phone              = Column(String, nullable=True)
 
     wishlist_items    = relationship("WishlistItem", back_populates="owner", cascade="all, delete")
     group_memberships = relationship("GroupDealMember", back_populates="user", cascade="all, delete")

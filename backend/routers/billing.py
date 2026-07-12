@@ -8,6 +8,7 @@ from database import get_db
 from models import User
 from auth import get_current_user
 from services.email import send_subscription_email
+from services.sms import send_subscription_sms
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 
@@ -113,6 +114,8 @@ def activate_subscription(
             user.is_subscribed = True
             db.commit()
             send_subscription_email(user.email)
+            if user.phone:
+                send_subscription_sms(user.phone)
             return {"activated": True}
         raise HTTPException(status_code=400, detail="Payment not confirmed")
     except HTTPException:
