@@ -13,3 +13,4 @@ sendgrid
 apscheduler
 httpx
 stripe
+psycopg2-binary
