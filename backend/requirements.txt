@@ -18,3 +18,4 @@ sentry-sdk[fastapi]
 upstash-redis
 upstash-ratelimit
 resend
+twilio
