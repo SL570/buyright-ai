@@ -6,6 +6,7 @@ from database import get_db
 from models import User
 from services.nextauth import verify_nextauth_token
 from services.audit import log_event
+from services.email import send_welcome_email
 
 bearer_scheme = HTTPBearer()
 
@@ -31,5 +32,6 @@ def get_current_user(
         db.commit()
         db.refresh(user)
         log_event(db, action="user_created", user_id=user.id, detail=f"email={email}")
+        send_welcome_email(email)
 
     return user

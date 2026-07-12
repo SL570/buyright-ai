@@ -17,3 +17,4 @@ psycopg2-binary
 sentry-sdk[fastapi]
 upstash-redis
 upstash-ratelimit
+resend

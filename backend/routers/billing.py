@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import User
 from auth import get_current_user
+from services.email import send_subscription_email
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 
@@ -111,6 +112,7 @@ def activate_subscription(
             user.stripe_customer_id = session.customer
             user.is_subscribed = True
             db.commit()
+            send_subscription_email(user.email)
             return {"activated": True}
         raise HTTPException(status_code=400, detail="Payment not confirmed")
     except HTTPException:
