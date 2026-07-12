@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
-export default function SuccessPage() {
+function SuccessContent() {
   const { status } = useSession();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -38,36 +38,38 @@ export default function SuccessPage() {
   }, [status, searchParams, router]);
 
   if (status === "loading" || (!activated && !error)) {
-    return (
-      <main style={S.page}>
-        <p style={{ color: "#94A3B8" }}>Activating your subscription...</p>
-      </main>
-    );
+    return <p style={{ color: "#94A3B8" }}>Activating your subscription...</p>;
   }
 
   if (error) {
     return (
-      <main style={S.page}>
-        <div style={{ textAlign: "center", maxWidth: 420 }}>
-          <div style={{ fontSize: 56, marginBottom: 20 }}>⚠️</div>
-          <h1 style={{ color: "#F1F5F9", fontSize: 24, fontWeight: 800, margin: "0 0 12px" }}>Something went wrong</h1>
-          <p style={{ color: "#94A3B8", fontSize: 15, margin: "0 0 24px" }}>{error}</p>
-          <Link href="/pricing" style={S.btn}>Back to pricing</Link>
-        </div>
-      </main>
+      <div style={{ textAlign: "center", maxWidth: 420 }}>
+        <div style={{ fontSize: 56, marginBottom: 20 }}>⚠️</div>
+        <h1 style={{ color: "#F1F5F9", fontSize: 24, fontWeight: 800, margin: "0 0 12px" }}>Something went wrong</h1>
+        <p style={{ color: "#94A3B8", fontSize: 15, margin: "0 0 24px" }}>{error}</p>
+        <Link href="/pricing" style={S.btn}>Back to pricing</Link>
+      </div>
     );
   }
 
   return (
+    <div style={{ textAlign: "center", maxWidth: 420 }}>
+      <div style={{ fontSize: 56, marginBottom: 20 }}>✅</div>
+      <h1 style={{ color: "#F1F5F9", fontSize: 28, fontWeight: 800, margin: "0 0 12px" }}>You're subscribed!</h1>
+      <p style={{ color: "#94A3B8", fontSize: 15, lineHeight: 1.6, margin: "0 0 32px" }}>
+        Welcome to BuyRight AI Pro. You now have full access to Procurement, Fulfillment, and Collective Bargaining.
+      </p>
+      <Link href="/procurement" style={S.btn}>Start procuring →</Link>
+    </div>
+  );
+}
+
+export default function SuccessPage() {
+  return (
     <main style={S.page}>
-      <div style={{ textAlign: "center", maxWidth: 420 }}>
-        <div style={{ fontSize: 56, marginBottom: 20 }}>✅</div>
-        <h1 style={{ color: "#F1F5F9", fontSize: 28, fontWeight: 800, margin: "0 0 12px" }}>You're subscribed!</h1>
-        <p style={{ color: "#94A3B8", fontSize: 15, lineHeight: 1.6, margin: "0 0 32px" }}>
-          Welcome to BuyRight AI Pro. You now have full access to Procurement, Fulfillment, and Collective Bargaining.
-        </p>
-        <Link href="/procurement" style={S.btn}>Start procuring →</Link>
-      </div>
+      <Suspense fallback={<p style={{ color: "#94A3B8" }}>Loading...</p>}>
+        <SuccessContent />
+      </Suspense>
     </main>
   );
 }
