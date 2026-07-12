@@ -12,6 +12,8 @@ from dotenv import load_dotenv
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+from upstash_redis import Redis as UpstashRedis
+from upstash_ratelimit import Ratelimit, FixedWindow
 
 from database import engine, Base
 from routers import auth as auth_router
@@ -34,13 +36,30 @@ sentry_sdk.init(
 # Create all tables
 Base.metadata.create_all(bind=engine)
 
-# Rate limiter
+# Upstash rate limiter (falls back to in-memory slowapi if not configured)
+_upstash_url   = os.getenv("UPSTASH_REDIS_REST_URL", "")
+_upstash_token = os.getenv("UPSTASH_REDIS_REST_TOKEN", "")
+if _upstash_url and _upstash_token:
+    _redis = UpstashRedis(url=_upstash_url, token=_upstash_token)
+    ratelimit = Ratelimit(redis=_redis, limiter=FixedWindow(max_requests=20, window=60))
+else:
+    ratelimit = None
+
 limiter = Limiter(key_func=get_remote_address, default_limits=["20/minute"])
 
 app = FastAPI(title="BuyRight AI", version="2.0.0")
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+@app.middleware("http")
+async def upstash_rate_limit_middleware(request: Request, call_next):
+    if ratelimit:
+        ip = request.client.host if request.client else "unknown"
+        response = ratelimit.limit(ip)
+        if not response.allowed:
+            return JSONResponse(status_code=429, content={"detail": "Too many requests. Slow down."})
+    return await call_next(request)
 
 _origins = [
     "http://localhost:3000",
