@@ -8,12 +8,14 @@ FROM_NUMBER  = os.getenv("TWILIO_PHONE_NUMBER", "")
 
 def send_sms(to: str, body: str):
     if not all([ACCOUNT_SID, AUTH_TOKEN, FROM_NUMBER]):
+        print(f"[SMS] Missing credentials — SID={bool(ACCOUNT_SID)} TOKEN={bool(AUTH_TOKEN)} FROM={bool(FROM_NUMBER)}")
         return
     try:
         client = Client(ACCOUNT_SID, AUTH_TOKEN)
-        client.messages.create(to=to, from_=FROM_NUMBER, body=body)
-    except Exception:
-        pass
+        msg = client.messages.create(to=to, from_=FROM_NUMBER, body=body)
+        print(f"[SMS] Sent to {to} — SID={msg.sid} status={msg.status}")
+    except Exception as e:
+        print(f"[SMS] Error sending to {to}: {e}")
 
 
 def send_subscription_sms(to: str):
