@@ -55,10 +55,13 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 @app.middleware("http")
 async def upstash_rate_limit_middleware(request: Request, call_next):
     if ratelimit:
-        ip = request.client.host if request.client else "unknown"
-        response = ratelimit.limit(ip)
-        if not response.allowed:
-            return JSONResponse(status_code=429, content={"detail": "Too many requests. Slow down."})
+        try:
+            ip = request.client.host if request.client else "unknown"
+            result = ratelimit.limit(ip)
+            if not result.allowed:
+                return JSONResponse(status_code=429, content={"detail": "Too many requests. Slow down."})
+        except Exception:
+            pass  # If Upstash is unreachable, let the request through
     return await call_next(request)
 
 _origins = [
