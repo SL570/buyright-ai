@@ -9,6 +9,9 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
 from database import engine, Base
 from routers import auth as auth_router
@@ -20,6 +23,13 @@ from routers import billing as billing_router
 from tasks.price_monitor import check_prices
 
 load_dotenv()
+
+sentry_sdk.init(
+    dsn=os.getenv("SENTRY_DSN", ""),
+    integrations=[FastApiIntegration(), SqlalchemyIntegration()],
+    traces_sample_rate=1.0,
+    send_default_pii=False,
+)
 
 # Create all tables
 Base.metadata.create_all(bind=engine)
