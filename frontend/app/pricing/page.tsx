@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import LoadingScreen from "../components/LoadingScreen";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
@@ -51,7 +52,7 @@ export default function PricingPage() {
   }
 
   if (status === "loading" || checking) {
-    return <main style={S.page}><p style={{ color: "#94A3B8" }}>Loading...</p></main>;
+    return <LoadingScreen />;
   }
 
   return (

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
+import LoadingScreen from "../components/LoadingScreen";
 
 interface Message {
   role: "user" | "assistant";
@@ -92,7 +93,7 @@ export default function ProcurementPage() {
   }
 
   if (status === "loading" || !token || subscribed === null) {
-    return <main style={S.page}><p style={{ color: "#94A3B8" }}>Loading...</p></main>;
+    return <LoadingScreen />;
   }
 
   if (!subscribed) {
