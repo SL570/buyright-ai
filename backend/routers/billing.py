@@ -70,14 +70,14 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     payload = await request.body()
     sig     = request.headers.get("stripe-signature", "")
 
-    if WEBHOOK_SECRET:
-        try:
-            event = stripe.Webhook.construct_event(payload, sig, WEBHOOK_SECRET)
-        except stripe.error.SignatureVerificationError:
-            raise HTTPException(status_code=400, detail="Invalid webhook signature")
-    else:
-        import json
-        event = json.loads(payload)
+    if not WEBHOOK_SECRET:
+        raise HTTPException(status_code=503, detail="Webhook not configured")
+    try:
+        event = stripe.Webhook.construct_event(payload, sig, WEBHOOK_SECRET)
+    except stripe.error.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Invalid webhook signature")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid payload")
 
     etype = event["type"]
 
@@ -106,9 +106,13 @@ def activate_subscription(
     user: User    = Depends(get_current_user),
     db:   Session = Depends(get_db),
 ):
-    """Called from success page to activate subscription after Stripe checkout."""
+    if not stripe.api_key:
+        raise HTTPException(status_code=503, detail="Billing not configured")
     try:
         session = stripe.checkout.Session.retrieve(session_id)
+        # Verify session belongs to this user's email to prevent session swapping
+        if session.customer_email and session.customer_email.lower() != user.email.lower():
+            raise HTTPException(status_code=403, detail="Session does not belong to this account")
         if session.payment_status == "paid" and session.customer:
             user.stripe_customer_id = session.customer
             user.is_subscribed = True
@@ -121,7 +125,7 @@ def activate_subscription(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Activation failed")
 
 
 @router.post("/cancel-subscription")

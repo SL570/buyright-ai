@@ -47,10 +47,19 @@ else:
 
 limiter = Limiter(key_func=get_remote_address, default_limits=["20/minute"])
 
-app = FastAPI(title="BuyRight AI", version="2.0.0")
+app = FastAPI(title="BuyRight AI", version="2.0.0", docs_url=None, redoc_url=None, openapi_url=None)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    return response
 
 @app.middleware("http")
 async def upstash_rate_limit_middleware(request: Request, call_next):
@@ -59,9 +68,10 @@ async def upstash_rate_limit_middleware(request: Request, call_next):
             ip = request.client.host if request.client else "unknown"
             result = ratelimit.limit(ip)
             if not result.allowed:
-                return JSONResponse(status_code=429, content={"detail": "Too many requests. Slow down."})
+                return JSONResponse(status_code=429, content={"detail": "Too many requests."})
         except Exception:
-            pass  # If Upstash is unreachable, let the request through
+            # Upstash unreachable — fall back to slowapi in-memory limits
+            pass
     return await call_next(request)
 
 _origins = [
@@ -99,7 +109,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 @app.get("/")
 def root():
-    return {"message": "BuyRight AI v2 — price monitoring, AI verdicts, collective bargaining"}
+    return {"status": "ok"}
 
 
 @app.get("/api/price-check")
