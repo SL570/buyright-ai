@@ -173,6 +173,7 @@ class ChatMessage(BaseModel):
 
 class GroupChatRequest(BaseModel):
     messages: List[ChatMessage]
+    context: str = ""
 
 GROUP_DEAL_PROMPT = """You are BuyRight AI's Collective Bargaining Agent.
 
@@ -201,12 +202,15 @@ def group_chat(req: GroupChatRequest, user: User = Depends(get_current_user)):
     if not req.messages:
         raise HTTPException(status_code=400, detail="No messages provided")
     history = req.messages[-20:]
+    system = GROUP_DEAL_PROMPT
+    if req.context:
+        system = f"{GROUP_DEAL_PROMPT}\n\nLive deal board context (use this to give specific advice about real deals):\n{req.context}"
     try:
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
         response = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=700,
-            system=GROUP_DEAL_PROMPT,
+            max_tokens=800,
+            system=system,
             messages=[{"role": m.role, "content": m.content} for m in history],
         )
         return {"reply": response.content[0].text}
