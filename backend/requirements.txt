@@ -19,3 +19,4 @@ upstash-redis
 upstash-ratelimit
 resend
 twilio
+pinecone

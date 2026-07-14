@@ -123,6 +123,22 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(check_prices, "interval", hours=1, id="price_monitor")
 scheduler.start()
 
+
+@app.on_event("startup")
+def seed_pinecone():
+    """Seed Pinecone knowledge base on first startup (no-op if already populated)."""
+    try:
+        from services.vector import index_is_empty
+        from scripts.seed_knowledge import KNOWLEDGE, main as run_seed
+        if index_is_empty():
+            print("[PINECONE] Index empty — seeding knowledge base...")
+            run_seed()
+        else:
+            print("[PINECONE] Knowledge base already seeded.")
+    except Exception as e:
+        print(f"[PINECONE] Startup seed skipped: {e}")
+
+
 @app.on_event("shutdown")
 def shutdown_scheduler():
     scheduler.shutdown()
