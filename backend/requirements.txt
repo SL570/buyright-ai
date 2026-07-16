@@ -17,5 +17,6 @@ sentry-sdk[fastapi]
 upstash-redis
 upstash-ratelimit
 resend
+sendgrid
 twilio
 pinecone
