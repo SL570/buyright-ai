@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-from typing import List
+from pydantic import BaseModel, Field
+from typing import Literal, List
 import os
 import anthropic
 
@@ -29,12 +29,12 @@ Never make up specific discount percentages you cannot verify."""
 
 
 class ChatMessage(BaseModel):
-    role: str
-    content: str
+    role: Literal["user", "assistant"]
+    content: str = Field(..., min_length=1, max_length=4000)
 
 
 class ChatRequest(BaseModel):
-    messages: List[ChatMessage]
+    messages: List[ChatMessage] = Field(..., max_length=40)
 
 
 @router.post("")
@@ -45,7 +45,6 @@ def chat(req: ChatRequest, user=Depends(get_current_user)):
     history = req.messages[-20:]
     latest_query = req.messages[-1].content if req.messages else ""
 
-    # RAG: retrieve relevant knowledge chunks from Pinecone
     system = BASE_SYSTEM_PROMPT
     knowledge_chunks = search_knowledge(latest_query, top_k=4)
     if knowledge_chunks:
@@ -67,4 +66,4 @@ def chat(req: ChatRequest, user=Depends(get_current_user)):
         return {"reply": response.content[0].text}
     except Exception as e:
         print(f"[CHAT ERROR] {type(e).__name__}: {e}")
-        raise HTTPException(status_code=500, detail=f"AI error: {str(e)}")
+        raise HTTPException(status_code=500, detail="AI service unavailable. Please try again.")

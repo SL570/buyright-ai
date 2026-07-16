@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
-from typing import List
+from typing import Literal, List
 import os
 import anthropic
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from database import get_db
 from models import User, GroupDeal, GroupDealMember
@@ -168,12 +168,12 @@ def leave_deal(
 
 
 class ChatMessage(BaseModel):
-    role: str
-    content: str
+    role: Literal["user", "assistant"]
+    content: str = Field(..., min_length=1, max_length=4000)
 
 class GroupChatRequest(BaseModel):
-    messages: List[ChatMessage]
-    context: str = ""
+    messages: List[ChatMessage] = Field(..., max_length=40)
+    context: str = Field("", max_length=2000)
 
 GROUP_DEAL_PROMPT = """You are BuyRight AI's Collective Bargaining Agent.
 
@@ -199,6 +199,8 @@ When a user describes their group deal, help them structure it and give them the
 
 @router.post("/chat")
 def group_chat(req: GroupChatRequest, user: User = Depends(get_current_user)):
+    if not user.is_subscribed:
+        raise HTTPException(status_code=403, detail="Pro subscription required. Upgrade at /pricing.")
     if not req.messages:
         raise HTTPException(status_code=400, detail="No messages provided")
     history = req.messages[-20:]
@@ -216,4 +218,4 @@ def group_chat(req: GroupChatRequest, user: User = Depends(get_current_user)):
         return {"reply": response.content[0].text}
     except Exception as e:
         print(f"[GROUP CHAT ERROR] {type(e).__name__}: {e}")
-        raise HTTPException(status_code=500, detail=f"AI error: {str(e)}")
+        raise HTTPException(status_code=500, detail="AI service unavailable. Please try again.")

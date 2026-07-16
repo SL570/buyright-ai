@@ -1,5 +1,5 @@
 import os
-from jose import jwt, JWTError
+import jwt
 from fastapi import HTTPException, status
 
 NEXTAUTH_SECRET = os.environ.get("NEXTAUTH_SECRET", "")
@@ -7,7 +7,7 @@ NEXTAUTH_SECRET = os.environ.get("NEXTAUTH_SECRET", "")
 
 def verify_nextauth_token(token: str) -> dict:
     if not NEXTAUTH_SECRET:
-        raise HTTPException(status_code=500, detail="NEXTAUTH_SECRET not configured")
+        raise HTTPException(status_code=500, detail="Auth not configured")
     try:
         payload = jwt.decode(
             token,
@@ -16,8 +16,13 @@ def verify_nextauth_token(token: str) -> dict:
             options={"verify_aud": False},
         )
         return payload
-    except JWTError as e:
+    except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid token: {e}",
+            detail="Token expired",
+        )
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
         )

@@ -62,7 +62,8 @@ def create_checkout_session(
         )
         return {"url": session.url}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"[BILLING] checkout error: {e}")
+        raise HTTPException(status_code=500, detail="Could not create checkout session")
 
 
 @router.post("/webhook")
@@ -110,8 +111,8 @@ def activate_subscription(
         raise HTTPException(status_code=503, detail="Billing not configured")
     try:
         session = stripe.checkout.Session.retrieve(session_id)
-        # Verify session belongs to this user's email to prevent session swapping
-        if session.customer_email and session.customer_email.lower() != user.email.lower():
+        # Require customer_email match — reject if missing OR mismatched
+        if not session.customer_email or session.customer_email.lower() != user.email.lower():
             raise HTTPException(status_code=403, detail="Session does not belong to this account")
         if session.payment_status == "paid" and session.customer:
             user.stripe_customer_id = session.customer
@@ -125,6 +126,7 @@ def activate_subscription(
     except HTTPException:
         raise
     except Exception as e:
+        print(f"[BILLING] activate error: {e}")
         raise HTTPException(status_code=500, detail="Activation failed")
 
 
@@ -143,4 +145,5 @@ def cancel_subscription(
         db.commit()
         return {"cancelled": True}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"[BILLING] cancel error: {e}")
+        raise HTTPException(status_code=500, detail="Could not cancel subscription")

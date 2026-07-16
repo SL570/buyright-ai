@@ -1,16 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-from typing import List
+from pydantic import BaseModel, Field
+from typing import Literal, List
 import os
 import anthropic
 
 from auth import get_current_user
+from models import User
 
 router = APIRouter(tags=["procurement"])
 
 PROCUREMENT_PROMPT = """You are BuyRight AI's Consumer Procurement Agent.
 
-Your job is to handle the ENTIRE purchasing process for the user — from research to recommendation to negotiation strategy.
+Your job is to research and advise on purchasing decisions — from product research to recommendation to negotiation strategy.
 
 When a user tells you what they need to buy, you:
 1. Research the best options for their budget and requirements
@@ -48,16 +49,18 @@ Don't be vague. Give them the actual tool they need to get their money back or r
 
 
 class ChatMessage(BaseModel):
-    role: str
-    content: str
+    role: Literal["user", "assistant"]
+    content: str = Field(..., min_length=1, max_length=4000)
 
 
 class ProcurementRequest(BaseModel):
-    messages: List[ChatMessage]
+    messages: List[ChatMessage] = Field(..., max_length=40)
 
 
 @router.post("/procurement")
-def procurement(req: ProcurementRequest, user=Depends(get_current_user)):
+def procurement(req: ProcurementRequest, user: User = Depends(get_current_user)):
+    if not user.is_subscribed:
+        raise HTTPException(status_code=403, detail="Pro subscription required. Upgrade at /pricing.")
     if not req.messages:
         raise HTTPException(status_code=400, detail="No messages provided")
     history = req.messages[-20:]
@@ -72,11 +75,13 @@ def procurement(req: ProcurementRequest, user=Depends(get_current_user)):
         return {"reply": response.content[0].text}
     except Exception as e:
         print(f"[PROCUREMENT ERROR] {type(e).__name__}: {e}")
-        raise HTTPException(status_code=500, detail=f"AI error: {str(e)}")
+        raise HTTPException(status_code=500, detail="AI service unavailable. Please try again.")
 
 
 @router.post("/fulfillment")
-def fulfillment(req: ProcurementRequest, user=Depends(get_current_user)):
+def fulfillment(req: ProcurementRequest, user: User = Depends(get_current_user)):
+    if not user.is_subscribed:
+        raise HTTPException(status_code=403, detail="Pro subscription required. Upgrade at /pricing.")
     if not req.messages:
         raise HTTPException(status_code=400, detail="No messages provided")
     history = req.messages[-20:]
@@ -91,4 +96,4 @@ def fulfillment(req: ProcurementRequest, user=Depends(get_current_user)):
         return {"reply": response.content[0].text}
     except Exception as e:
         print(f"[FULFILLMENT ERROR] {type(e).__name__}: {e}")
-        raise HTTPException(status_code=500, detail=f"AI error: {str(e)}")
+        raise HTTPException(status_code=500, detail="AI service unavailable. Please try again.")
