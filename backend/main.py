@@ -1,5 +1,7 @@
 import json
 import os
+import time
+import uuid
 from datetime import datetime
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -53,6 +55,46 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 @app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    req_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    request.state.request_id = req_id
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = req_id
+    return response
+
+
+@app.middleware("http")
+async def audit_log_middleware(request: Request, call_next):
+    t0 = time.monotonic()
+    response = await call_next(request)
+    req_id = getattr(request.state, "request_id", "-")
+    ip = request.client.host if request.client else "-"
+    print(json.dumps({
+        "ts":     datetime.utcnow().isoformat() + "Z",
+        "req_id": req_id,
+        "method": request.method,
+        "path":   request.url.path,
+        "status": response.status_code,
+        "ip":     ip,
+        "ms":     round((time.monotonic() - t0) * 1000),
+    }), flush=True)
+    return response
+
+
+@app.middleware("http")
+async def csrf_check_middleware(request: Request, call_next):
+    # Stripe webhook uses its own HMAC — skip CSRF for it
+    if request.method in ("POST", "PUT", "PATCH", "DELETE") and \
+            request.url.path != "/billing/webhook":
+        origin = request.headers.get("origin", "")
+        if origin:  # browsers always send Origin on cross-origin requests
+            allowed = {o.rstrip("/") for o in _origins}
+            if origin.rstrip("/") not in allowed:
+                return JSONResponse(status_code=403, content={"detail": "Forbidden"})
+    return await call_next(request)
+
+
+@app.middleware("http")
 async def security_headers_middleware(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -65,6 +107,7 @@ async def security_headers_middleware(request: Request, call_next):
     response.headers["Cache-Control"] = "no-store"
     return response
 
+
 @app.middleware("http")
 async def upstash_rate_limit_middleware(request: Request, call_next):
     if ratelimit:
@@ -74,7 +117,6 @@ async def upstash_rate_limit_middleware(request: Request, call_next):
             if not result.allowed:
                 return JSONResponse(status_code=429, content={"detail": "Too many requests."})
         except Exception:
-            # Upstash unreachable — fall back to slowapi in-memory limits
             pass
     return await call_next(request)
 

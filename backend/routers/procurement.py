@@ -6,6 +6,7 @@ import anthropic
 
 from auth import get_current_user
 from models import User
+from services.ratelimit import check_user_rate_limit
 
 router = APIRouter(tags=["procurement"])
 
@@ -63,6 +64,8 @@ def procurement(req: ProcurementRequest, user: User = Depends(get_current_user))
         raise HTTPException(status_code=403, detail="Pro subscription required. Upgrade at /pricing.")
     if not req.messages:
         raise HTTPException(status_code=400, detail="No messages provided")
+    if not check_user_rate_limit(user.email):
+        raise HTTPException(status_code=429, detail="Too many requests. Please wait before sending another message.")
     history = req.messages[-20:]
     try:
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
@@ -84,6 +87,8 @@ def fulfillment(req: ProcurementRequest, user: User = Depends(get_current_user))
         raise HTTPException(status_code=403, detail="Pro subscription required. Upgrade at /pricing.")
     if not req.messages:
         raise HTTPException(status_code=400, detail="No messages provided")
+    if not check_user_rate_limit(user.email):
+        raise HTTPException(status_code=429, detail="Too many requests. Please wait before sending another message.")
     history = req.messages[-20:]
     try:
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))

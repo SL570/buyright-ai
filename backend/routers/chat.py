@@ -6,6 +6,7 @@ import anthropic
 
 from auth import get_current_user
 from services.vector import search_knowledge
+from services.ratelimit import check_user_rate_limit
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -41,6 +42,8 @@ class ChatRequest(BaseModel):
 def chat(req: ChatRequest, user=Depends(get_current_user)):
     if not req.messages:
         raise HTTPException(status_code=400, detail="No messages provided")
+    if not check_user_rate_limit(user.email):
+        raise HTTPException(status_code=429, detail="Too many requests. Please wait before sending another message.")
 
     history = req.messages[-20:]
     latest_query = req.messages[-1].content if req.messages else ""

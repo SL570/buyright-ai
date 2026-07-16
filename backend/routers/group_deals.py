@@ -11,6 +11,7 @@ from schemas import GroupDealCreate, GroupDealOut
 from auth import get_current_user
 from services.ai_service import generate_negotiation_script
 from services.email_service import send_group_deal_ready
+from services.ratelimit import check_user_rate_limit
 
 router = APIRouter(prefix="/group-deals", tags=["group-deals"])
 
@@ -203,6 +204,8 @@ def group_chat(req: GroupChatRequest, user: User = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Pro subscription required. Upgrade at /pricing.")
     if not req.messages:
         raise HTTPException(status_code=400, detail="No messages provided")
+    if not check_user_rate_limit(user.email):
+        raise HTTPException(status_code=429, detail="Too many requests. Please wait before sending another message.")
     history = req.messages[-20:]
     system = GROUP_DEAL_PROMPT
     if req.context:
