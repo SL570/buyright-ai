@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Literal, List
 import os
+import json
 import anthropic
 
 from auth import get_current_user
@@ -68,15 +70,25 @@ def chat(req: ChatRequest, user=Depends(get_current_user)):
             f"{context_block}"
         )
 
-    try:
-        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-        response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=800,
-            system=system,
-            messages=[{"role": m.role, "content": m.content} for m in history],
-        )
-        return {"reply": response.content[0].text}
-    except Exception as e:
-        print(f"[CHAT ERROR] {type(e).__name__}: {e}")
-        raise HTTPException(status_code=500, detail="AI service unavailable. Please try again.")
+    messages_data = [{"role": m.role, "content": m.content} for m in history]
+
+    def _gen():
+        try:
+            client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+            with client.messages.stream(
+                model="claude-sonnet-4-6",
+                max_tokens=1500,
+                system=system,
+                messages=messages_data,
+            ) as stream:
+                for text in stream.text_stream:
+                    yield f"data: {json.dumps({'text': text})}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            print(f"[CHAT STREAM ERROR] {type(e).__name__}: {e}")
+            yield f"data: {json.dumps({'error': 'AI service unavailable. Please try again.'})}\n\n"
+
+    return StreamingResponse(_gen(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    })

@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Literal, List
 import os
+import json
 import anthropic
 
 from auth import get_current_user
@@ -105,6 +107,28 @@ class ProcurementRequest(BaseModel):
     messages: List[ChatMessage] = Field(..., max_length=40)
 
 
+def _sse_stream(system_prompt: str, messages_data: list, label: str):
+    client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    def _gen():
+        try:
+            with client.messages.stream(
+                model="claude-sonnet-4-6",
+                max_tokens=1500,
+                system=system_prompt,
+                messages=messages_data,
+            ) as stream:
+                for text in stream.text_stream:
+                    yield f"data: {json.dumps({'text': text})}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            print(f"[{label} STREAM ERROR] {type(e).__name__}: {e}")
+            yield f"data: {json.dumps({'error': 'AI service unavailable. Please try again.'})}\n\n"
+    return StreamingResponse(_gen(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    })
+
+
 @router.post("/procurement")
 def procurement(req: ProcurementRequest, user: User = Depends(get_current_user)):
     if not user.is_subscribed:
@@ -114,18 +138,7 @@ def procurement(req: ProcurementRequest, user: User = Depends(get_current_user))
     if not check_user_rate_limit(user.email):
         raise HTTPException(status_code=429, detail="Too many requests. Please wait before sending another message.")
     history = req.messages[-20:]
-    try:
-        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-        response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=800,
-            system=PROCUREMENT_PROMPT,
-            messages=[{"role": m.role, "content": m.content} for m in history],
-        )
-        return {"reply": response.content[0].text}
-    except Exception as e:
-        print(f"[PROCUREMENT ERROR] {type(e).__name__}: {e}")
-        raise HTTPException(status_code=500, detail="AI service unavailable. Please try again.")
+    return _sse_stream(PROCUREMENT_PROMPT, [{"role": m.role, "content": m.content} for m in history], "PROCUREMENT")
 
 
 @router.post("/fulfillment")
@@ -137,15 +150,4 @@ def fulfillment(req: ProcurementRequest, user: User = Depends(get_current_user))
     if not check_user_rate_limit(user.email):
         raise HTTPException(status_code=429, detail="Too many requests. Please wait before sending another message.")
     history = req.messages[-20:]
-    try:
-        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-        response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=800,
-            system=FULFILLMENT_PROMPT,
-            messages=[{"role": m.role, "content": m.content} for m in history],
-        )
-        return {"reply": response.content[0].text}
-    except Exception as e:
-        print(f"[FULFILLMENT ERROR] {type(e).__name__}: {e}")
-        raise HTTPException(status_code=500, detail="AI service unavailable. Please try again.")
+    return _sse_stream(FULFILLMENT_PROMPT, [{"role": m.role, "content": m.content} for m in history], "FULFILLMENT")

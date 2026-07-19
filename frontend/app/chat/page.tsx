@@ -80,9 +80,39 @@ export default function ChatPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ messages: next }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Error");
-      setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: "Request failed" }));
+        throw new Error(err.detail || "Request failed");
+      }
+      if (!res.body) throw new Error("No response stream");
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
+      let buffer = "";
+      let firstChunk = true;
+      outer: while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6).trim();
+          if (payload === "[DONE]") break outer;
+          try {
+            const parsed = JSON.parse(payload);
+            if (parsed.error) throw new Error(parsed.error);
+            if (parsed.text) {
+              if (firstChunk) { setLoading(false); firstChunk = false; }
+              fullText += parsed.text;
+              setMessages([...next, { role: "assistant", content: fullText }]);
+            }
+          } catch (parseErr: any) {
+            if (parseErr.message && !parseErr.message.includes("JSON")) throw parseErr;
+          }
+        }
+      }
     } catch (e: any) {
       setMessages(prev => [...prev, { role: "assistant", content: `**Error:** ${e.message || "Could not reach AI service. Try again."}` }]);
     } finally {

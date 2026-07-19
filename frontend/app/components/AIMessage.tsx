@@ -34,12 +34,23 @@ const BADGE_STYLE: Record<string, { bg: string; color: string }> = {
   neutral: { bg: "rgba(255,255,255,0.06)",color: "#7B8FAF" },
 };
 
+function storeSearchUrl(store: string, name: string): string {
+  const q = encodeURIComponent(name);
+  const s = store.toLowerCase();
+  if (s.includes("best buy")) return `https://www.bestbuy.com/site/searchpage.jsp?st=${q}`;
+  if (s.includes("costco"))   return `https://www.costco.com/CatalogSearch?keyword=${q}`;
+  if (s.includes("walmart"))  return `https://www.walmart.com/search?q=${q}`;
+  if (s.includes("target"))   return `https://www.target.com/s?searchTerm=${q}`;
+  if (s.includes("apple"))    return `https://www.apple.com/shop/product/search?q=${q}`;
+  return `https://www.amazon.com/s?k=${q}`;
+}
+
 function parseContent(raw: string) {
   let body = raw;
   let products: Product[] | null = null;
   let verdict: { text: string; type: VerdictType } | null = null;
 
-  // Extract PRODUCT_GRID block
+  // Extract complete PRODUCT_GRID block
   const pgRe = /PRODUCT_GRID:\n([\s\S]*?)\nEND_PRODUCT_GRID\n?/;
   const pgMatch = body.match(pgRe);
   if (pgMatch) {
@@ -47,6 +58,10 @@ function parseContent(raw: string) {
       products = JSON.parse(pgMatch[1]);
       body = body.replace(pgMatch[0], "").trim();
     } catch { /* fallthrough */ }
+  }
+  // Strip incomplete PRODUCT_GRID during streaming (no END_PRODUCT_GRID yet)
+  if (!products) {
+    body = body.replace(/PRODUCT_GRID:[\s\S]*/, "").trim();
   }
 
   // Extract **Verdict:** line
@@ -73,16 +88,7 @@ interface Props {
 }
 
 export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9EFF" }: Props) {
-  const [copied, setCopied] = useState(false);
-  const [selected, setSelected] = useState<number | null>(null);
   const { products, verdict, body } = parseContent(content);
-
-  function copy() {
-    navigator.clipboard.writeText(content).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
   const vs = verdict ? V_STYLE[verdict.type] : null;
 
   return (
@@ -112,15 +118,13 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
             return (
               <div
                 key={i}
-                onClick={() => setSelected(isSel ? null : i)}
                 style={{
-                  background: isSel ? "rgba(77,158,255,0.07)" : "rgba(255,255,255,0.03)",
+                  background: "rgba(255,255,255,0.03)",
                   border: p.recommended
                     ? "1.5px solid rgba(0,207,114,0.45)"
-                    : isSel ? `1.5px solid ${accent}` : "0.5px solid rgba(255,255,255,0.1)",
-                  borderRadius: 12, padding: 14, cursor: "pointer",
+                    : "0.5px solid rgba(255,255,255,0.1)",
+                  borderRadius: 12, padding: 14,
                   display: "flex", flexDirection: "column", gap: 8,
-                  transition: "border-color .15s",
                 }}
               >
                 <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: bs.bg, color: bs.color, alignSelf: "flex-start" }}>
@@ -140,8 +144,23 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                     </div>
                   ))}
                 </div>
-                <div style={{ paddingTop: 8, borderTop: "0.5px solid rgba(255,255,255,0.07)", fontSize: 11, color: "#3D5571" }}>
-                  {p.store}
+                <div style={{ paddingTop: 8, borderTop: "0.5px solid rgba(255,255,255,0.07)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 11, color: "#3D5571" }}>{p.store}</span>
+                  <a
+                    href={storeSearchUrl(p.store, p.name)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      fontSize: 11, fontWeight: 600, color: accent,
+                      textDecoration: "none",
+                      border: `0.5px solid ${accent}40`,
+                      background: `${accent}10`,
+                      borderRadius: 6, padding: "3px 9px",
+                    }}
+                  >
+                    Shop →
+                  </a>
                 </div>
               </div>
             );
@@ -206,16 +225,6 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
         >
           {body}
         </ReactMarkdown>
-      </div>
-
-      {/* Copy button */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
-        <button
-          onClick={copy}
-          style={{ background: "none", border: "0.5px solid rgba(255,255,255,0.1)", color: "#3D5571", borderRadius: 6, padding: "4px 10px", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}
-        >
-          {copied ? "✓ Copied" : "⎘ Copy"}
-        </button>
       </div>
 
       {/* Follow-up chips */}
