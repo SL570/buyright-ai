@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import LoadingScreen from "../components/LoadingScreen";
+import { AIMessage } from "../components/AIMessage";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
 }
 
-const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+const BASE   = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+const ACCENT = "#F87171";
 
 const STARTERS = [
   "I bought a Sony TV at Best Buy for $799 last week — check if I can get a price match",
@@ -20,17 +22,23 @@ const STARTERS = [
   "Track my order and alert me if the price drops so I can claim a refund",
 ];
 
+const FOLLOWUPS = [
+  "Write the price match claim email",
+  "Draft a return request",
+  "Escalate to a manager — write the script",
+];
+
 export default function FulfillmentPage() {
   const router = useRouter();
   const { status } = useSession();
 
-  const [token, setToken] = useState("");
+  const [token, setToken]     = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
+  const [input, setInput]     = useState("");
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const recogRef = useRef<any>(null);
+  const recogRef  = useRef<any>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/sign-in"); return; }
@@ -52,10 +60,10 @@ export default function FulfillmentPage() {
     const r = new SR();
     recogRef.current = r;
     r.continuous = false; r.interimResults = false; r.lang = "en-US";
-    r.onstart = () => setListening(true);
-    r.onend = () => setListening(false);
+    r.onstart  = () => setListening(true);
+    r.onend    = () => setListening(false);
     r.onresult = (e: any) => setInput(e.results[0][0].transcript);
-    r.onerror = () => setListening(false);
+    r.onerror  = () => setListening(false);
     r.start();
   }
 
@@ -63,11 +71,9 @@ export default function FulfillmentPage() {
     const userText = (text ?? input).trim();
     if (!userText || loading) return;
     setInput("");
-
     const next: Message[] = [...messages, { role: "user", content: userText }];
     setMessages(next);
     setLoading(true);
-
     try {
       const res = await fetch(`${BASE}/fulfillment`, {
         method: "POST",
@@ -78,15 +84,13 @@ export default function FulfillmentPage() {
       if (!res.ok) throw new Error(data.detail || "Error");
       setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
     } catch (e: any) {
-      setMessages(prev => [...prev, { role: "assistant", content: `Error: ${e.message}` }]);
+      setMessages(prev => [...prev, { role: "assistant", content: `**Error:** ${e.message}` }]);
     } finally {
       setLoading(false);
     }
   }
 
-  if (status === "loading" || !token) {
-    return <LoadingScreen />;
-  }
+  if (status === "loading" || !token) return <LoadingScreen />;
 
   return (
     <main style={S.page}>
@@ -98,7 +102,7 @@ export default function FulfillmentPage() {
           <span style={S.divider}>|</span>
           <Link href="/chat" style={S.navLink}>AI Advisor</Link>
         </div>
-        <span style={S.brand}>BuyRight <span style={{ color: "#F87171" }}>AI</span></span>
+        <span style={S.brand}>BuyRight <span style={{ color: ACCENT }}>AI</span></span>
         <button onClick={() => signOut({ callbackUrl: "/sign-in" })} style={S.ghostBtn}>Sign out</button>
       </div>
 
@@ -122,9 +126,18 @@ export default function FulfillmentPage() {
           {messages.map((m, i) => (
             <div key={i} style={{ ...S.msgRow, justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
               {m.role === "assistant" && <div style={S.avatar}>📦</div>}
-              <div style={m.role === "user" ? S.userBubble : S.aiBubble}>
-                {m.content}
-              </div>
+              {m.role === "user" ? (
+                <div style={S.userBubble}>{m.content}</div>
+              ) : (
+                <div style={S.aiBubble}>
+                  <AIMessage
+                    content={m.content}
+                    onFollowUp={send}
+                    followups={i === messages.length - 1 ? FOLLOWUPS : []}
+                    accent={ACCENT}
+                  />
+                </div>
+              )}
             </div>
           ))}
 
@@ -132,20 +145,17 @@ export default function FulfillmentPage() {
             <div style={{ ...S.msgRow, justifyContent: "flex-start" }}>
               <div style={S.avatar}>📦</div>
               <div style={{ ...S.aiBubble, ...S.typing }}>
-                <span style={S.dot} />
-                <span style={{ ...S.dot, animationDelay: "0.2s" }} />
-                <span style={{ ...S.dot, animationDelay: "0.4s" }} />
+                <span style={S.dot} /><span style={{ ...S.dot, animationDelay: "0.2s" }} /><span style={{ ...S.dot, animationDelay: "0.4s" }} />
               </div>
             </div>
           )}
-
           <div ref={bottomRef} />
         </div>
       </div>
 
       <div style={S.inputArea}>
         <div style={S.inputRow}>
-          <button onClick={startVoice} style={{ ...S.micBtn, background: listening ? "rgba(248,113,113,0.3)" : "rgba(255,255,255,0.05)" }} title="Voice input">🎤</button>
+          <button onClick={startVoice} style={{ ...S.micBtn, background: listening ? `${ACCENT}40` : "rgba(255,255,255,0.05)" }} title="Voice input">🎤</button>
           <input
             style={S.input}
             value={input}
@@ -177,21 +187,21 @@ const S: Record<string, React.CSSProperties> = {
   divider:    { color: "#334155", fontSize: 13 },
   ghostBtn:   { background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#94A3B8", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 13 },
   chatWrap:   { flex: 1, overflowY: "auto", padding: "24px 16px 0" },
-  chatInner:  { maxWidth: 700, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16, paddingBottom: 16 },
+  chatInner:  { maxWidth: 760, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16, paddingBottom: 16 },
   emptyState: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingTop: 60, gap: 12 },
   avatarLarge:{ fontSize: 48, marginBottom: 8 },
   emptyTitle: { color: "#F1F5F9", fontSize: 22, fontWeight: 700, margin: 0 },
   emptySub:   { color: "#94A3B8", fontSize: 14, margin: 0, textAlign: "center", maxWidth: 460, lineHeight: 1.6 },
   starters:   { display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginTop: 8 },
   starterBtn: { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "#94A3B8", borderRadius: 99, padding: "8px 16px", fontSize: 12, cursor: "pointer" },
-  msgRow:     { display: "flex", gap: 10, alignItems: "flex-end" },
-  avatar:     { width: 30, height: 30, borderRadius: "50%", background: "rgba(248,113,113,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 },
-  userBubble: { background: "#1E293B", color: "#F1F5F9", borderRadius: "16px 16px 4px 16px", padding: "12px 16px", fontSize: 14, lineHeight: 1.6, maxWidth: "75%", whiteSpace: "pre-wrap" },
-  aiBubble:   { background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.15)", color: "#E2E8F0", borderRadius: "16px 16px 16px 4px", padding: "12px 16px", fontSize: 14, lineHeight: 1.7, maxWidth: "75%", whiteSpace: "pre-wrap" },
+  msgRow:     { display: "flex", gap: 10, alignItems: "flex-start" },
+  avatar:     { width: 30, height: 30, borderRadius: "50%", background: "rgba(248,113,113,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0, marginTop: 2 },
+  userBubble: { background: "#1E293B", color: "#F1F5F9", borderRadius: "16px 16px 4px 16px", padding: "12px 16px", fontSize: 14, lineHeight: 1.6, maxWidth: "80%", whiteSpace: "pre-wrap" },
+  aiBubble:   { background: "rgba(248,113,113,0.05)", border: "1px solid rgba(248,113,113,0.15)", color: "#E2E8F0", borderRadius: "16px 16px 16px 4px", padding: "14px 16px", fontSize: 14, maxWidth: "85%" },
   typing:     { display: "flex", gap: 4, alignItems: "center", padding: "14px 18px" },
   dot:        { width: 7, height: 7, borderRadius: "50%", background: "#F87171", display: "inline-block", animation: "blink 1.2s infinite" },
   inputArea:  { flexShrink: 0, padding: "12px 16px 16px", borderTop: "1px solid rgba(255,255,255,0.07)" },
-  inputRow:   { maxWidth: 700, margin: "0 auto", display: "flex", gap: 10 },
+  inputRow:   { maxWidth: 760, margin: "0 auto", display: "flex", gap: 10 },
   input:      { flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "12px 16px", color: "#F1F5F9", fontSize: 14, outline: "none" },
   micBtn:     { border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "0 14px", fontSize: 18, cursor: "pointer", flexShrink: 0 },
   sendBtn:    { background: "#F87171", color: "#fff", border: "none", borderRadius: 10, padding: "12px 22px", fontWeight: 700, fontSize: 14, cursor: "pointer" },

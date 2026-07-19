@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import LoadingScreen from "../components/LoadingScreen";
+import { AIMessage } from "../components/AIMessage";
 
 interface Message {
   role: "user" | "assistant";
@@ -12,6 +13,7 @@ interface Message {
 }
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+const ACCENT = "#818CF8";
 
 const STARTERS = [
   "Is $1,299 a good price for a MacBook Air M3?",
@@ -20,17 +22,23 @@ const STARTERS = [
   "Should I wait for Black Friday to buy a PS5?",
 ];
 
+const FOLLOWUPS = [
+  "Write me a negotiation script for this",
+  "Which stores offer price matching?",
+  "What's the best credit card for this purchase?",
+];
+
 export default function ChatPage() {
   const router = useRouter();
   const { status } = useSession();
 
-  const [token, setToken] = useState("");
+  const [token, setToken]       = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [input, setInput]       = useState("");
+  const [loading, setLoading]   = useState(false);
   const [listening, setListening] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const recogRef = useRef<any>(null);
+  const recogRef  = useRef<any>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/sign-in"); return; }
@@ -53,9 +61,9 @@ export default function ChatPage() {
     recogRef.current = r;
     r.continuous = false; r.interimResults = false; r.lang = "en-US";
     r.onstart = () => setListening(true);
-    r.onend = () => setListening(false);
+    r.onend   = () => setListening(false);
     r.onresult = (e: any) => setInput(e.results[0][0].transcript);
-    r.onerror = () => setListening(false);
+    r.onerror  = () => setListening(false);
     r.start();
   }
 
@@ -63,11 +71,9 @@ export default function ChatPage() {
     const userText = (text ?? input).trim();
     if (!userText || loading) return;
     setInput("");
-
     const next: Message[] = [...messages, { role: "user", content: userText }];
     setMessages(next);
     setLoading(true);
-
     try {
       const res = await fetch(`${BASE}/chat`, {
         method: "POST",
@@ -78,35 +84,30 @@ export default function ChatPage() {
       if (!res.ok) throw new Error(data.detail || "Error");
       setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
     } catch (e: any) {
-      setMessages(prev => [...prev, { role: "assistant", content: `Error: ${e.message || "Could not reach AI service. Try again."}` }]);
+      setMessages(prev => [...prev, { role: "assistant", content: `**Error:** ${e.message || "Could not reach AI service. Try again."}` }]);
     } finally {
       setLoading(false);
     }
   }
 
-  if (status === "loading" || !token) {
-    return <LoadingScreen />;
-  }
+  if (status === "loading" || !token) return <LoadingScreen />;
 
   return (
     <main style={S.page}>
-      {/* Header */}
       <div style={S.header}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Link href="/procurement" style={S.backLink}>Procurement</Link>
+          <Link href="/procurement" style={S.navLink}>Procurement</Link>
           <span style={S.divider}>|</span>
-          <Link href="/group-deals" style={S.backLink}>Group Deals</Link>
+          <Link href="/group-deals" style={S.navLink}>Group Deals</Link>
           <span style={S.divider}>|</span>
-          <Link href="/fulfillment" style={S.backLink}>Fulfillment</Link>
+          <Link href="/fulfillment" style={S.navLink}>Fulfillment</Link>
         </div>
-        <span style={S.brand}>BuyRight <span style={{ color: "#818CF8" }}>AI</span></span>
+        <span style={S.brand}>BuyRight <span style={{ color: ACCENT }}>AI</span></span>
         <button onClick={() => signOut({ callbackUrl: "/sign-in" })} style={S.ghostBtn}>Sign out</button>
       </div>
 
-      {/* Chat area */}
       <div style={S.chatWrap}>
         <div style={S.chatInner}>
-
           {messages.length === 0 && (
             <div style={S.emptyState}>
               <div style={S.avatarLarge}>🤖</div>
@@ -123,9 +124,18 @@ export default function ChatPage() {
           {messages.map((m, i) => (
             <div key={i} style={{ ...S.msgRow, justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
               {m.role === "assistant" && <div style={S.avatar}>🤖</div>}
-              <div style={m.role === "user" ? S.userBubble : S.aiBubble}>
-                {m.content}
-              </div>
+              {m.role === "user" ? (
+                <div style={S.userBubble}>{m.content}</div>
+              ) : (
+                <div style={S.aiBubble}>
+                  <AIMessage
+                    content={m.content}
+                    onFollowUp={send}
+                    followups={i === messages.length - 1 ? FOLLOWUPS : []}
+                    accent={ACCENT}
+                  />
+                </div>
+              )}
             </div>
           ))}
 
@@ -144,10 +154,13 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Input */}
       <div style={S.inputArea}>
         <div style={S.inputRow}>
-          <button onClick={startVoice} style={{ ...S.micBtn, background: listening ? "rgba(129,140,248,0.3)" : "rgba(255,255,255,0.05)" }} title="Voice input">🎤</button>
+          <button
+            onClick={startVoice}
+            style={{ ...S.micBtn, background: listening ? `${ACCENT}40` : "rgba(255,255,255,0.05)" }}
+            title="Voice input"
+          >🎤</button>
           <input
             style={S.input}
             value={input}
@@ -175,25 +188,25 @@ const S: Record<string, React.CSSProperties> = {
   page:       { height: "100vh", background: "#0B0F19", display: "flex", flexDirection: "column", fontFamily: "system-ui", overflow: "hidden" },
   header:     { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 24px", borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 },
   brand:      { color: "#F1F5F9", fontSize: 16, fontWeight: 700 },
-  backLink:   { color: "#94A3B8", fontSize: 13, textDecoration: "none" },
+  navLink:    { color: "#94A3B8", fontSize: 13, textDecoration: "none" },
   divider:    { color: "#334155", fontSize: 13 },
   ghostBtn:   { background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#94A3B8", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 13 },
   chatWrap:   { flex: 1, overflowY: "auto", padding: "24px 16px 0" },
-  chatInner:  { maxWidth: 700, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16, paddingBottom: 16 },
+  chatInner:  { maxWidth: 760, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16, paddingBottom: 16 },
   emptyState: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingTop: 60, gap: 12 },
   avatarLarge:{ fontSize: 48, marginBottom: 8 },
   emptyTitle: { color: "#F1F5F9", fontSize: 22, fontWeight: 700, margin: 0 },
   emptySub:   { color: "#94A3B8", fontSize: 14, margin: 0, textAlign: "center", maxWidth: 400, lineHeight: 1.6 },
   starters:   { display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginTop: 8 },
   starterBtn: { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "#94A3B8", borderRadius: 99, padding: "8px 16px", fontSize: 12, cursor: "pointer" },
-  msgRow:     { display: "flex", gap: 10, alignItems: "flex-end" },
-  avatar:     { width: 30, height: 30, borderRadius: "50%", background: "rgba(129,140,248,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 },
-  userBubble: { background: "#1E293B", color: "#F1F5F9", borderRadius: "16px 16px 4px 16px", padding: "12px 16px", fontSize: 14, lineHeight: 1.6, maxWidth: "75%", whiteSpace: "pre-wrap" },
-  aiBubble:   { background: "rgba(129,140,248,0.08)", border: "1px solid rgba(129,140,248,0.15)", color: "#E2E8F0", borderRadius: "16px 16px 16px 4px", padding: "12px 16px", fontSize: 14, lineHeight: 1.7, maxWidth: "75%", whiteSpace: "pre-wrap" },
+  msgRow:     { display: "flex", gap: 10, alignItems: "flex-start" },
+  avatar:     { width: 30, height: 30, borderRadius: "50%", background: "rgba(129,140,248,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0, marginTop: 2 },
+  userBubble: { background: "#1E293B", color: "#F1F5F9", borderRadius: "16px 16px 4px 16px", padding: "12px 16px", fontSize: 14, lineHeight: 1.6, maxWidth: "80%", whiteSpace: "pre-wrap" },
+  aiBubble:   { background: "rgba(129,140,248,0.07)", border: "1px solid rgba(129,140,248,0.15)", color: "#E2E8F0", borderRadius: "16px 16px 16px 4px", padding: "14px 16px", fontSize: 14, maxWidth: "85%" },
   typing:     { display: "flex", gap: 4, alignItems: "center", padding: "14px 18px" },
   dot:        { width: 7, height: 7, borderRadius: "50%", background: "#818CF8", display: "inline-block", animation: "blink 1.2s infinite" },
   inputArea:  { flexShrink: 0, padding: "12px 16px 16px", borderTop: "1px solid rgba(255,255,255,0.07)" },
-  inputRow:   { maxWidth: 700, margin: "0 auto", display: "flex", gap: 10 },
+  inputRow:   { maxWidth: 760, margin: "0 auto", display: "flex", gap: 10 },
   input:      { flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "12px 16px", color: "#F1F5F9", fontSize: 14, outline: "none" },
   micBtn:     { border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "0 14px", fontSize: 18, cursor: "pointer", flexShrink: 0 },
   sendBtn:    { background: "#818CF8", color: "#fff", border: "none", borderRadius: 10, padding: "12px 22px", fontWeight: 700, fontSize: 14, cursor: "pointer" },

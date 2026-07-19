@@ -5,19 +5,27 @@ import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import LoadingScreen from "../components/LoadingScreen";
+import { AIMessage } from "../components/AIMessage";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
 }
 
-const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+const BASE    = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+const ACCENT  = "#00F5D4";
 
 const STARTERS = [
   "I need a gaming laptop under $1,200 for college by August",
   "Find me the best 65-inch TV under $800 this week",
   "I need noise-cancelling headphones under $300, mainly for flights",
   "Get me a standing desk and monitor setup for under $600",
+];
+
+const FOLLOWUPS = [
+  "Write the negotiation email",
+  "Check Costco / warehouse pricing",
+  "Which credit card gives most cashback on this?",
 ];
 
 export default function ProcurementPage() {
@@ -42,7 +50,7 @@ export default function ProcurementPage() {
         .then(async d => {
           if (!d.token) { router.push("/sign-in"); return; }
           setToken(d.token);
-          const res = await fetch(`${BASE_URL}/billing/status`, { headers: { Authorization: `Bearer ${d.token}` } });
+          const res  = await fetch(`${BASE_URL}/billing/status`, { headers: { Authorization: `Bearer ${d.token}` } });
           const data = await res.json();
           setSubscribed(data.subscribed);
         })
@@ -60,10 +68,10 @@ export default function ProcurementPage() {
     const r = new SR();
     recogRef.current = r;
     r.continuous = false; r.interimResults = false; r.lang = "en-US";
-    r.onstart = () => setListening(true);
-    r.onend = () => setListening(false);
+    r.onstart  = () => setListening(true);
+    r.onend    = () => setListening(false);
     r.onresult = (e: any) => setInput(e.results[0][0].transcript);
-    r.onerror = () => setListening(false);
+    r.onerror  = () => setListening(false);
     r.start();
   }
 
@@ -71,11 +79,9 @@ export default function ProcurementPage() {
     const userText = (text ?? input).trim();
     if (!userText || loading) return;
     setInput("");
-
     const next: Message[] = [...messages, { role: "user", content: userText }];
     setMessages(next);
     setLoading(true);
-
     try {
       const res = await fetch(`${BASE}/procurement`, {
         method: "POST",
@@ -86,21 +92,19 @@ export default function ProcurementPage() {
       if (!res.ok) throw new Error(data.detail || "Error");
       setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
     } catch (e: any) {
-      setMessages(prev => [...prev, { role: "assistant", content: `Error: ${e.message}` }]);
+      setMessages(prev => [...prev, { role: "assistant", content: `**Error:** ${e.message}` }]);
     } finally {
       setLoading(false);
     }
   }
 
-  if (status === "loading" || !token || subscribed === null) {
-    return <LoadingScreen />;
-  }
+  if (status === "loading" || !token || subscribed === null) return <LoadingScreen />;
 
   if (!subscribed) {
     return (
       <main style={S.page}>
         <div style={S.header}>
-          <span style={S.brand}>BuyRight <span style={{ color: "#00F5D4" }}>AI</span></span>
+          <span style={S.brand}>BuyRight <span style={{ color: ACCENT }}>AI</span></span>
           <button onClick={() => signOut({ callbackUrl: "/sign-in" })} style={S.ghostBtn}>Sign out</button>
         </div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 24, textAlign: "center" }}>
@@ -109,7 +113,7 @@ export default function ProcurementPage() {
           <p style={{ color: "#94A3B8", fontSize: 14, maxWidth: 360, lineHeight: 1.6, margin: 0 }}>
             Consumer Procurement is available on the Pro plan. Upgrade to get full AI-powered purchasing, fulfillment, and collective bargaining.
           </p>
-          <Link href="/pricing" style={{ background: "#00F5D4", color: "#0B0F19", textDecoration: "none", borderRadius: 10, padding: "13px 28px", fontWeight: 800, fontSize: 15, marginTop: 8 }}>
+          <Link href="/pricing" style={{ background: ACCENT, color: "#0B0F19", textDecoration: "none", borderRadius: 10, padding: "13px 28px", fontWeight: 800, fontSize: 15, marginTop: 8 }}>
             View pricing →
           </Link>
         </div>
@@ -127,7 +131,7 @@ export default function ProcurementPage() {
           <span style={S.divider}>|</span>
           <Link href="/chat" style={S.navLink}>AI Advisor</Link>
         </div>
-        <span style={S.brand}>BuyRight <span style={{ color: "#00F5D4" }}>AI</span></span>
+        <span style={S.brand}>BuyRight <span style={{ color: ACCENT }}>AI</span></span>
         <button onClick={() => signOut({ callbackUrl: "/sign-in" })} style={S.ghostBtn}>Sign out</button>
       </div>
 
@@ -151,9 +155,18 @@ export default function ProcurementPage() {
           {messages.map((m, i) => (
             <div key={i} style={{ ...S.msgRow, justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
               {m.role === "assistant" && <div style={S.avatar}>🛒</div>}
-              <div style={m.role === "user" ? S.userBubble : S.aiBubble}>
-                {m.content}
-              </div>
+              {m.role === "user" ? (
+                <div style={S.userBubble}>{m.content}</div>
+              ) : (
+                <div style={S.aiBubble}>
+                  <AIMessage
+                    content={m.content}
+                    onFollowUp={send}
+                    followups={i === messages.length - 1 ? FOLLOWUPS : []}
+                    accent={ACCENT}
+                  />
+                </div>
+              )}
             </div>
           ))}
 
@@ -161,20 +174,17 @@ export default function ProcurementPage() {
             <div style={{ ...S.msgRow, justifyContent: "flex-start" }}>
               <div style={S.avatar}>🛒</div>
               <div style={{ ...S.aiBubble, ...S.typing }}>
-                <span style={S.dot} />
-                <span style={{ ...S.dot, animationDelay: "0.2s" }} />
-                <span style={{ ...S.dot, animationDelay: "0.4s" }} />
+                <span style={S.dot} /><span style={{ ...S.dot, animationDelay: "0.2s" }} /><span style={{ ...S.dot, animationDelay: "0.4s" }} />
               </div>
             </div>
           )}
-
           <div ref={bottomRef} />
         </div>
       </div>
 
       <div style={S.inputArea}>
         <div style={S.inputRow}>
-          <button onClick={startVoice} style={{ ...S.micBtn, background: listening ? "rgba(0,245,212,0.3)" : "rgba(255,255,255,0.05)" }} title="Voice input">🎤</button>
+          <button onClick={startVoice} style={{ ...S.micBtn, background: listening ? `${ACCENT}40` : "rgba(255,255,255,0.05)" }} title="Voice input">🎤</button>
           <input
             style={S.input}
             value={input}
@@ -206,21 +216,21 @@ const S: Record<string, React.CSSProperties> = {
   divider:    { color: "#334155", fontSize: 13 },
   ghostBtn:   { background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#94A3B8", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 13 },
   chatWrap:   { flex: 1, overflowY: "auto", padding: "24px 16px 0" },
-  chatInner:  { maxWidth: 700, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16, paddingBottom: 16 },
+  chatInner:  { maxWidth: 760, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16, paddingBottom: 16 },
   emptyState: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingTop: 60, gap: 12 },
   avatarLarge:{ fontSize: 48, marginBottom: 8 },
   emptyTitle: { color: "#F1F5F9", fontSize: 22, fontWeight: 700, margin: 0 },
   emptySub:   { color: "#94A3B8", fontSize: 14, margin: 0, textAlign: "center", maxWidth: 460, lineHeight: 1.6 },
   starters:   { display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginTop: 8 },
   starterBtn: { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "#94A3B8", borderRadius: 99, padding: "8px 16px", fontSize: 12, cursor: "pointer" },
-  msgRow:     { display: "flex", gap: 10, alignItems: "flex-end" },
-  avatar:     { width: 30, height: 30, borderRadius: "50%", background: "rgba(0,245,212,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 },
-  userBubble: { background: "#1E293B", color: "#F1F5F9", borderRadius: "16px 16px 4px 16px", padding: "12px 16px", fontSize: 14, lineHeight: 1.6, maxWidth: "75%", whiteSpace: "pre-wrap" },
-  aiBubble:   { background: "rgba(0,245,212,0.06)", border: "1px solid rgba(0,245,212,0.15)", color: "#E2E8F0", borderRadius: "16px 16px 16px 4px", padding: "12px 16px", fontSize: 14, lineHeight: 1.7, maxWidth: "75%", whiteSpace: "pre-wrap" },
+  msgRow:     { display: "flex", gap: 10, alignItems: "flex-start" },
+  avatar:     { width: 30, height: 30, borderRadius: "50%", background: "rgba(0,245,212,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0, marginTop: 2 },
+  userBubble: { background: "#1E293B", color: "#F1F5F9", borderRadius: "16px 16px 4px 16px", padding: "12px 16px", fontSize: 14, lineHeight: 1.6, maxWidth: "80%", whiteSpace: "pre-wrap" },
+  aiBubble:   { background: "rgba(0,245,212,0.05)", border: "1px solid rgba(0,245,212,0.15)", color: "#E2E8F0", borderRadius: "16px 16px 16px 4px", padding: "14px 16px", fontSize: 14, maxWidth: "85%" },
   typing:     { display: "flex", gap: 4, alignItems: "center", padding: "14px 18px" },
   dot:        { width: 7, height: 7, borderRadius: "50%", background: "#00F5D4", display: "inline-block", animation: "blink 1.2s infinite" },
   inputArea:  { flexShrink: 0, padding: "12px 16px 16px", borderTop: "1px solid rgba(255,255,255,0.07)" },
-  inputRow:   { maxWidth: 700, margin: "0 auto", display: "flex", gap: 10 },
+  inputRow:   { maxWidth: 760, margin: "0 auto", display: "flex", gap: 10 },
   input:      { flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "12px 16px", color: "#F1F5F9", fontSize: 14, outline: "none" },
   micBtn:     { border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "0 14px", fontSize: 18, cursor: "pointer", flexShrink: 0 },
   sendBtn:    { background: "#00F5D4", color: "#0B0F19", border: "none", borderRadius: 10, padding: "12px 22px", fontWeight: 700, fontSize: 14, cursor: "pointer" },
