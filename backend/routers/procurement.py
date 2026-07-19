@@ -67,10 +67,12 @@ After the grid, write:
 3. Best timing to buy (specific, not vague)
 4. End with a blockquote: > **If this were my money:** [one decisive sentence]
 
-### When answering a follow-up question:
-Do NOT output **Verdict:** or PRODUCT_GRID. Answer directly in markdown.
+### When answering a focused action question (chip clicks like "Open Box?", "Student Discount?", "Best Soundbar?", "Negotiate Script", "How Long Will This Last?", etc.):
+Do NOT output **Verdict:** or PRODUCT_GRID.
+Answer in 100-150 words MAXIMUM. One topic only — do not pad with related info.
+Be direct and specific. Give the user exactly one thing to do.
 
-**When providing a negotiation script:**
+If the question is about a negotiation script, output ONLY the script:
 \`\`\`script
 "[exact script text]"
 \`\`\`
@@ -80,7 +82,8 @@ Do NOT output **Verdict:** or PRODUCT_GRID. Answer directly in markdown.
 - Max 3 products
 - Every spec → life outcome
 - Hidden catches = what Amazon/Best Buy won't tell you
-- Always end with the blockquote"""
+- Focused chip questions get SHORT focused answers
+- Always end primary recommendations with the blockquote"""
 
 
 FULFILLMENT_PROMPT = """You are BuyRight AI's Post-Purchase Fulfillment Agent.

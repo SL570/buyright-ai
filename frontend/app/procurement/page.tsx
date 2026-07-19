@@ -22,10 +22,53 @@ const STARTERS = [
   "Get me a standing desk and monitor setup for under $600",
 ];
 
-const FOLLOWUPS = [
-  "Which one would you actually buy?",
-  "How can I pay less for this?",
+const LOADING_MSGS = [
+  "Comparing products across major retailers...",
+  "Filtering out weak specs and bad reviews...",
+  "Checking today's live prices...",
+  "Weighing your budget and priorities...",
+  "Finding hidden catches...",
+  "Almost done...",
 ];
+
+function getChips(messages: Message[]): string[] {
+  const text = messages.map(m => m.content).join(" ").toLowerCase();
+  const lastUser = messages.filter(m => m.role === "user").pop()?.content.toLowerCase() ?? "";
+
+  // After a savings/price question — go deeper, not broader
+  if (/pay less|cheaper|discount|save|deal|open.?box|price|coupon/.test(lastUser)) {
+    return ["Best Cashback Card for This?", "Open Box — Is It Worth It?", "Negotiate In-Store Script"];
+  }
+  // After a comparison question
+  if (/compare|vs\b|versus|difference|better|which one/.test(lastUser)) {
+    return ["Which One for Heavy Use?", "Any Hidden Issues?", "Should I Wait for a Sale?"];
+  }
+  // Category: TV
+  if (/\b(tv|television|oled|qled|4k|8k|screen|display|inch)\b/.test(text)) {
+    return ["Open Box Deals?", "Best Soundbar to Pair?", "Should I Wait for a Sale?"];
+  }
+  // Category: Laptop
+  if (/\b(laptop|notebook|macbook|chromebook|ultrabook)\b/.test(text)) {
+    return ["Student Discount?", "Which Accessories Actually Matter?", "How Long Will This Last?"];
+  }
+  // Category: Phone
+  if (/\b(phone|iphone|android|pixel|galaxy|smartphone)\b/.test(text)) {
+    return ["Best Case for This?", "Trade-In Value?", "Which Carrier Has the Best Deal?"];
+  }
+  // Category: Headphones/Audio
+  if (/\b(headphone|earbud|airpod|speaker|audio|anc|noise.cancel)\b/.test(text)) {
+    return ["Best for Flights?", "Compare to AirPods Pro?", "Warranty Worth It?"];
+  }
+  // Category: Desk/Office
+  if (/\b(desk|chair|monitor|keyboard|mouse|office|standing)\b/.test(text)) {
+    return ["Cable Management Tips?", "Best Monitor for This Setup?", "Ergonomic Add-ons?"];
+  }
+  // Category: Camera
+  if (/\b(camera|lens|photography|mirrorless|dslr)\b/.test(text)) {
+    return ["Which Lens First?", "Best Bag for Travel?", "Buy New vs Refurbished?"];
+  }
+  return ["Open Box Deals?", "Which One Would You Actually Buy?"];
+}
 
 export default function ProcurementPage() {
   const router = useRouter();
@@ -36,10 +79,18 @@ export default function ProcurementPage() {
   const [messages, setMessages]     = useState<Message[]>([]);
   const [input, setInput]           = useState("");
   const [loading, setLoading]       = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState(LOADING_MSGS[0]);
   const [listening, setListening]   = useState(false);
   const bottomRef                   = useRef<HTMLDivElement>(null);
   const recogRef                    = useRef<any>(null);
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+
+  useEffect(() => {
+    if (!loading) { setLoadingMsg(LOADING_MSGS[0]); return; }
+    let i = 0;
+    const id = setInterval(() => { i = (i + 1) % LOADING_MSGS.length; setLoadingMsg(LOADING_MSGS[i]); }, 1800);
+    return () => clearInterval(id);
+  }, [loading]);
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/sign-in"); return; }
@@ -191,7 +242,7 @@ export default function ProcurementPage() {
                   <AIMessage
                     content={m.content}
                     onFollowUp={send}
-                    followups={i === messages.length - 1 ? FOLLOWUPS : []}
+                    followups={i === messages.length - 1 ? getChips(messages.slice(0, i + 1)) : []}
                     accent={ACCENT}
                   />
                 </div>
@@ -202,8 +253,11 @@ export default function ProcurementPage() {
           {loading && (
             <div style={{ ...S.msgRow, justifyContent: "flex-start" }}>
               <div style={S.avatar}>🛒</div>
-              <div style={{ ...S.aiBubble, ...S.typing }}>
-                <span style={S.dot} /><span style={{ ...S.dot, animationDelay: "0.2s" }} /><span style={{ ...S.dot, animationDelay: "0.4s" }} />
+              <div style={{ ...S.aiBubble, padding: "12px 16px" }}>
+                <div style={{ fontSize: 13, color: "#00F5D4", display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ animation: "spin 1.2s linear infinite", display: "inline-block" }}>⟳</span>
+                  {loadingMsg}
+                </div>
               </div>
             </div>
           )}
@@ -228,10 +282,8 @@ export default function ProcurementPage() {
       </div>
 
       <style>{`
-        @keyframes blink {
-          0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
-          40% { opacity: 1; transform: scale(1); }
-        }
+        @keyframes blink { 0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </main>
   );
