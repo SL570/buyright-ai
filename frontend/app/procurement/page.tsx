@@ -23,9 +23,8 @@ const STARTERS = [
 ];
 
 const FOLLOWUPS = [
-  "Write me a price negotiation script",
-  "Compare the top 2 picks head-to-head",
-  "Which credit card gives most cashback on this?",
+  "Which one would you actually buy?",
+  "How can I pay less for this?",
 ];
 
 export default function ProcurementPage() {
