@@ -131,7 +131,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                   target="_blank" rel="noopener noreferrer"
                   style={{ fontSize: 12, fontWeight: 700, color: "#0B0F19", background: "#00CF72", borderRadius: 8, padding: "9px 16px", textDecoration: "none", flexShrink: 0, whiteSpace: "nowrap" }}
                 >
-                  See Best Price →
+                  Find Lowest Price →
                 </a>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
