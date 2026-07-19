@@ -12,6 +12,7 @@ export interface Product {
   store: string;
   pros: string[];
   cons: string[];
+  rejection_reason?: string;
 }
 
 type VerdictType = "success" | "warning" | "danger" | "info";
@@ -105,67 +106,83 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
         </div>
       )}
 
-      {/* Product card grid */}
-      {products && products.length > 0 && (
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${Math.min(products.length, 3)}, 1fr)`,
-          gap: 10, marginBottom: 14,
-        }}>
-          {products.map((p, i) => {
-            const bs = BADGE_STYLE[p.badgeType] || BADGE_STYLE.neutral;
-            return (
-              <div
-                key={i}
-                style={{
-                  background: "rgba(255,255,255,0.03)",
-                  border: p.recommended
-                    ? "1.5px solid rgba(0,207,114,0.45)"
-                    : "0.5px solid rgba(255,255,255,0.1)",
-                  borderRadius: 12, padding: 14,
-                  display: "flex", flexDirection: "column", gap: 8,
-                }}
-              >
-                <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: bs.bg, color: bs.color, alignSelf: "flex-start" }}>
-                  {p.badge}
-                </span>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#EFF3FF" }}>{p.name}</div>
-                <div style={{ fontFamily: "monospace", fontSize: 20, fontWeight: 700, color: "#EFF3FF" }}>{p.price}</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
-                  {p.pros.map((t, j) => (
-                    <div key={j} style={{ fontSize: 11, color: "#8BA3C4", display: "flex", gap: 5, alignItems: "flex-start" }}>
-                      <span style={{ color: "#00CF72", flexShrink: 0, lineHeight: 1.6 }}>✓</span>{t}
-                    </div>
-                  ))}
-                  {p.cons.map((t, j) => (
-                    <div key={j} style={{ fontSize: 11, color: "#8BA3C4", display: "flex", gap: 5, alignItems: "flex-start" }}>
-                      <span style={{ color: "#F5A83A", flexShrink: 0, lineHeight: 1.6 }}>⚠</span>{t}
-                    </div>
-                  ))}
+      {/* Product cards — hero winner + why-not row */}
+      {products && products.length > 0 && (() => {
+        const winner = products.find(p => p.recommended) ?? products[0];
+        const others = products.filter(p => !p.recommended);
+        return (
+          <div style={{ marginBottom: 14 }}>
+            {/* Hero winner */}
+            <div style={{
+              background: "rgba(0,207,114,0.06)",
+              border: "1.5px solid rgba(0,207,114,0.35)",
+              borderRadius: 14, padding: "18px 20px", marginBottom: 10,
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: "#00CF72", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 5 }}>
+                    🏆 Buy This
+                  </div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: "#EFF3FF" }}>{winner.name}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#EFF3FF", fontFamily: "monospace", marginTop: 2 }}>{winner.price}</div>
                 </div>
-                <div style={{ paddingTop: 8, borderTop: "0.5px solid rgba(255,255,255,0.07)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 11, color: "#3D5571" }}>{p.store}</span>
-                  <a
-                    href={storeSearchUrl(p.store, p.name)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={e => e.stopPropagation()}
-                    style={{
-                      fontSize: 11, fontWeight: 600, color: accent,
-                      textDecoration: "none",
-                      border: `0.5px solid ${accent}40`,
-                      background: `${accent}10`,
-                      borderRadius: 6, padding: "3px 9px",
-                    }}
-                  >
-                    Shop →
-                  </a>
-                </div>
+                <a
+                  href={storeSearchUrl(winner.store, winner.name)}
+                  target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize: 12, fontWeight: 700, color: "#0B0F19", background: "#00CF72", borderRadius: 8, padding: "9px 16px", textDecoration: "none", flexShrink: 0, whiteSpace: "nowrap" }}
+                >
+                  See Best Price →
+                </a>
               </div>
-            );
-          })}
-        </div>
-      )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {winner.pros.map((t, j) => (
+                  <div key={j} style={{ fontSize: 12, color: "#C8D8F0", display: "flex", gap: 7, alignItems: "flex-start" }}>
+                    <span style={{ color: "#00CF72", flexShrink: 0, lineHeight: 1.6 }}>✓</span>{t}
+                  </div>
+                ))}
+              </div>
+              {winner.cons.length > 0 && (
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: "0.5px solid rgba(255,255,255,0.07)", fontSize: 12, color: "#F5A83A", display: "flex", gap: 6 }}>
+                  <span style={{ flexShrink: 0 }}>⚠</span>{winner.cons[0]}
+                </div>
+              )}
+              <div style={{ fontSize: 11, color: "#2D4060", marginTop: 8 }}>{winner.store}</div>
+            </div>
+
+            {/* Why not the others */}
+            {others.length > 0 && (
+              <>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#3D5571", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 7 }}>
+                  Why not the others?
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {others.map((p, i) => {
+                    const reason = p.rejection_reason || p.cons[0] || "";
+                    return (
+                      <div key={i} style={{
+                        flex: 1, background: "rgba(255,255,255,0.02)",
+                        border: "0.5px solid rgba(255,255,255,0.07)",
+                        borderRadius: 10, padding: "12px 14px",
+                      }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "#4A6080" }}>{p.name}</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "monospace", color: "#4A6080", marginTop: 1 }}>{p.price}</div>
+                        {reason && <div style={{ fontSize: 11, color: "#3D5571", marginTop: 6, lineHeight: 1.55 }}>{reason}</div>}
+                        <a
+                          href={storeSearchUrl(p.store, p.name)}
+                          target="_blank" rel="noopener noreferrer"
+                          style={{ fontSize: 10, color: "#3D5571", textDecoration: "none", marginTop: 8, display: "inline-block" }}
+                        >
+                          Compare →
+                        </a>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Markdown body */}
       <div style={{ fontSize: 14, lineHeight: 1.75, color: "#E2E8F0" }}>
