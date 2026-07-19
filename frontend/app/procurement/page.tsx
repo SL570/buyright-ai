@@ -23,8 +23,8 @@ const STARTERS = [
 ];
 
 const FOLLOWUPS = [
-  "Write the negotiation email",
-  "Check Costco / warehouse pricing",
+  "Write me a price negotiation script",
+  "Find a coupon or promo code for this",
   "Which credit card gives most cashback on this?",
 ];
 
@@ -117,7 +117,7 @@ export default function ProcurementPage() {
               setMessages([...next, { role: "assistant", content: fullText }]);
             }
           } catch (parseErr: any) {
-            if (parseErr.message && !parseErr.message.includes("JSON")) throw parseErr;
+            if (!(parseErr instanceof SyntaxError)) throw parseErr;
           }
         }
       }

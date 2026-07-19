@@ -109,7 +109,7 @@ export default function ChatPage() {
               setMessages([...next, { role: "assistant", content: fullText }]);
             }
           } catch (parseErr: any) {
-            if (parseErr.message && !parseErr.message.includes("JSON")) throw parseErr;
+            if (!(parseErr instanceof SyntaxError)) throw parseErr;
           }
         }
       }
