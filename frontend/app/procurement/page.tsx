@@ -24,7 +24,7 @@ const STARTERS = [
 
 const FOLLOWUPS = [
   "Write me a price negotiation script",
-  "Find a coupon or promo code for this",
+  "Compare the top 2 picks head-to-head",
   "Which credit card gives most cashback on this?",
 ];
 
