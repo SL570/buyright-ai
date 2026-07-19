@@ -114,7 +114,6 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
         }}>
           {products.map((p, i) => {
             const bs = BADGE_STYLE[p.badgeType] || BADGE_STYLE.neutral;
-            const isSel = selected === i;
             return (
               <div
                 key={i}
