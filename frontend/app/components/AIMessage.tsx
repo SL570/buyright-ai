@@ -20,6 +20,10 @@ export interface Product {
 interface DecisionSummaryData {
   buy: string;
   price: string;
+  targetPrice?: string;
+  buyNowIf?: string;
+  skipIf?: string;
+  buyBefore?: string;
   wait: boolean;
   confidence: number;
   lifespan?: string;
@@ -28,8 +32,10 @@ interface DecisionSummaryData {
 }
 
 interface WhyPickedData {
-  compared: number;
-  rejected: number;
+  analyzed: number;
+  eliminated: number;
+  finalists: number;
+  category: string;
   checked: string[];
 }
 
@@ -424,18 +430,22 @@ function DecisionMeter({ data }: { data: DecisionSummaryData }) {
 }
 
 function WhyPickedCard({ data, accent }: { data: WhyPickedData; accent: string }) {
+  const noun = data.category || "products";
+  const stats = [
+    { n: data.analyzed,   label: `${noun} analyzed`, color: "#EFF3FF" },
+    { n: data.eliminated, label: "eliminated",         color: "#3D5571" },
+    { n: data.finalists,  label: "finalists",          color: accent },
+  ];
   return (
     <div style={{ background: "rgba(255,255,255,0.015)", border: "0.5px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "12px 14px", marginTop: 12 }}>
       <div style={{ fontSize: 10, fontWeight: 700, color: "#3D5571", letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 10 }}>Why We Picked It</div>
-      <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 22, fontWeight: 900, color: "#EFF3FF", fontFamily: "monospace", lineHeight: 1 }}>{data.compared}</div>
-          <div style={{ fontSize: 10, color: "#4A6080", marginTop: 3 }}>compared</div>
-        </div>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 22, fontWeight: 900, color: "#3D5571", fontFamily: "monospace", lineHeight: 1 }}>{data.rejected}</div>
-          <div style={{ fontSize: 10, color: "#3A5070", marginTop: 3 }}>rejected</div>
-        </div>
+      <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
+        {stats.map((s, i) => (
+          <div key={i} style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 22, fontWeight: 900, color: s.color, fontFamily: "monospace", lineHeight: 1 }}>{s.n}</div>
+            <div style={{ fontSize: 10, color: "#3A5070", marginTop: 3 }}>{s.label}</div>
+          </div>
+        ))}
         <div style={{ flex: 1, minWidth: 120 }}>
           <div style={{ fontSize: 10, color: "#3D5571", marginBottom: 6 }}>We checked</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
@@ -450,26 +460,28 @@ function WhyPickedCard({ data, accent }: { data: WhyPickedData; accent: string }
 }
 
 function DecisionSummaryCard({ data, accent, onFindPrice }: { data: DecisionSummaryData; accent: string; onFindPrice?: () => void }) {
-  const rows: { label: string; value: string; color?: string }[] = [
-    { label: "Buy", value: data.buy, color: "#EFF3FF" },
-    { label: "Price", value: data.price, color: "#EFF3FF" },
-    { label: "Wait?", value: data.wait ? "Yes" : "No", color: data.wait ? "#F5A83A" : "#00CF72" },
-    { label: "Confidence", value: `${data.confidence}%`, color: "#EFF3FF" },
-    ...(data.lifespan ? [{ label: "Lifespan", value: data.lifespan, color: "#7B98B8" }] : []),
+  const priceRows: { label: string; value: string; color?: string }[] = [
+    { label: "Today's Price", value: data.price },
+    ...(data.targetPrice  ? [{ label: "Target Price",  value: data.targetPrice,  color: "#00CF72" }] : []),
+    ...(data.buyNowIf     ? [{ label: "Buy Now If",    value: data.buyNowIf,    color: "#5DDBA8" }] : []),
+    ...(data.skipIf       ? [{ label: "Skip If",       value: data.skipIf,      color: "#F5A83A" }] : []),
+    ...(data.buyBefore    ? [{ label: "Best Timing",   value: data.buyBefore                      }] : []),
+    ...(data.lifespan     ? [{ label: "Lifespan",      value: data.lifespan,    color: "#7B98B8" }] : []),
   ];
   return (
     <div style={{
       background: "rgba(255,255,255,0.02)", border: `0.5px solid ${accent}22`,
       borderRadius: 12, padding: "14px 16px", marginTop: 14,
     }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: accent, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: accent, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
         Decision Summary
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 20px", marginBottom: 12 }}>
-        {rows.map((r, i) => (
+      <div style={{ fontSize: 13, fontWeight: 700, color: "#EFF3FF", marginBottom: 12 }}>{data.buy}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "9px 20px", marginBottom: 12 }}>
+        {priceRows.map((r, i) => (
           <div key={i}>
             <div style={{ fontSize: 10, color: "#3D5571", marginBottom: 2 }}>{r.label}</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: r.color ?? "#EFF3FF" }}>{r.value}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: r.color ?? "#8BA3C4" }}>{r.value}</div>
           </div>
         ))}
       </div>
