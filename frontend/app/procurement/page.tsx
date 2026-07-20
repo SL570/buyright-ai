@@ -65,6 +65,36 @@ function getFirstProduct(msgs: Message[]): { name: string; category: string } | 
   } catch { return null; }
 }
 
+// Compact long AI messages in history before sending to avoid payload limits.
+// Older AI messages only need to carry product name/category, not the full recommendation.
+function compactHistoryForApi(msgs: Message[]): Message[] {
+  return msgs.map((m, i) => {
+    if (i >= msgs.length - 2 || m.role !== "assistant" || m.content.length <= 600) return m;
+    const pgMatch = m.content.match(/PRODUCT_GRID:\n([\s\S]*?)\nEND_PRODUCT_GRID/);
+    const wpMatch = m.content.match(/WHY_PICKED:\s*\{[^}]*?"category"\s*:\s*"([^"]+)"/);
+    const parts: string[] = [];
+    if (pgMatch) {
+      try {
+        const prods = JSON.parse(pgMatch[1]);
+        const w = prods.find((p: any) => p.recommended) ?? prods[0];
+        if (w) parts.push(`Recommended ${w.name} at ${w.price}`);
+      } catch {}
+    }
+    if (wpMatch) parts.push(`category: ${wpMatch[1]}`);
+    return {
+      role: "assistant" as const,
+      content: parts.length ? `[Previous recommendation: ${parts.join(", ")}]` : m.content.slice(0, 600),
+    };
+  });
+}
+
+// Map HTTP status codes to user-facing messages — never expose technical errors.
+function friendlyError(status: number, detail: any): string {
+  if (status === 429) return "You're sending messages too quickly. Please wait a moment.";
+  if (status === 403) return typeof detail === "string" && detail.length < 200 ? detail : "Pro subscription required.";
+  return "Couldn't load this recommendation. Please try again.";
+}
+
 function getChips(messages: Message[]): string[] {
   // Use WHY_PICKED category from AI response for accurate detection
   const lastAI = messages.filter(m => m.role === "assistant").pop()?.content ?? "";
@@ -192,56 +222,70 @@ export default function ProcurementPage() {
     const next: Message[] = [...messages, { role: "user", content: userText }];
     setMessages(next);
     setLoading(true);
-    try {
-      const res = await fetch(`${BASE}/procurement`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ messages: next }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: "Request failed" }));
-        const detail = err.detail;
-        throw new Error(typeof detail === "string" ? detail : Array.isArray(detail) ? detail[0]?.msg || "Request failed" : "Request failed");
-      }
-      if (!res.body) throw new Error("No response stream");
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let fullText = "";
-      let buffer = "";
-      let firstChunk = true;
-      outer: while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const payload = line.slice(6).trim();
-          if (payload === "[DONE]") break outer;
-          try {
-            const parsed = JSON.parse(payload);
-            if (parsed.error) throw new Error(parsed.error);
-            if (parsed.text) {
-              if (firstChunk) { setLoading(false); firstChunk = false; }
-              fullText += parsed.text;
-              setMessages([...next, { role: "assistant", content: fullText }]);
+    const apiMessages = compactHistoryForApi(next);
+    let errMsg = "";
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt > 0) await new Promise(r => setTimeout(r, 1200));
+      try {
+        const res = await fetch(`${BASE}/procurement`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ messages: apiMessages }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: null }));
+          errMsg = friendlyError(res.status, err.detail);
+          if (res.status === 429 || res.status === 403) break; // never retry auth/rate errors
+          continue; // retry 422, 5xx
+        }
+        if (!res.body) { errMsg = "No response received. Please try again."; break; }
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = "";
+        let buffer = "";
+        let firstChunk = true;
+        outer: while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const payload = line.slice(6).trim();
+            if (payload === "[DONE]") break outer;
+            try {
+              const parsed = JSON.parse(payload);
+              if (parsed.error) throw new Error(parsed.error);
+              if (parsed.text) {
+                if (firstChunk) { setLoading(false); firstChunk = false; }
+                fullText += parsed.text;
+                setMessages([...next, { role: "assistant", content: fullText }]);
+              }
+            } catch (parseErr: any) {
+              if (!(parseErr instanceof SyntaxError)) throw parseErr;
             }
-          } catch (parseErr: any) {
-            if (!(parseErr instanceof SyntaxError)) throw parseErr;
           }
         }
+        if (fullText.includes("END_PRODUCT_GRID")) {
+          setJourneyStep(prev => Math.max(prev, 1));
+        }
+        errMsg = "";
+        break; // success — exit retry loop
+      } catch {
+        errMsg = "Connection issue. Please try again.";
+        // attempt 0 continues the loop for one retry; attempt 1 falls through
       }
-      // Advance journey step when a recommendation comes in
-      if (fullText.includes("END_PRODUCT_GRID")) {
-        setJourneyStep(prev => Math.max(prev, 1));
-      }
-    } catch (e: any) {
-      const msg = e instanceof Error ? e.message : typeof e === "string" ? e : "Something went wrong. Please try again.";
-      setMessages(prev => [...prev, { role: "assistant", content: `**Error:** ${msg}` }]);
-    } finally {
-      setLoading(false);
     }
+
+    if (errMsg) {
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: "Couldn't load this recommendation.\n\nPlease try again, or choose another question below.",
+      }]);
+    }
+    setLoading(false);
   }
 
   const lastProduct = getFirstProduct(messages);
@@ -324,7 +368,7 @@ export default function ProcurementPage() {
                   <AIMessage
                     content={m.content}
                     onFollowUp={send}
-                    followups={getFollowups(messages, i)}
+                    followups={loading ? [] : getFollowups(messages, i)}
                     accent={ACCENT}
                   />
                 </div>
