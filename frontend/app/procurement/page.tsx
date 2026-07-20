@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
@@ -144,7 +144,7 @@ function getFollowups(messages: Message[], idx: number): string[] {
   return getChips(messages.slice(0, idx + 1));
 }
 
-export default function ProcurementPage() {
+function ProcurementPageInner() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const { status }   = useSession();
@@ -557,3 +557,11 @@ const S: Record<string, React.CSSProperties> = {
   journeyBar: { flexShrink: 0, borderTop: "0.5px solid rgba(255,255,255,0.05)", padding: "10px 16px 8px" },
   journeyRow: { maxWidth: 500, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center" },
 };
+
+export default function ProcurementPage() {
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <ProcurementPageInner />
+    </Suspense>
+  );
+}
