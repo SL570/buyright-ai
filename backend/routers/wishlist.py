@@ -5,7 +5,7 @@ from datetime import datetime
 
 from database import get_db
 from models import User, WishlistItem, PriceHistory
-from schemas import WishlistItemCreate, WishlistItemOut, PriceHistoryOut
+from schemas import WishlistItemCreate, WishlistItemOut, PriceHistoryOut, SavedProductCreate, PatchWishlistItem
 from auth import get_current_user
 from services.ai_service import analyze_product
 
@@ -81,6 +81,59 @@ def delete_item(
         raise HTTPException(status_code=404, detail="Item not found")
     db.delete(item)
     db.commit()
+
+
+@router.post("/save-from-ai", response_model=WishlistItemOut, status_code=201)
+def save_from_ai(
+    payload: SavedProductCreate,
+    db:      Session = Depends(get_db),
+    user:    User    = Depends(get_current_user),
+):
+    item = WishlistItem(
+        name=payload.name,
+        url=None,
+        price=payload.price,
+        target_price=payload.target_price,
+        store=payload.store,
+        category=payload.category,
+        score=payload.score,
+        source="ai",
+        user_id=user.id,
+    )
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+
+    snapshot = PriceHistory(item_id=item.id, price=payload.price)
+    db.add(snapshot)
+    db.commit()
+    return item
+
+
+@router.patch("/{item_id}", response_model=WishlistItemOut)
+def patch_item(
+    item_id: int,
+    payload: PatchWishlistItem,
+    db:      Session = Depends(get_db),
+    user:    User    = Depends(get_current_user),
+):
+    item = db.query(WishlistItem).filter(
+        WishlistItem.id == item_id,
+        WishlistItem.user_id == user.id,
+    ).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    if payload.purchased is not None:
+        item.purchased = payload.purchased
+        if payload.purchased and not item.purchased_at:
+            item.purchased_at = datetime.utcnow()
+    if payload.regret_rating is not None:
+        item.regret_rating = payload.regret_rating
+    if payload.target_price is not None:
+        item.target_price = payload.target_price
+    db.commit()
+    db.refresh(item)
+    return item
 
 
 @router.get("/{item_id}/history", response_model=List[PriceHistoryOut])

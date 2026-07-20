@@ -336,6 +336,8 @@ export default function ProcurementPage() {
           <Link href="/fulfillment" style={S.navLink}>Fulfillment</Link>
           <span style={S.divider}>|</span>
           <Link href="/chat" style={S.navLink}>AI Advisor</Link>
+          <span style={S.divider}>|</span>
+          <Link href="/watchlist" style={{ ...S.navLink, color: ACCENT, fontWeight: 700 }}>Watchlist</Link>
         </div>
         <span style={S.brand}>BuyRight <span style={{ color: ACCENT }}>AI</span></span>
         <button onClick={() => signOut({ callbackUrl: "/sign-in" })} style={S.ghostBtn}>Sign out</button>
@@ -370,6 +372,7 @@ export default function ProcurementPage() {
                     onFollowUp={send}
                     followups={loading ? [] : getFollowups(messages, i)}
                     accent={ACCENT}
+                    token={token ?? undefined}
                   />
                 </div>
               )}

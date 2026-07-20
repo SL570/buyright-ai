@@ -190,6 +190,7 @@ interface Props {
   followups?: string[];
   accent?: string;
   journeyStages?: JourneyStage[];
+  token?: string;
 }
 
 const SECTION_LABELS: Record<string, string> = {
@@ -368,7 +369,58 @@ function ConfidenceBox({ data, score }: { data: DecisionSummaryData; score?: num
   );
 }
 
-export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9EFF", journeyStages }: Props) {
+function SaveButton({ product, whyPicked, token, accent }: {
+  product: Product;
+  whyPicked: WhyPickedData | null;
+  token: string;
+  accent: string;
+}) {
+  const [state, setState] = useState<"idle" | "saving" | "saved">("idle");
+  const BASE = process.env.NEXT_PUBLIC_API_URL ?? "https://buyright-ai.onrender.com";
+
+  async function save() {
+    if (state !== "idle") return;
+    setState("saving");
+    try {
+      const price = parseFloat(product.price.replace(/[^0-9.]/g, "")) || 0;
+      await fetch(`${BASE}/wishlist/save-from-ai`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: product.name,
+          price,
+          store: product.store,
+          category: whyPicked?.category ?? null,
+          score: product.score ?? null,
+        }),
+      });
+      setState("saved");
+    } catch {
+      setState("idle");
+    }
+  }
+
+  return (
+    <button
+      onClick={save}
+      disabled={state !== "idle"}
+      style={{
+        display: "flex", alignItems: "center", gap: 5,
+        background: state === "saved" ? "rgba(0,207,114,0.12)" : "rgba(255,255,255,0.05)",
+        border: state === "saved" ? "0.5px solid rgba(0,207,114,0.3)" : "0.5px solid rgba(255,255,255,0.1)",
+        color: state === "saved" ? "#00CF72" : "#7B98B8",
+        borderRadius: 8, padding: "6px 12px", fontSize: 11, fontWeight: 600,
+        cursor: state !== "idle" ? "default" : "pointer",
+        fontFamily: "inherit", transition: "all 0.2s",
+        marginTop: 10,
+      }}
+    >
+      {state === "saved" ? "✓ Saved to Watchlist" : state === "saving" ? "Saving…" : "＋ Save to Watchlist"}
+    </button>
+  );
+}
+
+export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9EFF", journeyStages, token }: Props) {
   const { products, verdict, body, decisionSummary, whyPicked, bundleData } = parseContent(content);
   const vs = verdict ? V_STYLE[verdict.type] : null;
 
@@ -496,7 +548,10 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                   </div>
                 </div>
               )}
-              <div style={{ fontSize: 11, color: "#2D4060", marginTop: 10 }}>{winner.store}</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
+                <div style={{ fontSize: 11, color: "#2D4060" }}>{winner.store}</div>
+                {token && <SaveButton product={winner} whyPicked={whyPicked} token={token} accent={accent} />}
+              </div>
             </div>
 
             {/* Why We Picked It */}

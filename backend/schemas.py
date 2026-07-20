@@ -82,12 +82,55 @@ class PriceHistoryOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class SavedProductCreate(BaseModel):
+    name:         str
+    price:        float
+    store:        str
+    category:     Optional[str] = None
+    score:        Optional[int] = None
+    target_price: Optional[float] = None
+
+    @field_validator("name")
+    @classmethod
+    def name_not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Name cannot be empty")
+        return v.strip()
+
+    @field_validator("score")
+    @classmethod
+    def score_in_range(cls, v: Optional[int]) -> Optional[int]:
+        if v is not None and not (0 <= v <= 100):
+            raise ValueError("Score must be 0-100")
+        return v
+
+
+class PatchWishlistItem(BaseModel):
+    purchased:     Optional[bool] = None
+    regret_rating: Optional[int] = None
+    target_price:  Optional[float] = None
+
+    @field_validator("regret_rating")
+    @classmethod
+    def rating_in_range(cls, v: Optional[int]) -> Optional[int]:
+        if v is not None and not (1 <= v <= 5):
+            raise ValueError("Rating must be 1-5")
+        return v
+
+
 class WishlistItemOut(BaseModel):
     id:            int
     name:          str
-    url:           str
+    url:           Optional[str]
     price:         float
     target_price:  Optional[float]
+    store:         Optional[str]
+    category:      Optional[str]
+    score:         Optional[int]
+    source:        Optional[str]
+    purchased:     bool
+    purchased_at:  Optional[datetime]
+    regret_rating: Optional[int]
     ai_verdict:    Optional[str]
     ai_reasoning:  Optional[str]
     ai_checked_at: Optional[datetime]

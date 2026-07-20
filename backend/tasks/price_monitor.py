@@ -26,10 +26,10 @@ def check_prices():
     """Run once per hour — check all wishlist items for price changes."""
     db: Session = SessionLocal()
     try:
-        items = db.query(WishlistItem).all()
+        items = db.query(WishlistItem).filter(WishlistItem.purchased == False).all()
         for item in items:
             try:
-                new_price = _fetch_current_price(item.url, item.price)
+                new_price = _fetch_current_price(item.url or item.name, item.price)
 
                 # Store in price history
                 snapshot = PriceHistory(item_id=item.id, price=new_price)
@@ -42,7 +42,7 @@ def check_prices():
                         send_price_drop_alert(
                             to_email=user.email,
                             product_name=item.name,
-                            product_url=item.url,
+                            product_url=item.url or "",
                             old_price=item.price,
                             new_price=new_price,
                             target_price=item.target_price,

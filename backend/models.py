@@ -26,12 +26,23 @@ class WishlistItem(Base):
 
     id           = Column(Integer, primary_key=True, index=True)
     name         = Column(String, nullable=False)
-    url          = Column(String, nullable=False)
+    url          = Column(String, nullable=True)   # nullable for AI-saved items
     price        = Column(Float, nullable=False)
     target_price = Column(Float, nullable=True)
     user_id      = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at   = Column(DateTime, default=datetime.utcnow)
     last_checked = Column(DateTime, nullable=True)
+
+    # AI recommendation fields
+    store         = Column(String, nullable=True)
+    category      = Column(String, nullable=True)
+    score         = Column(Integer, nullable=True)   # BuyRight score 0-100
+    source        = Column(String, default="manual") # "manual" | "ai"
+
+    # Post-purchase tracking
+    purchased     = Column(Boolean, default=False)
+    purchased_at  = Column(DateTime, nullable=True)
+    regret_rating = Column(Integer, nullable=True)  # 1-5 (5 = love it, 1 = regret)
 
     ai_verdict    = Column(String, nullable=True)
     ai_reasoning  = Column(Text, nullable=True)
