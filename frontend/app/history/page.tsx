@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
@@ -39,25 +39,47 @@ function categoryEmoji(cat: string | null): string {
   return "🛒";
 }
 
+function SkeletonRow({ delay = 0 }: { delay?: number }) {
+  return (
+    <div style={{
+      background: "rgba(255,255,255,0.025)",
+      border: "0.5px solid rgba(255,255,255,0.07)",
+      borderRadius: 12, padding: "14px 16px",
+      display: "flex", alignItems: "center", gap: 14,
+      animationDelay: `${delay}ms`,
+    }}>
+      <div style={{ width: 44, height: 44, borderRadius: 8, background: "rgba(255,255,255,0.06)", flexShrink: 0, animation: "shimmer 1.4s ease-in-out infinite" }} />
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ height: 13, width: "55%", borderRadius: 6, background: "rgba(255,255,255,0.07)", animation: "shimmer 1.4s ease-in-out infinite", animationDelay: `${delay + 100}ms` }} />
+        <div style={{ height: 10, width: "30%", borderRadius: 6, background: "rgba(255,255,255,0.04)", animation: "shimmer 1.4s ease-in-out infinite", animationDelay: `${delay + 200}ms` }} />
+      </div>
+      <div style={{ width: 72, height: 26, borderRadius: 6, background: "rgba(255,255,255,0.05)", flexShrink: 0, animation: "shimmer 1.4s ease-in-out infinite", animationDelay: `${delay + 150}ms` }} />
+    </div>
+  );
+}
+
 export default function HistoryPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading]   = useState(true);
   const [deleting, setDeleting] = useState<number | null>(null);
+  const fetchedRef = useRef(false);
 
   const token = (session as any)?.accessToken as string | undefined;
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/sign-in"); return; }
-    if (status === "authenticated" && token) load();
+    if (status === "authenticated" && token && !fetchedRef.current) {
+      fetchedRef.current = true;
+      load(token);
+    }
   }, [status, token]);
 
-  async function load() {
-    setLoading(true);
+  async function load(t: string) {
     try {
       const res = await fetch(`${BASE}/history`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${t}` },
       });
       if (res.ok) setSessions(await res.json());
     } finally {
@@ -67,19 +89,27 @@ export default function HistoryPage() {
 
   async function deleteSession(id: number) {
     setDeleting(id);
+    setSessions(prev => prev.filter(s => s.id !== id));
     try {
       await fetch(`${BASE}/history/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      setSessions(prev => prev.filter(s => s.id !== id));
-    } finally {
+    } catch {
       setDeleting(null);
     }
+    setDeleting(null);
   }
 
   return (
     <div style={{ minHeight: "100vh", background: "#0B0F19", color: "#E2E8F0", fontFamily: "system-ui, sans-serif" }}>
+      <style>{`
+        @keyframes shimmer {
+          0%, 100% { opacity: 0.5; }
+          50% { opacity: 1; }
+        }
+      `}</style>
+
       {/* Header */}
       <div style={{ borderBottom: "0.5px solid rgba(255,255,255,0.07)", padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -97,7 +127,7 @@ export default function HistoryPage() {
       <div style={{ maxWidth: 680, margin: "0 auto", padding: "24px 20px" }}>
 
         {/* Memory banner */}
-        {sessions.length >= 3 && (
+        {!loading && sessions.length >= 3 && (
           <div style={{
             background: `${ACCENT}08`, border: `0.5px solid ${ACCENT}25`,
             borderRadius: 12, padding: "14px 16px", marginBottom: 24,
@@ -115,10 +145,12 @@ export default function HistoryPage() {
           </div>
         )}
 
-        {/* Loading */}
+        {/* Skeleton loading */}
         {loading && (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "#3D5571", fontSize: 14 }}>
-            Loading your history…
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <SkeletonRow delay={0} />
+            <SkeletonRow delay={80} />
+            <SkeletonRow delay={160} />
           </div>
         )}
 
@@ -140,57 +172,60 @@ export default function HistoryPage() {
         )}
 
         {/* Session list */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {sessions.map(s => (
-            <div
-              key={s.id}
-              style={{
-                background: "rgba(255,255,255,0.025)",
-                border: "0.5px solid rgba(255,255,255,0.07)",
-                borderRadius: 12, padding: "14px 16px",
-                display: "flex", alignItems: "center", gap: 14,
-                cursor: "pointer", transition: "border-color 0.15s",
-              }}
-              onClick={() => router.push(`/procurement?session=${s.id}`)}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.14)")}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)")}
-            >
-              {/* Emoji */}
-              <div style={{ fontSize: 28, flexShrink: 0, width: 44, textAlign: "center" }}>
-                {categoryEmoji(s.category)}
-              </div>
-
-              {/* Text */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#EFF3FF", marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {s.product ?? s.title ?? "Research session"}
+        {!loading && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {sessions.map(s => (
+              <div
+                key={s.id}
+                style={{
+                  background: "rgba(255,255,255,0.025)",
+                  border: "0.5px solid rgba(255,255,255,0.07)",
+                  borderRadius: 12, padding: "14px 16px",
+                  display: "flex", alignItems: "center", gap: 14,
+                  cursor: "pointer", transition: "border-color 0.15s",
+                  opacity: deleting === s.id ? 0.4 : 1,
+                }}
+                onClick={() => router.push(`/procurement?session=${s.id}`)}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.14)")}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)")}
+              >
+                {/* Emoji */}
+                <div style={{ fontSize: 28, flexShrink: 0, width: 44, textAlign: "center" }}>
+                  {categoryEmoji(s.category)}
                 </div>
-                <div style={{ fontSize: 11, color: "#3D5571" }}>
-                  {s.message_count} messages · {timeAgo(s.updated_at)}
-                  {s.category && <span style={{ marginLeft: 8, textTransform: "capitalize" }}>{s.category}</span>}
+
+                {/* Text */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#EFF3FF", marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {s.product ?? s.title ?? "Research session"}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#3D5571" }}>
+                    {s.message_count} messages · {timeAgo(s.updated_at)}
+                    {s.category && <span style={{ marginLeft: 8, textTransform: "capitalize" }}>{s.category}</span>}
+                  </div>
+                </div>
+
+                {/* Resume button */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, color: ACCENT,
+                    background: `${ACCENT}12`, border: `0.5px solid ${ACCENT}30`,
+                    borderRadius: 6, padding: "4px 10px",
+                  }}>
+                    Resume →
+                  </span>
+                  <button
+                    onClick={e => { e.stopPropagation(); deleteSession(s.id); }}
+                    disabled={deleting === s.id}
+                    style={{ background: "none", border: "none", color: "#2D4060", fontSize: 16, cursor: "pointer", padding: "2px 4px", lineHeight: 1 }}
+                  >
+                    ×
+                  </button>
                 </div>
               </div>
-
-              {/* Resume button */}
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                <span style={{
-                  fontSize: 11, fontWeight: 700, color: ACCENT,
-                  background: `${ACCENT}12`, border: `0.5px solid ${ACCENT}30`,
-                  borderRadius: 6, padding: "4px 10px",
-                }}>
-                  Resume →
-                </span>
-                <button
-                  onClick={e => { e.stopPropagation(); deleteSession(s.id); }}
-                  disabled={deleting === s.id}
-                  style={{ background: "none", border: "none", color: "#2D4060", fontSize: 16, cursor: "pointer", padding: "2px 4px", lineHeight: 1 }}
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
