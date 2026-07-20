@@ -52,32 +52,36 @@ const JOURNEY_INIT: JourneyStage[] = [
 ];
 
 function getChips(messages: Message[]): string[] {
-  const text = messages.map(m => m.content).join(" ").toLowerCase();
-  const lastUser = messages.filter(m => m.role === "user").pop()?.content.toLowerCase() ?? "";
+  // Use WHY_PICKED category from AI response for accurate detection
+  const lastAI = messages.filter(m => m.role === "assistant").pop()?.content ?? "";
+  const wpMatch = lastAI.match(/WHY_PICKED:\s*\{[^}]*?"category"\s*:\s*"([^"]+)"/);
+  const cat = wpMatch?.[1]?.toLowerCase() ?? "";
+
+  // Fall back to first user message for category detection (not full conversation —
+  // AI responses mention "screen", "4K", "display" for laptops which breaks TV detection)
+  const firstUser = messages.find(m => m.role === "user")?.content.toLowerCase() ?? "";
+  const lastUser  = messages.filter(m => m.role === "user").pop()?.content.toLowerCase() ?? "";
 
   if (/pay less|cheaper|discount|save|deal|open.?box|price|coupon/.test(lastUser)) {
     return ["💳 Best Cashback Card?", "📦 Open Box — Worth It?", "📉 Should I Wait for a Sale?"];
   }
-  if (/compare|vs\b|versus|difference|better|which one/.test(lastUser)) {
-    return ["💪 Which One for Heavy Use?", "🕵 Any Hidden Issues?", "📉 Should I Wait?"];
+  if (cat.includes("tv") || cat.includes("television") || /\b(tv|television|oled|qled)\b/.test(firstUser)) {
+    return ["🔊 Best Soundbar?", "📺 Wall Mount Setup?", "🛋 Ideal Viewing Distance?", "📉 Track Price"];
   }
-  if (/\b(tv|television|oled|qled|4k|8k|screen|display|inch)\b/.test(text)) {
-    return ["📦 Open Box Deals?", "🔊 Best Soundbar to Pair?", "📉 Should I Wait for a Sale?", "🛡 Warranty Worth It?"];
+  if (cat.includes("laptop") || cat.includes("notebook") || /\b(laptop|notebook|macbook|chromebook)\b/.test(firstUser)) {
+    return ["🎒 Best Backpack?", "🔌 USB-C Charger?", "🖱 Gaming Mouse?", "💾 SSD Upgrade?"];
   }
-  if (/\b(laptop|notebook|macbook|chromebook|ultrabook)\b/.test(text)) {
-    return ["🎓 Student Discount?", "🎒 Which Accessories Matter?", "📉 Track Price Drop", "🛡 Warranty Worth It?"];
+  if (cat.includes("phone") || /\b(phone|iphone|android|pixel|galaxy)\b/.test(firstUser)) {
+    return ["📱 Best Case?", "🔋 Fast Charger?", "♻ Trade-In Value?", "📶 Best Carrier Deal?"];
   }
-  if (/\b(phone|iphone|android|pixel|galaxy|smartphone)\b/.test(text)) {
-    return ["📱 Best Case for This?", "♻ Trade-In Value?", "📶 Best Carrier Deal?", "🛡 Warranty Worth It?"];
+  if (cat.includes("headphone") || cat.includes("earbud") || /\b(headphone|earbud|airpod|anc|noise.cancel)\b/.test(firstUser)) {
+    return ["✈ Flight Kit?", "📉 Track Price", "🛡 Warranty Worth It?", "📦 Open Box Deals?"];
   }
-  if (/\b(headphone|earbud|airpod|speaker|audio|anc|noise.cancel)\b/.test(text)) {
-    return ["✈ Best for Flights?", "🆚 Compare to AirPods Pro?", "📦 Open Box Deals?", "🛡 Warranty Worth It?"];
+  if (cat.includes("desk") || cat.includes("monitor") || /\b(desk|monitor|standing|office)\b/.test(firstUser)) {
+    return ["🖥 Best Monitor?", "💪 Monitor Arm?", "🎛 Cable Management?", "🪑 Best Chair?"];
   }
-  if (/\b(desk|chair|monitor|keyboard|mouse|office|standing)\b/.test(text)) {
-    return ["🖥 Best Monitor for This?", "⚡ Ergonomic Add-ons?", "📦 Open Box Deals?", "🛡 Warranty Worth It?"];
-  }
-  if (/\b(camera|lens|photography|mirrorless|dslr)\b/.test(text)) {
-    return ["🔭 Which Lens First?", "🎒 Best Bag for Travel?", "📦 Buy New vs Refurbished?", "🛡 Warranty Worth It?"];
+  if (cat.includes("camera") || /\b(camera|lens|mirrorless|dslr)\b/.test(firstUser)) {
+    return ["🔭 Which Lens First?", "🎒 Best Camera Bag?", "📦 New vs Refurbished?", "🛡 Warranty Worth It?"];
   }
   return ["📦 Open Box Deals?", "📉 Should I Wait?", "💳 Best Cashback Card?"];
 }
@@ -182,7 +186,8 @@ export default function ProcurementPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: "Request failed" }));
-        throw new Error(err.detail || "Request failed");
+        const detail = err.detail;
+        throw new Error(typeof detail === "string" ? detail : Array.isArray(detail) ? detail[0]?.msg || "Request failed" : "Request failed");
       }
       if (!res.body) throw new Error("No response stream");
       const reader = res.body.getReader();
@@ -233,7 +238,8 @@ export default function ProcurementPage() {
         return next;
       });
     } catch (e: any) {
-      setMessages(prev => [...prev, { role: "assistant", content: `**Error:** ${e.message}` }]);
+      const msg = e instanceof Error ? e.message : typeof e === "string" ? e : "Something went wrong. Please try again.";
+      setMessages(prev => [...prev, { role: "assistant", content: `**Error:** ${msg}` }]);
     } finally {
       setLoading(false);
     }

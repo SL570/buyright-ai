@@ -382,15 +382,8 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                   </div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: "#EFF3FF", lineHeight: 1.2 }}>{winner.name}</div>
                   <div style={{ fontSize: 28, fontWeight: 900, color: "#EFF3FF", fontFamily: "monospace", marginTop: 4, letterSpacing: "-0.02em" }}>{winner.price}</div>
-                  {winner.score != null && (
-                    <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                      <span style={{ background: "rgba(0,207,114,0.12)", color: "#00CF72", borderRadius: 5, padding: "3px 10px", fontSize: 11, fontWeight: 800, letterSpacing: "0.02em" }}>
-                        BuyRight Score™ {winner.score}
-                      </span>
-                      {winner.scoreLabel && (
-                        <span style={{ fontSize: 11, color: "#3A6050" }}>{winner.scoreLabel}</span>
-                      )}
-                    </div>
+                  {winner.scoreLabel && (
+                    <div style={{ marginTop: 6, fontSize: 11, color: "#3A6050" }}>{winner.scoreLabel}</div>
                   )}
                 </div>
                 <a
@@ -425,7 +418,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
             </div>
 
             {/* Why We Picked It */}
-            {whyPicked && <WhyPickedCard data={whyPicked} accent={accent} />}
+            {whyPicked && <WhyPickedCard data={whyPicked} accent={accent} winnerName={winner.name} />}
 
             {/* Why not the others */}
             {others.length > 0 && (
@@ -563,79 +556,121 @@ function MeterGauge({ pct, color }: { pct: number; color: string }) {
   );
 }
 
+function StarRating({ score }: { score: number }) {
+  const stars = Math.round(score / 20);
+  return (
+    <span style={{ fontSize: 12, letterSpacing: 1, color: "#F5A83A" }}>
+      {"★".repeat(stars)}{"☆".repeat(5 - stars)}
+    </span>
+  );
+}
+
 function DecisionMeter({ data, score }: { data: DecisionSummaryData; score?: number }) {
-  const pct = (score ?? 80) / 100;
+  const raw = score ?? 80;
+  const pct = raw / 100;
   const color = data.wait ? "#F5A83A" : "#00CF72";
   const verdict = data.verdict ?? (data.wait ? "WAIT" : "BUY");
   return (
     <div style={{ background: "rgba(0,0,0,0.18)", border: "0.5px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
       <div style={{ fontSize: 10, fontWeight: 700, color: "#3D5571", letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 10 }}>Should You Buy?</div>
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
         <MeterGauge pct={pct} color={color} />
-        <div>
-          <div style={{ fontSize: 22, fontWeight: 900, color, letterSpacing: "0.04em", lineHeight: 1 }}>{verdict}</div>
-          <div style={{ fontSize: 12, color: "#5A7A90", marginTop: 4 }}>BuyRight Score™ {Math.round(pct * 100)}</div>
-          {data.reason && <div style={{ fontSize: 12, color: "#4A6070", marginTop: 5, lineHeight: 1.5 }}>{data.reason}</div>}
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 22, fontWeight: 900, color, letterSpacing: "0.04em", lineHeight: 1 }}>{verdict}</div>
+            <div style={{ fontSize: 11, color: "#4A6080" }}>BuyRight Score™ {raw}</div>
+          </div>
+          <div style={{ marginTop: 4 }}>
+            <StarRating score={raw} />
+          </div>
+          {data.reason && (
+            <div style={{ fontSize: 12, color: "#7B98B8", marginTop: 8, lineHeight: 1.6, fontStyle: "italic", borderLeft: `2px solid ${color}40`, paddingLeft: 10 }}>
+              "{data.reason}"
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function WhyPickedCard({ data, accent }: { data: WhyPickedData; accent: string }) {
+function WhyPickedCard({ data, accent, winnerName }: { data: WhyPickedData; accent: string; winnerName?: string }) {
   const noun = data.category || "products";
-  const stats = [
-    { n: data.analyzed,   label: `${noun} analyzed`, color: "#EFF3FF" },
-    { n: data.eliminated, label: "eliminated",         color: "#3D5571" },
-    { n: data.finalists,  label: "finalists",          color: accent },
+  const steps = [
+    { label: `Started with ${data.analyzed} ${noun}`, color: "#EFF3FF", dimmed: false },
+    { label: `Eliminated ${data.eliminated}`, color: "#3D5571", dimmed: true },
+    { label: `${data.finalists} finalists`, color: accent, dimmed: false },
+    { label: winnerName ?? "Winner", color: "#00CF72", dimmed: false },
   ];
   return (
     <div style={{ background: "rgba(255,255,255,0.015)", border: "0.5px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "12px 14px", marginTop: 12 }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: "#3D5571", letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 10 }}>Why We Picked It</div>
-      <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
-        {stats.map((s, i) => (
-          <div key={i} style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 22, fontWeight: 900, color: s.color, fontFamily: "monospace", lineHeight: 1 }}>{s.n}</div>
-            <div style={{ fontSize: 10, color: "#3A5070", marginTop: 3 }}>{s.label}</div>
-          </div>
-        ))}
-        <div style={{ flex: 1, minWidth: 120 }}>
-          <div style={{ fontSize: 10, color: "#3D5571", marginBottom: 6 }}>We checked</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-            {data.checked.map((c, i) => (
-              <span key={i} style={{ background: `${accent}10`, border: `0.5px solid ${accent}28`, borderRadius: 4, padding: "2px 8px", fontSize: 10, color: accent }}>{c}</span>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#3D5571", letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 10 }}>Why We Picked It</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+            {steps.map((step, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 0 }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginRight: 8, flexShrink: 0 }}>
+                  <div style={{
+                    width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
+                    background: step.dimmed ? "rgba(255,255,255,0.12)" : step.color,
+                  }} />
+                  {i < steps.length - 1 && <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.07)" }} />}
+                </div>
+                <span style={{ fontSize: i === steps.length - 1 ? 12 : 11, fontWeight: i === steps.length - 1 ? 700 : 400, color: step.color, paddingTop: i === 0 ? 0 : 4, paddingBottom: i === steps.length - 1 ? 0 : 4 }}>
+                  {step.label}
+                </span>
+              </div>
             ))}
           </div>
         </div>
+        {data.checked.length > 0 && (
+          <div style={{ minWidth: 110 }}>
+            <div style={{ fontSize: 10, color: "#3D5571", marginBottom: 6 }}>We checked</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+              {data.checked.map((c, i) => (
+                <span key={i} style={{ background: `${accent}10`, border: `0.5px solid ${accent}28`, borderRadius: 4, padding: "2px 8px", fontSize: 10, color: accent }}>{c}</span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 function DecisionSummaryCard({ data, accent, onFindPrice }: { data: DecisionSummaryData; accent: string; onFindPrice?: () => void }) {
-  const priceRows: { label: string; value: string; color?: string }[] = [
-    { label: "Today's Price", value: data.price },
-    ...(data.targetPrice  ? [{ label: "Target Price",  value: data.targetPrice,  color: "#00CF72" }] : []),
-    ...(data.buyNowIf     ? [{ label: "Buy Now If",    value: data.buyNowIf,    color: "#5DDBA8" }] : []),
-    ...(data.skipIf       ? [{ label: "Skip If",       value: data.skipIf,      color: "#F5A83A" }] : []),
-    ...(data.buyBefore    ? [{ label: "Best Timing",   value: data.buyBefore                      }] : []),
-    ...(data.lifespan     ? [{ label: "Lifespan",      value: data.lifespan,    color: "#7B98B8" }] : []),
-    ...(data.regretRisk   ? [{ label: "Regret Risk",   value: data.regretRisk,  color: data.regretRisk === "Very Low" || data.regretRisk === "Low" ? "#00CF72" : data.regretRisk === "High" ? "#F06565" : "#F5A83A" }] : []),
+  const riskColor = (r: string) =>
+    r === "Very Low" || r === "Low" ? "#00CF72" : r === "High" ? "#F06565" : "#F5A83A";
+
+  const rows: { label: string; value: string; color?: string; accent?: boolean }[] = [
+    { label: "Price",        value: data.price,                            accent: true },
+    ...(data.targetPrice ? [{ label: "Target",       value: data.targetPrice, color: "#00CF72" }] : []),
+    ...(data.buyNowIf    ? [{ label: "Buy now if",   value: data.buyNowIf,    color: "#5DDBA8" }] : []),
+    ...(data.skipIf      ? [{ label: "Skip if",      value: data.skipIf,      color: "#F5A83A" }] : []),
+    ...(data.buyBefore   ? [{ label: "Best timing",  value: data.buyBefore                      }] : []),
+    ...(data.lifespan    ? [{ label: "Lifespan",     value: data.lifespan,    color: "#7B98B8" }] : []),
+    ...(data.regretRisk  ? [{ label: "Regret risk",  value: data.regretRisk,  color: riskColor(data.regretRisk) }] : []),
   ];
+
   return (
     <div style={{
       background: "rgba(255,255,255,0.02)", border: `0.5px solid ${accent}22`,
       borderRadius: 12, padding: "14px 16px", marginTop: 14,
     }}>
       <div style={{ fontSize: 10, fontWeight: 700, color: accent, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
-        Decision Summary
+        Decision Cheat Sheet
       </div>
       <div style={{ fontSize: 13, fontWeight: 700, color: "#EFF3FF", marginBottom: 12 }}>{data.buy}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "9px 20px", marginBottom: 12 }}>
-        {priceRows.map((r, i) => (
-          <div key={i}>
-            <div style={{ fontSize: 10, color: "#3D5571", marginBottom: 2 }}>{r.label}</div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: r.color ?? "#8BA3C4" }}>{r.value}</div>
+      <div style={{ marginBottom: 12 }}>
+        {rows.map((r, i) => (
+          <div key={i} style={{
+            display: "flex", justifyContent: "space-between", alignItems: "baseline",
+            padding: "7px 0",
+            borderTop: i > 0 ? "0.5px solid rgba(255,255,255,0.05)" : undefined,
+          }}>
+            <span style={{ fontSize: 11, color: "#3D5571" }}>{r.label}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: r.color ?? (r.accent ? "#EFF3FF" : "#8BA3C4"), textAlign: "right", maxWidth: "60%" }}>{r.value}</span>
           </div>
         ))}
       </div>
