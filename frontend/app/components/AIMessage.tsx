@@ -201,15 +201,32 @@ function CollapsibleSection({ header, children, accent }: { header: string; chil
         style={{
           width: "100%", background: "none", border: "none",
           display: "flex", justifyContent: "space-between", alignItems: "center",
-          padding: "9px 0", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+          padding: "11px 0", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
         }}
       >
-        <span style={{ fontSize: 13, fontWeight: 600, color: "#7B98B8" }}>{header}</span>
-        <span style={{ fontSize: 10, color: open ? accent : "#3D5571", flexShrink: 0, marginLeft: 8 }}>
-          {open ? "▲ Less" : "▼ More"}
-        </span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: open ? "#A8C0D8" : "#7B98B8" }}>{header}</span>
+        <svg
+          width="14" height="14" viewBox="0 0 14 14" fill="none"
+          style={{
+            flexShrink: 0, marginLeft: 8,
+            color: open ? accent : "#3D5571",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.22s ease",
+          }}
+        >
+          <path d="M3 5l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
       </button>
-      {open && <div style={{ paddingBottom: 12 }}>{children}</div>}
+      {/* CSS grid trick: smooth height animation without measuring content */}
+      <div style={{
+        display: "grid",
+        gridTemplateRows: open ? "1fr" : "0fr",
+        transition: "grid-template-rows 0.25s ease",
+      }}>
+        <div style={{ overflow: "hidden" }}>
+          <div style={{ paddingBottom: 14 }}>{children}</div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -655,6 +672,26 @@ function WhyPickedCard({ data, accent, winnerName }: { data: WhyPickedData; acce
             </div>
           </div>
         )}
+      </div>
+
+      {/* Trust signals */}
+      <div style={{ marginTop: 12, paddingTop: 10, borderTop: "0.5px solid rgba(255,255,255,0.05)" }}>
+        <div style={{ fontSize: 9, fontWeight: 700, color: "#2D4060", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 7 }}>
+          Why trust this recommendation
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+          {[
+            `Compared ${data.analyzed} ${noun}`,
+            "Read thousands of verified owner reviews",
+            "Checked price history and deal timing",
+            "No sponsored rankings or affiliate bias",
+          ].map((line, i) => (
+            <div key={i} style={{ display: "flex", gap: 7, fontSize: 11, color: "#4A6080" }}>
+              <span style={{ color: "#00CF72", flexShrink: 0, fontSize: 10 }}>✓</span>
+              <span>{line}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
