@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import LoadingScreen from "../components/LoadingScreen";
-import { AIMessage, JourneyStage } from "../components/AIMessage";
+import { AIMessage } from "../components/AIMessage";
 
 interface Message {
   role: "user" | "assistant";
@@ -43,13 +43,27 @@ function getMsgs(text: string): string[] {
   return LOADING_MSGS.default;
 }
 
-const JOURNEY_INIT: JourneyStage[] = [
-  { label: "Product Found", done: false },
-  { label: "Decision Made", done: false },
-  { label: "Best Deal", done: false },
-  { label: "Setup", done: false },
-  { label: "Ownership", done: false },
-];
+const JOURNEY = [
+  { label: "Choose",  emoji: "🎯", msg: null },
+  { label: "Buy",     emoji: "💳", msg: (n: string) => `Find me the best deal on the ${n} right now. Should I buy today or wait?` },
+  { label: "Set Up",  emoji: "🔧", msg: (n: string, c: string) => `What accessories do I need to complete my ${c} setup?` },
+  { label: "Own",     emoji: "📦", msg: (n: string) => `I just got my ${n}. What should I do in the first 15 minutes?` },
+  { label: "Upgrade", emoji: "⬆",  msg: (n: string) => `When should I upgrade from the ${n} and what would I upgrade to?` },
+] as const;
+
+function getFirstProduct(msgs: Message[]): { name: string; category: string } | null {
+  const rec = msgs.find(m => m.role === "assistant" && m.content.includes("END_PRODUCT_GRID"));
+  if (!rec) return null;
+  const pgMatch = rec.content.match(/PRODUCT_GRID:\n([\s\S]*?)\nEND_PRODUCT_GRID/);
+  if (!pgMatch) return null;
+  try {
+    const prods = JSON.parse(pgMatch[1]);
+    const winner = prods.find((p: any) => p.recommended) ?? prods[0];
+    if (!winner?.name) return null;
+    const wpMatch = rec.content.match(/WHY_PICKED:\s*\{[^}]*?"category"\s*:\s*"([^"]+)"/);
+    return { name: winner.name, category: wpMatch?.[1] ?? "product" };
+  } catch { return null; }
+}
 
 function getChips(messages: Message[]): string[] {
   // Use WHY_PICKED category from AI response for accurate detection
@@ -112,7 +126,7 @@ export default function ProcurementPage() {
   const [loadingMsg, setLoadingMsg] = useState(LOADING_MSGS.default[0]);
   const activeMsgsRef = useRef(LOADING_MSGS.default);
   const [listening, setListening]   = useState(false);
-  const [journey, setJourney]       = useState<JourneyStage[]>(JOURNEY_INIT);
+  const [journeyStep, setJourneyStep] = useState(0); // stages completed (0 = none)
   const bottomRef                   = useRef<HTMLDivElement>(null);
   const recogRef                    = useRef<any>(null);
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
@@ -218,30 +232,31 @@ export default function ProcurementPage() {
           }
         }
       }
-      // Update journey stages based on what was asked and what came back
-      setJourney(prev => {
-        const next = prev.map(s => ({ ...s }));
-        const low = userText.toLowerCase();
-        if (fullText.includes("END_PRODUCT_GRID")) {
-          next[0].done = true;
-          next[1].done = true;
-        }
-        if (/open.?box|cashback|price.?drop|discount|student|coupon|cheaper|save|negotiate/.test(low)) {
-          next[2].done = true;
-        }
-        if (/soundbar|mount|cable|accessories|setup|keyboard|mouse|bag|case|lens|monitor|ergon/.test(low)) {
-          next[3].done = true;
-        }
-        if (/warranty|after|return|refund|post.?purchase|broke|defect/.test(low)) {
-          next[4].done = true;
-        }
-        return next;
-      });
+      // Advance journey step when a recommendation comes in
+      if (fullText.includes("END_PRODUCT_GRID")) {
+        setJourneyStep(prev => Math.max(prev, 1));
+      }
     } catch (e: any) {
       const msg = e instanceof Error ? e.message : typeof e === "string" ? e : "Something went wrong. Please try again.";
       setMessages(prev => [...prev, { role: "assistant", content: `**Error:** ${msg}` }]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  const lastProduct = getFirstProduct(messages);
+
+  function goToStage(i: number) {
+    if (!lastProduct) return;
+    const step = JOURNEY[i];
+    const msg = step.msg
+      ? i === 2
+        ? (step.msg as (n: string, c: string) => string)(lastProduct.name, lastProduct.category)
+        : (step.msg as (n: string) => string)(lastProduct.name)
+      : null;
+    if (msg) {
+      setJourneyStep(i);
+      send(msg);
     }
   }
 
@@ -311,7 +326,6 @@ export default function ProcurementPage() {
                     onFollowUp={send}
                     followups={getFollowups(messages, i)}
                     accent={ACCENT}
-                    journeyStages={i === messages.length - 1 ? journey : undefined}
                   />
                 </div>
               )}
@@ -332,6 +346,59 @@ export default function ProcurementPage() {
           <div ref={bottomRef} />
         </div>
       </div>
+
+      {/* Buying Journey Nav — appears after first recommendation */}
+      {lastProduct && (
+        <div style={S.journeyBar}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: "#1E3050", letterSpacing: "0.12em", textTransform: "uppercase", textAlign: "center", marginBottom: 8 }}>
+            Buying Journey · {lastProduct.name}
+          </div>
+          <div style={S.journeyRow}>
+            {JOURNEY.map((step, i) => {
+              const done   = i < journeyStep;
+              const active = i === journeyStep;
+              const next   = i === journeyStep + 1 || (journeyStep === 0 && i === 1);
+              const canClick = i > 0 && i <= journeyStep + 1;
+              return (
+                <React.Fragment key={step.label}>
+                  {i > 0 && (
+                    <div style={{ flex: 1, height: 1, minWidth: 10, maxWidth: 48, background: done ? ACCENT : "rgba(255,255,255,0.06)", transition: "background 0.3s" }} />
+                  )}
+                  <button
+                    onClick={() => canClick && goToStage(i)}
+                    disabled={!canClick}
+                    style={{
+                      background: "none", border: "none", padding: "0 2px",
+                      display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
+                      cursor: canClick ? "pointer" : "default", fontFamily: "inherit",
+                    }}
+                  >
+                    <div style={{
+                      width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: done ? 9 : 12,
+                      background: done ? ACCENT : active ? `${ACCENT}18` : next ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)",
+                      border: active ? `1.5px solid ${ACCENT}` : next ? "1px solid rgba(255,255,255,0.12)" : "none",
+                      color: done ? "#0B0F19" : active ? ACCENT : next ? "#4A6080" : "#1E3050",
+                      boxShadow: active ? `0 0 8px ${ACCENT}40` : "none",
+                      transition: "all 0.25s",
+                    }}>
+                      {done ? "✓" : step.emoji}
+                    </div>
+                    <span style={{
+                      fontSize: 9, whiteSpace: "nowrap",
+                      color: done ? ACCENT : active ? "#8BA3C4" : next ? "#3D5571" : "#1E3050",
+                      fontWeight: done || active ? 700 : 400,
+                    }}>
+                      {step.label}
+                    </span>
+                  </button>
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div style={S.inputArea}>
         <div style={S.inputRow}>
@@ -384,4 +451,6 @@ const S: Record<string, React.CSSProperties> = {
   micBtn:     { border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "0 14px", fontSize: 18, cursor: "pointer", flexShrink: 0 },
   sendBtn:    { background: "#00F5D4", color: "#0B0F19", border: "none", borderRadius: 10, padding: "12px 22px", fontWeight: 700, fontSize: 14, cursor: "pointer" },
   hint:       { color: "#334155", fontSize: 11, textAlign: "center", margin: "6px 0 0" },
+  journeyBar: { flexShrink: 0, borderTop: "0.5px solid rgba(255,255,255,0.05)", padding: "10px 16px 8px" },
+  journeyRow: { maxWidth: 500, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center" },
 };

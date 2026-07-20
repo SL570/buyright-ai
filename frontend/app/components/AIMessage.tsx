@@ -358,11 +358,6 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
         </div>
       )}
 
-      {/* Bundle card — shown for setup/kit requests */}
-      {bundleData && bundleData.items.length > 0 && (
-        <BundleCard data={bundleData} accent={accent} />
-      )}
-
       {/* Product cards — hero winner + why-not row */}
       {products && products.length > 0 && (() => {
         const winner = products.find(p => p.recommended) ?? products[0];
@@ -480,6 +475,11 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
         <DecisionSummaryCard data={decisionSummary} accent={accent} onFindPrice={
           products ? () => window.open(storeSearchUrl(products.find(p => p.recommended)?.store ?? "amazon", decisionSummary.buy), "_blank") : undefined
         } />
+      )}
+
+      {/* Bundle card — only shown for explicit setup/kit responses, after the main recommendation */}
+      {bundleData && bundleData.items.length > 0 && (
+        <BundleCard data={bundleData} accent={accent} />
       )}
 
       {/* Journey progress tracker */}
