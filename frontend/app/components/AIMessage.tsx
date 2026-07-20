@@ -619,9 +619,9 @@ function WhyPickedCard({ data, accent, winnerName }: { data: WhyPickedData; acce
   const noun = data.category || "products";
   const steps = [
     { label: `Started with ${data.analyzed} ${noun}`, color: "#EFF3FF", dimmed: false },
-    { label: `Eliminated ${data.eliminated}`, color: "#3D5571", dimmed: true },
-    { label: `${data.finalists} finalists`, color: accent, dimmed: false },
-    { label: winnerName ?? "Winner", color: "#00CF72", dimmed: false },
+    { label: `Rejected ${data.eliminated}`, color: "#2D4060", dimmed: true },
+    { label: `Compared ${data.finalists}`, color: accent, dimmed: false },
+    { label: winnerName ?? "Winner", color: "#00CF72", dimmed: false, winner: true },
   ];
   return (
     <div style={{ background: "rgba(255,255,255,0.015)", border: "0.5px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "12px 14px", marginTop: 12 }}>
