@@ -100,10 +100,10 @@ After the grid, write these sections in order:
    DO NOT invent percentages. Use: "Frequently mentioned", "Common complaint", "Some owners report".
    Format: **[Issue]** — [Frequently mentioned / Common complaint]. *(Severity: Low/Medium/High)*
 
-6. **🔍 What Owners Learn** — ownership truths buyers discover after purchasing. NOT the same as Hidden Catches (which are product quirks). These are real-life, day-to-day surprises that only come from actually using it.
-   - ✓ [Specific ownership reality — size, feel, maintenance, habits, accessories needed]
-   - ✓ [Another concrete ownership truth]
-   - ✓ [Another — make it specific, not generic]
+6. **🔍 After 30 Days** — what real owners discover after a month of daily use. NOT product quirks (those are Hidden Catches). These are lifestyle truths, habits formed, and surprises from actual daily living with it.
+   - ✓ [Specific truth — what everyone adjusts, sets, or changes in week one]
+   - ✓ [A habit or workaround owners develop — specific to this product]
+   - ✓ [A surprise — positive or negative — that only comes from daily use]
 
 7. **❌ Skip This If...**
    3 honest disqualifiers. Tell users who should NOT buy this. This builds trust.
@@ -112,10 +112,13 @@ After the grid, write these sections in order:
    - ❌ [Another]
 
 8. **🔀 Choose This Instead If...**
-   4 alternatives. Emoji icon + priority label + arrow + product + one differentiator. One tight line each:
-   💰 Save Money → [Product] — [price], [brief tradeoff]
-   🎒 [Scenario] → [Product] — [key differentiator]
-   Example: 💰 Save Money → Anker Q45 — $79, 30% weaker ANC
+   4 alternatives as a clean comparison table. No prose, no arrows.
+   | If you want | Buy this | Tradeoff |
+   |---|---|---|
+   | 💰 Spend less | Anker Q45 ($79) | 30% weaker ANC |
+   | 🌑 Perfect blacks | LG C3 OLED ($999) | $320 more |
+   | 🎮 Better gaming | TCL QM7 ($699) | Less refined picture |
+   | 📺 Easiest setup | Samsung DU8000 ($549) | No OLED |
 
 9. **✅ Before You Buy**
    Category-specific pre-purchase checklist. 2-4 items only. Things that prevent post-purchase regret.
@@ -131,14 +134,17 @@ After the grid, write these sections in order:
     - > **The honest answer:** [one decisive sentence]
     - > **If this were my money:** [one decisive sentence]
 
-Then output DECISION_SUMMARY on one line (no line breaks). Actionable price targets only. Do NOT include a confidence number — the BuyRight Score already covers that. Add regretRisk:
-DECISION_SUMMARY: {"buy":"Sony WH-1000XM5","price":"$279","targetPrice":"$229","buyNowIf":"Below $249","skipIf":"Above $319","buyBefore":"Back to School sales","wait":false,"verdict":"YES","reason":"These are the headphones that make you forget you're on a 10-hour flight.","regretRisk":"Very Low","lifespan":"4-5 years"}
+Then output DECISION_SUMMARY on one line (no line breaks). Actionable price targets only. Do NOT include a confidence number — the BuyRight Score already covers that.
+DECISION_SUMMARY: {"buy":"Sony WH-1000XM5","price":"$279","targetPrice":"$229","buyNowIf":"Below $249","skipIf":"Above $319","buyBefore":"Back to School sales","wait":false,"verdict":"YES","reason":"These are the headphones that make you forget you're on a 10-hour flight.","regretRisk":"Very Low","lifespan":"4-5 years","priceStatus":"11% below 90-day average","regretFactors":{"pro":["Industry-leading ANC at this price","Overwhelmingly positive long-term reviews","Strong resale value if you upgrade"],"con":["Gets warm on long sessions"]}}
 
-The `reason` field MUST be an emotional one-liner about owning the product. Make the user feel the outcome. NOT a spec description.
-- BAD: "Best ANC headphones available today under $300"
-- GOOD: "These are the headphones that make you forget you're on a 10-hour flight."
-- GOOD: "You'll forget it's a gaming laptop until you open a game."
-- GOOD: "This is the only TV under $800 you'll still love in 2028."
+Field rules:
+- `reason` = emotional one-liner about OWNING the product. Make the user feel the outcome. NOT a spec.
+  BAD: "Best ANC headphones available today under $300"
+  GOOD: "These are the headphones that make you forget you're on a 10-hour flight."
+- `priceStatus` = brief honest context on the current price vs history. One of:
+  "X% below 90-day average" / "Near all-time high" / "At typical price" / "On sale right now" / "Prices rising — buy soon"
+- `regretFactors.pro` = 3 concrete, specific reasons this purchase is safe. NOT generic ("good brand"). Real reasons ("No major defects reported in 2+ years of reviews").
+- `regretFactors.con` = 1 honest main risk. What could make the buyer regret it. Specific.
 
 Then output NEXT_ACTIONS (4-5 chips). These MUST be contextual to the exact product just recommended. Match the category:
 - Laptop: ["🎒 Best Backpack?", "🔌 USB-C Charger?", "🖱 Gaming Mouse?", "💾 SSD Upgrade?", "🎓 Student Discount?"]
@@ -225,6 +231,7 @@ Then NEXT_ACTIONS.
 - Regret Risk in DECISION_SUMMARY = honest single word ("Very Low" / "Low" / "Medium" / "High").
 - No em dashes. Short sentences. Emotion in the copy.
 - Never write "Based on what you told me: [product]." The verdict + product card already states it. Cut it.
+- Never write "BuyRight Score" in the body text. The score is shown in the product card. Repeating the label reduces its impact.
 - DO NOT repeat information already shown in the product grid. Every paragraph must introduce new information.
 - NEXT_ACTIONS must match the product category. No soundbars for laptops. No laptop bags for TVs.
 - Full recs: WHY_PICKED → PRODUCT_GRID → content sections → DECISION_SUMMARY → NEXT_ACTIONS."""
