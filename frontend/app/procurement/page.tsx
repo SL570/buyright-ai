@@ -128,9 +128,21 @@ export default function ProcurementPage() {
         .then(async d => {
           if (!d.token) { router.push("/sign-in"); return; }
           setToken(d.token);
-          const res  = await fetch(`${BASE_URL}/billing/status`, { headers: { Authorization: `Bearer ${d.token}` } });
-          const data = await res.json();
-          setSubscribed(data.subscribed);
+          // 8-second timeout — if backend is cold-starting, default to subscribed=true
+          // (the backend enforces subscription with 403 anyway, so this is safe)
+          try {
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), 8000);
+            const res = await fetch(`${BASE_URL}/billing/status`, {
+              headers: { Authorization: `Bearer ${d.token}` },
+              signal: ctrl.signal,
+            });
+            clearTimeout(timer);
+            const data = await res.json();
+            setSubscribed(data.subscribed ?? true);
+          } catch {
+            setSubscribed(true);
+          }
         })
         .catch(() => router.push("/sign-in"));
     }
