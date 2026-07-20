@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import LoadingScreen from "../components/LoadingScreen";
@@ -145,20 +145,22 @@ function getFollowups(messages: Message[], idx: number): string[] {
 }
 
 export default function ProcurementPage() {
-  const router = useRouter();
-  const { status } = useSession();
+  const router       = useRouter();
+  const searchParams = useSearchParams();
+  const { status }   = useSession();
 
-  const [token, setToken]           = useState("");
-  const [subscribed, setSubscribed] = useState<boolean | null>(null);
-  const [messages, setMessages]     = useState<Message[]>([]);
-  const [input, setInput]           = useState("");
-  const [loading, setLoading]       = useState(false);
-  const [loadingMsg, setLoadingMsg] = useState(LOADING_MSGS.default[0]);
-  const activeMsgsRef = useRef(LOADING_MSGS.default);
-  const [listening, setListening]   = useState(false);
-  const [journeyStep, setJourneyStep] = useState(0); // stages completed (0 = none)
-  const bottomRef                   = useRef<HTMLDivElement>(null);
-  const recogRef                    = useRef<any>(null);
+  const [token, setToken]               = useState("");
+  const [subscribed, setSubscribed]     = useState<boolean | null>(null);
+  const [messages, setMessages]         = useState<Message[]>([]);
+  const [input, setInput]               = useState("");
+  const [loading, setLoading]           = useState(false);
+  const [loadingMsg, setLoadingMsg]     = useState(LOADING_MSGS.default[0]);
+  const activeMsgsRef                   = useRef(LOADING_MSGS.default);
+  const [listening, setListening]       = useState(false);
+  const [journeyStep, setJourneyStep]   = useState(0);
+  const [sessionId, setSessionId]       = useState<number | null>(null);
+  const bottomRef                       = useRef<HTMLDivElement>(null);
+  const recogRef                        = useRef<any>(null);
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
   useEffect(() => {
@@ -176,6 +178,25 @@ export default function ProcurementPage() {
         .then(async d => {
           if (!d.token) { router.push("/sign-in"); return; }
           setToken(d.token);
+          // Resume a saved session if ?session=N is in the URL
+          const sid = searchParams.get("session");
+          if (sid) {
+            try {
+              const sr = await fetch(`${BASE_URL}/history/${sid}`, {
+                headers: { Authorization: `Bearer ${d.token}` },
+              });
+              if (sr.ok) {
+                const sess = await sr.json();
+                if (Array.isArray(sess.messages) && sess.messages.length > 0) {
+                  setMessages(sess.messages);
+                  setSessionId(sess.id);
+                  if (sess.messages.some((m: Message) => m.content.includes("END_PRODUCT_GRID"))) {
+                    setJourneyStep(1);
+                  }
+                }
+              }
+            } catch { /* ignore — start fresh */ }
+          }
           // 8-second timeout — if backend is cold-starting, default to subscribed=true
           // (the backend enforces subscription with 403 anyway, so this is safe)
           try {
@@ -271,6 +292,29 @@ export default function ProcurementPage() {
         if (fullText.includes("END_PRODUCT_GRID")) {
           setJourneyStep(prev => Math.max(prev, 1));
         }
+        // Auto-save conversation to history
+        const finalMsgs = [...next, { role: "assistant" as const, content: fullText }];
+        const prod = getFirstProduct(finalMsgs);
+        const title = next[0]?.content.slice(0, 60) ?? "Research";
+        try {
+          if (sessionId) {
+            await fetch(`${BASE_URL}/history/${sessionId}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ messages: finalMsgs, title, product: prod?.name, category: prod?.category }),
+            });
+          } else {
+            const hr = await fetch(`${BASE_URL}/history`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ messages: finalMsgs, title, product: prod?.name, category: prod?.category }),
+            });
+            if (hr.ok) {
+              const hd = await hr.json();
+              setSessionId(hd.id);
+            }
+          }
+        } catch { /* non-critical — don't break the chat */ }
         errMsg = "";
         break; // success — exit retry loop
       } catch {
@@ -286,6 +330,14 @@ export default function ProcurementPage() {
       }]);
     }
     setLoading(false);
+  }
+
+  function newChat() {
+    setMessages([]);
+    setSessionId(null);
+    setJourneyStep(0);
+    setInput("");
+    router.replace("/procurement");
   }
 
   const lastProduct = getFirstProduct(messages);
@@ -337,10 +389,15 @@ export default function ProcurementPage() {
           <span style={S.divider}>|</span>
           <Link href="/chat" style={S.navLink}>AI Advisor</Link>
           <span style={S.divider}>|</span>
-          <Link href="/watchlist" style={{ ...S.navLink, color: ACCENT, fontWeight: 700 }}>Watchlist</Link>
+          <Link href="/history" style={{ ...S.navLink, color: ACCENT, fontWeight: 700 }}>History</Link>
         </div>
         <span style={S.brand}>BuyRight <span style={{ color: ACCENT }}>AI</span></span>
-        <button onClick={() => signOut({ callbackUrl: "/sign-in" })} style={S.ghostBtn}>Sign out</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {messages.length > 0 && (
+            <button onClick={newChat} style={{ ...S.ghostBtn, color: ACCENT, borderColor: `${ACCENT}40` }}>+ New Chat</button>
+          )}
+          <button onClick={() => signOut({ callbackUrl: "/sign-in" })} style={S.ghostBtn}>Sign out</button>
+        </div>
       </div>
 
       <div style={S.chatWrap}>
@@ -372,7 +429,6 @@ export default function ProcurementPage() {
                     onFollowUp={send}
                     followups={loading ? [] : getFollowups(messages, i)}
                     accent={ACCENT}
-                    token={token ?? undefined}
                   />
                 </div>
               )}

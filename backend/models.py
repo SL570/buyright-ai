@@ -19,6 +19,7 @@ class User(Base):
     wishlist_items    = relationship("WishlistItem", back_populates="owner", cascade="all, delete")
     group_memberships = relationship("GroupDealMember", back_populates="user", cascade="all, delete")
     audit_events      = relationship("AuditEvent", back_populates="user", cascade="all, delete")
+    chat_sessions     = relationship("ChatSession", back_populates="user", cascade="all, delete")
 
 
 class WishlistItem(Base):
@@ -93,6 +94,21 @@ class GroupDealMember(Base):
 
     deal = relationship("GroupDeal", back_populates="members")
     user = relationship("User", back_populates="group_memberships")
+
+
+class ChatSession(Base):
+    __tablename__ = "chat_sessions"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title      = Column(String, nullable=True)    # e.g. "Sony WH-1000XM5"
+    product    = Column(String, nullable=True)    # winner name extracted from first recommendation
+    category   = Column(String, nullable=True)   # e.g. "headphones"
+    messages   = Column(Text, nullable=False, default="[]")  # JSON array of {role, content}
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="chat_sessions")
 
 
 class AuditEvent(Base):
