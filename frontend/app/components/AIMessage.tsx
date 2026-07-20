@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -25,7 +25,6 @@ interface DecisionSummaryData {
   skipIf?: string;
   buyBefore?: string;
   wait: boolean;
-  confidence?: number;
   lifespan?: string;
   verdict?: string;
   reason?: string;
@@ -38,6 +37,18 @@ interface WhyPickedData {
   finalists: number;
   category: string;
   checked: string[];
+}
+
+interface BundleItem {
+  name: string;
+  price: number;
+  category: string;
+  store: string;
+}
+
+interface BundleData {
+  budget?: number;
+  items: BundleItem[];
 }
 
 type VerdictType = "success" | "warning" | "danger" | "info";
@@ -85,7 +96,6 @@ function parseContent(raw: string) {
       body = body.replace(pgMatch[0], "").trim();
     } catch { /* fallthrough */ }
   }
-  // Strip incomplete PRODUCT_GRID during streaming (no END_PRODUCT_GRID yet)
   if (!products) {
     body = body.replace(/PRODUCT_GRID:[\s\S]*/, "").trim();
   }
@@ -132,7 +142,39 @@ function parseContent(raw: string) {
   body = body.replace(/\nWHY_PICKED:.*/, "").trim();
   body = body.replace(/^WHY_PICKED:.*\n?/, "").trim();
 
-  return { products, verdict, body, decisionSummary, whyPicked };
+  // Extract BUNDLE_ITEMS (single-line JSON)
+  let bundleData: BundleData | null = null;
+  const biRe = /BUNDLE_ITEMS:\s*(\{[^\n]+\})/;
+  const biMatch = body.match(biRe);
+  if (biMatch) {
+    try {
+      bundleData = JSON.parse(biMatch[1]);
+      body = body.replace(biMatch[0], "").trim();
+    } catch { /* fallthrough */ }
+  }
+  body = body.replace(/\nBUNDLE_ITEMS:.*/, "").trim();
+  body = body.replace(/^BUNDLE_ITEMS:.*\n?/, "").trim();
+
+  return { products, verdict, body, decisionSummary, whyPicked, bundleData };
+}
+
+// Split markdown body into plain sections and collapsed detail sections
+type Section = { collapsible: boolean; header: string; content: string };
+
+function splitBodyIntoSections(body: string): Section[] {
+  const emojis = "🕵|⭐|😬|🔍|❌|🔀|✅";
+  // Split before any line that opens a collapsible section header
+  const parts = body.split(new RegExp(`(?=\\n\\*\\*(${emojis}))`));
+  return parts.reduce<Section[]>((acc, part) => {
+    if (!part.trim()) return acc;
+    const m = part.match(/^\s*\*\*([^\n*]+)\*\*/);
+    if (m && /^(🕵|⭐|😬|🔍|❌|🔀|✅)/.test(m[1])) {
+      acc.push({ collapsible: true, header: m[1], content: part.slice(m[0].length).trim() });
+    } else {
+      acc.push({ collapsible: false, header: "", content: part });
+    }
+    return acc;
+  }, []);
 }
 
 export interface JourneyStage {
@@ -148,13 +190,155 @@ interface Props {
   journeyStages?: JourneyStage[];
 }
 
+function CollapsibleSection({ header, children, accent }: { header: string; children: React.ReactNode; accent: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ borderTop: "0.5px solid rgba(255,255,255,0.05)", marginTop: 2 }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: "100%", background: "none", border: "none",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: "9px 0", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+        }}
+      >
+        <span style={{ fontSize: 13, fontWeight: 600, color: "#7B98B8" }}>{header}</span>
+        <span style={{ fontSize: 10, color: open ? accent : "#3D5571", flexShrink: 0, marginLeft: 8 }}>
+          {open ? "▲ Less" : "▼ More"}
+        </span>
+      </button>
+      {open && <div style={{ paddingBottom: 12 }}>{children}</div>}
+    </div>
+  );
+}
+
+function BundleCard({ data, accent }: { data: BundleData; accent: string }) {
+  const total = data.items.reduce((sum, item) => sum + item.price, 0);
+  const remaining = data.budget && data.budget > 0 ? data.budget - total : null;
+  return (
+    <div style={{
+      background: `${accent}08`, border: `1px solid ${accent}25`,
+      borderRadius: 12, padding: "14px 16px", marginBottom: 14,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: accent, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+          🛒 Complete Setup
+        </div>
+        {remaining !== null && (
+          <div style={{ fontSize: 11, fontWeight: 600, color: remaining >= 0 ? "#00CF72" : "#F06565" }}>
+            ${Math.abs(remaining)} {remaining >= 0 ? "under budget" : "over budget"}
+          </div>
+        )}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 12 }}>
+        {data.items.map((item, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+              <span style={{ fontSize: 10, color: "#3D5571", textTransform: "uppercase", letterSpacing: "0.06em", flexShrink: 0 }}>
+                {item.category}
+              </span>
+              <span style={{ fontSize: 12, color: "#8BA3C4", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {item.name}
+              </span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0, marginLeft: 12 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#EFF3FF", fontFamily: "monospace" }}>${item.price}</span>
+              <a
+                href={storeSearchUrl(item.store, item.name)}
+                target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: 10, color: accent, textDecoration: "none" }}
+              >
+                {item.store} →
+              </a>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        borderTop: "0.5px solid rgba(255,255,255,0.07)", paddingTop: 10,
+      }}>
+        <div>
+          <span style={{ fontSize: 11, color: "#3D5571" }}>Total </span>
+          <span style={{ fontSize: 18, fontWeight: 900, color: "#EFF3FF", fontFamily: "monospace" }}>${total}</span>
+          {data.budget && data.budget > 0 && (
+            <span style={{ fontSize: 11, color: "#3D5571" }}> of ${data.budget} budget</span>
+          )}
+        </div>
+        <button
+          onClick={() => data.items.forEach(item => window.open(storeSearchUrl(item.store, item.name), "_blank"))}
+          style={{
+            background: accent, color: "#0B0F19", border: "none",
+            borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700,
+            cursor: "pointer", fontFamily: "inherit",
+          }}
+        >
+          Buy Everything →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9EFF", journeyStages }: Props) {
-  const { products, verdict, body, decisionSummary, whyPicked } = parseContent(content);
+  const { products, verdict, body, decisionSummary, whyPicked, bundleData } = parseContent(content);
   const vs = verdict ? V_STYLE[verdict.type] : null;
+
+  // Shared ReactMarkdown component map — reused across plain + collapsible sections
+  const mdC = {
+    p:          ({ children }: any) => <p style={{ margin: "6px 0" }}>{children}</p>,
+    h1:         ({ children }: any) => <h1 style={{ fontSize: 16, fontWeight: 700, color: "#EFF3FF", margin: "14px 0 6px" }}>{children}</h1>,
+    h2:         ({ children }: any) => <h2 style={{ fontSize: 15, fontWeight: 700, color: "#EFF3FF", margin: "12px 0 5px" }}>{children}</h2>,
+    h3:         ({ children }: any) => <h3 style={{ fontSize: 14, fontWeight: 600, color: "#EFF3FF", margin: "10px 0 4px" }}>{children}</h3>,
+    strong:     ({ children }: any) => <strong style={{ color: "#EFF3FF", fontWeight: 600 }}>{children}</strong>,
+    ul:         ({ children }: any) => <ul style={{ paddingLeft: 18, margin: "6px 0" }}>{children}</ul>,
+    ol:         ({ children }: any) => <ol style={{ paddingLeft: 18, margin: "6px 0" }}>{children}</ol>,
+    li:         ({ children }: any) => <li style={{ margin: "3px 0" }}>{children}</li>,
+    hr:         () => <hr style={{ border: "none", borderTop: "0.5px solid rgba(255,255,255,0.08)", margin: "12px 0" }} />,
+    blockquote: ({ children }: any) => (
+      <blockquote style={{ borderLeft: `2px solid ${accent}`, paddingLeft: 12, margin: "8px 0", color: "#8BA3C4" }}>
+        {children}
+      </blockquote>
+    ),
+    table: ({ children }: any) => (
+      <div style={{ overflowX: "auto", margin: "10px 0" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>{children}</table>
+      </div>
+    ),
+    th: ({ children }: any) => (
+      <th style={{ textAlign: "left", padding: "7px 10px", borderBottom: "1px solid rgba(255,255,255,0.1)", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "#7B8FAF" }}>
+        {children}
+      </th>
+    ),
+    td: ({ children }: any) => (
+      <td style={{ padding: "8px 10px", borderBottom: "0.5px solid rgba(255,255,255,0.06)", color: "#E2E8F0", verticalAlign: "top" }}>
+        {children}
+      </td>
+    ),
+    code({ className, children, ...rest }: any) {
+      const lang = /language-(\w+)/.exec(className || "")?.[1];
+      const isBlock = String(children).includes("\n");
+      if (isBlock && lang === "script") {
+        return <ScriptBox accent={accent}>{String(children).replace(/\n$/, "")}</ScriptBox>;
+      }
+      if (isBlock) {
+        return (
+          <pre style={{ background: "rgba(255,255,255,0.04)", border: "0.5px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "10px 14px", overflowX: "auto", fontSize: 12, fontFamily: "monospace", margin: "8px 0" }}>
+            <code>{children}</code>
+          </pre>
+        );
+      }
+      return (
+        <code style={{ background: "rgba(255,255,255,0.08)", padding: "2px 5px", borderRadius: 4, fontSize: "0.875em", fontFamily: "monospace" }} {...rest}>
+          {children}
+        </code>
+      );
+    },
+  };
 
   return (
     <div>
-      {/* Decision Meter — uses BuyRight Score from winner so the number is consistent */}
+      {/* Decision Meter — score from winner keeps the number consistent with hero card */}
       {decisionSummary && (
         <DecisionMeter
           data={decisionSummary}
@@ -172,6 +356,11 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
         }}>
           {vs.icon} {verdict.text}
         </div>
+      )}
+
+      {/* Bundle card — shown for setup/kit requests */}
+      {bundleData && bundleData.items.length > 0 && (
+        <BundleCard data={bundleData} accent={accent} />
       )}
 
       {/* Product cards — hero winner + why-not row */}
@@ -276,63 +465,21 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
         );
       })()}
 
-      {/* Markdown body */}
+      {/* Markdown body — detail sections collapsed by default */}
       <div style={{ fontSize: 14, lineHeight: 1.75, color: "#E2E8F0" }}>
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={{
-            p:          ({ children }) => <p style={{ margin: "6px 0" }}>{children}</p>,
-            h1:         ({ children }) => <h1 style={{ fontSize: 16, fontWeight: 700, color: "#EFF3FF", margin: "14px 0 6px" }}>{children}</h1>,
-            h2:         ({ children }) => <h2 style={{ fontSize: 15, fontWeight: 700, color: "#EFF3FF", margin: "12px 0 5px" }}>{children}</h2>,
-            h3:         ({ children }) => <h3 style={{ fontSize: 14, fontWeight: 600, color: "#EFF3FF", margin: "10px 0 4px" }}>{children}</h3>,
-            strong:     ({ children }) => <strong style={{ color: "#EFF3FF", fontWeight: 600 }}>{children}</strong>,
-            ul:         ({ children }) => <ul style={{ paddingLeft: 18, margin: "6px 0" }}>{children}</ul>,
-            ol:         ({ children }) => <ol style={{ paddingLeft: 18, margin: "6px 0" }}>{children}</ol>,
-            li:         ({ children }) => <li style={{ margin: "3px 0" }}>{children}</li>,
-            hr:         () => <hr style={{ border: "none", borderTop: "0.5px solid rgba(255,255,255,0.08)", margin: "12px 0" }} />,
-            blockquote: ({ children }) => (
-              <blockquote style={{ borderLeft: `2px solid ${accent}`, paddingLeft: 12, margin: "8px 0", color: "#8BA3C4" }}>
-                {children}
-              </blockquote>
-            ),
-            table: ({ children }) => (
-              <div style={{ overflowX: "auto", margin: "10px 0" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>{children}</table>
-              </div>
-            ),
-            th: ({ children }) => (
-              <th style={{ textAlign: "left", padding: "7px 10px", borderBottom: "1px solid rgba(255,255,255,0.1)", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "#7B8FAF" }}>
-                {children}
-              </th>
-            ),
-            td: ({ children }) => (
-              <td style={{ padding: "8px 10px", borderBottom: "0.5px solid rgba(255,255,255,0.06)", color: "#E2E8F0", verticalAlign: "top" }}>
-                {children}
-              </td>
-            ),
-            code({ className, children, ...rest }) {
-              const lang = /language-(\w+)/.exec(className || "")?.[1];
-              const isBlock = String(children).includes("\n");
-              if (isBlock && lang === "script") {
-                return <ScriptBox accent={accent}>{String(children).replace(/\n$/, "")}</ScriptBox>;
-              }
-              if (isBlock) {
-                return (
-                  <pre style={{ background: "rgba(255,255,255,0.04)", border: "0.5px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "10px 14px", overflowX: "auto", fontSize: 12, fontFamily: "monospace", margin: "8px 0" }}>
-                    <code>{children}</code>
-                  </pre>
-                );
-              }
-              return (
-                <code style={{ background: "rgba(255,255,255,0.08)", padding: "2px 5px", borderRadius: 4, fontSize: "0.875em", fontFamily: "monospace" }} {...rest}>
-                  {children}
-                </code>
-              );
-            },
-          }}
-        >
-          {body}
-        </ReactMarkdown>
+        {splitBodyIntoSections(body).map((section, i) =>
+          section.collapsible ? (
+            <CollapsibleSection key={i} header={section.header} accent={accent}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdC as any}>
+                {section.content}
+              </ReactMarkdown>
+            </CollapsibleSection>
+          ) : (
+            <ReactMarkdown key={i} remarkPlugins={[remarkGfm]} components={mdC as any}>
+              {section.content}
+            </ReactMarkdown>
+          )
+        )}
       </div>
 
       {/* Decision Summary card */}
@@ -358,8 +505,8 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
               Buying Journey
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              {journeyStages.map((stage, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {journeyStages.map((stage, idx) => (
+                <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{
                     width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
                     background: stage.done ? "rgba(0,207,114,0.13)" : "rgba(255,255,255,0.03)",
@@ -368,7 +515,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                     fontSize: stage.done ? 9 : 10, fontWeight: 700,
                     color: stage.done ? "#00CF72" : "#2D4060",
                   }}>
-                    {stage.done ? "✓" : i + 1}
+                    {stage.done ? "✓" : idx + 1}
                   </div>
                   <span style={{ fontSize: 12, color: stage.done ? "#7B98B8" : "#2D4060" }}>{stage.label}</span>
                 </div>
@@ -417,7 +564,7 @@ function MeterGauge({ pct, color }: { pct: number; color: string }) {
 }
 
 function DecisionMeter({ data, score }: { data: DecisionSummaryData; score?: number }) {
-  const pct = (score ?? data.confidence ?? 80) / 100;
+  const pct = (score ?? 80) / 100;
   const color = data.wait ? "#F5A83A" : "#00CF72";
   const verdict = data.verdict ?? (data.wait ? "WAIT" : "BUY");
   return (
@@ -427,7 +574,7 @@ function DecisionMeter({ data, score }: { data: DecisionSummaryData; score?: num
         <MeterGauge pct={pct} color={color} />
         <div>
           <div style={{ fontSize: 22, fontWeight: 900, color, letterSpacing: "0.04em", lineHeight: 1 }}>{verdict}</div>
-          <div style={{ fontSize: 12, color: "#5A7A90", marginTop: 4 }}>{data.confidence}% confidence</div>
+          <div style={{ fontSize: 12, color: "#5A7A90", marginTop: 4 }}>BuyRight Score™ {Math.round(pct * 100)}</div>
           {data.reason && <div style={{ fontSize: 12, color: "#4A6070", marginTop: 5, lineHeight: 1.5 }}>{data.reason}</div>}
         </div>
       </div>

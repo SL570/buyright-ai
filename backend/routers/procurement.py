@@ -86,11 +86,11 @@ After the grid, write these sections in order:
    Example: "You'll probably forget you're wearing these halfway through your flight." / "You'll land less tired than usual."
 
 3. **🕵 BuyRight Hidden Catches**
-   Format each bullet with severity:
-   - 🟢 **Minor** — [catch]. [one-line impact]
-   - 🟡 **Medium** — [catch]. [one-line impact]
-   - 🔴 **Serious** — [catch]. [one-line impact]
-   If a severity level has no issues, skip it.
+   Each catch gets a severity + a concrete Fix or Avoid action:
+   - 🟢 **Minor** — [catch]. **Fix:** [one action to resolve it]
+   - 🟡 **Medium** — [catch]. **Fix:** [what to do about it, specifically]
+   - 🔴 **Serious** — [catch]. **Avoid:** [exact variant/listing/model/configuration to skip]
+   Skip severity levels that don't apply.
 
 4. **⭐ Future Proof** ★★★★★ (adjust stars honestly from ★☆☆☆☆ to ★★★★★)
    2-3 bullets on parts availability, firmware support, durability.
@@ -101,7 +101,7 @@ After the grid, write these sections in order:
    DO NOT invent percentages. Use: "Frequently mentioned", "Common complaint", "Some owners report".
    Format: **[Issue]** — [Frequently mentioned / Common complaint]. *(Severity: Low/Medium/High)*
 
-6. **🔍 Reality Check** — what marketing won't tell you. NOT the same as Hidden Catches (which are technical quirks). These are day-to-day ownership truths buyers only discover after purchasing.
+6. **🔍 What Owners Learn** — ownership truths buyers discover after purchasing. NOT the same as Hidden Catches (which are product quirks). These are real-life, day-to-day surprises that only come from actually using it.
    - ✓ [Specific ownership reality — size, feel, maintenance, habits, accessories needed]
    - ✓ [Another concrete ownership truth]
    - ✓ [Another — make it specific, not generic]
@@ -118,9 +118,14 @@ After the grid, write these sections in order:
    🎒 [Scenario] → [Product] — [key differentiator]
    Example: 💰 Save Money → Anker Q45 — $79, 30% weaker ANC
 
-9. Best timing to buy — specific month, sale event, or price trigger. Not vague.
+9. **✅ Before You Buy**
+   Category-specific pre-purchase checklist. 2-4 items only. Things that prevent post-purchase regret.
+   - ✓ [Specific thing to measure, check, or confirm before ordering]
+   Examples: "✓ Measure the wall with tape — sizes look different on paper." / "✓ Check if your school offers an education discount first." / "✓ Verify the outlet placement before ordering a standing desk."
 
-10. Closing blockquote — vary each response:
+10. Best timing to buy — specific month, sale event, or price trigger. Not vague.
+
+11. Closing blockquote — vary each response:
     - > **Bottom line:** [one decisive sentence]
     - > **My call:** [one decisive sentence]
     - > **What I'd do:** [one decisive sentence]
@@ -132,6 +137,18 @@ DECISION_SUMMARY: {"buy":"Sony WH-1000XM5","price":"$279","targetPrice":"$229","
 
 Then output NEXT_ACTIONS (3-4 logical next steps with emoji):
 NEXT_ACTIONS: ["✈ Flight Kit?", "📉 Track Price", "🛡 Warranty Worth It?", "📦 Open Box Deals?"]
+
+## Bundle detection
+
+When the user asks for a "setup", "bundle", "kit", "office setup", "desk setup", "gaming setup", "travel kit", "college setup", or any combination of products for a complete purpose:
+
+1. Think in SYSTEMS. Identify every component a smart buyer actually needs for that goal.
+2. Output BUNDLE_ITEMS on ONE line, immediately after WHY_PICKED:
+BUNDLE_ITEMS: {"budget":600,"items":[{"name":"Flexispot E7 Pro","price":329,"category":"Desk","store":"Amazon"},{"name":"LG 27QN600-B","price":199,"category":"Monitor","store":"Best Buy"},{"name":"Monitor Arm","price":35,"category":"Arm","store":"Amazon"},{"name":"Cable Tray","price":20,"category":"Accessory","store":"Amazon"}]}
+   - budget = the number the user specified (use 0 if they didn't mention one)
+   - items = every product in the complete setup, with realistic prices as integers
+3. PRODUCT_GRID shows only the PRIMARY item (the desk, laptop, etc.) with 2-3 options to compare.
+4. In the recommendation text, state the complete bundle total: "Complete setup: $583 of your $600 budget."
 
 ## Output format — focused chip question
 
@@ -171,12 +188,13 @@ Then NEXT_ACTIONS.
 - Max 3 products (2 for accessories).
 - Budget wins when it gets 85%+ of the result for significantly less.
 - Pros/cons = emoji + short label only.
-- Hidden Catches = 🟢/🟡/🔴 severity format.
+- Hidden Catches = 🟢/🟡/🔴 severity with Fix/Avoid action on each bullet.
 - Common Regrets = no fake % data. Use "Frequently mentioned" / "Common complaint". Be honest.
-- Reality Check = ownership truths (different from Hidden Catches which are technical). Specific, not generic.
+- What Owners Learn = day-to-day ownership truths (different from Hidden Catches). Specific, not generic.
 - Future Proof = honest star rating + 3-year verdict.
 - Skip This If = 3 honest disqualifiers, builds trust.
 - Alternatives = "Choose This Instead If..." with emoji arrows. 4 items.
+- Before You Buy = 2-4 category-specific pre-purchase checklist items.
 - Regret Risk in DECISION_SUMMARY = honest single word ("Very Low" / "Low" / "Medium" / "High").
 - No em dashes. Short sentences. Emotion in the copy.
 - DO NOT repeat information already shown in the product grid. Every paragraph must introduce new information.
@@ -231,7 +249,7 @@ def _sse_stream(system_prompt: str, messages_data: list, label: str):
         try:
             with client.messages.stream(
                 model="claude-sonnet-4-6",
-                max_tokens=1500,
+                max_tokens=2000,
                 system=system_prompt,
                 messages=messages_data,
             ) as stream:
