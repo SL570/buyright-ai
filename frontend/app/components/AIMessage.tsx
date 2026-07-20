@@ -10,6 +10,7 @@ export interface Product {
   badgeType: "success" | "warning" | "neutral" | "danger";
   recommended: boolean;
   score?: number;
+  scoreLabel?: string;
   store: string;
   pros: string[];
   cons: string[];
@@ -22,6 +23,14 @@ interface DecisionSummaryData {
   wait: boolean;
   confidence: number;
   lifespan?: string;
+  verdict?: string;
+  reason?: string;
+}
+
+interface WhyPickedData {
+  compared: number;
+  rejected: number;
+  checked: string[];
 }
 
 type VerdictType = "success" | "warning" | "danger" | "info";
@@ -101,10 +110,22 @@ function parseContent(raw: string) {
       body = body.replace(dsMatch[0], "").trim();
     } catch { /* fallthrough */ }
   }
-  // Strip incomplete DECISION_SUMMARY during streaming
   body = body.replace(/\nDECISION_SUMMARY:.*/, "").trim();
 
-  return { products, verdict, body, decisionSummary };
+  // Extract WHY_PICKED (single-line JSON)
+  let whyPicked: WhyPickedData | null = null;
+  const wpRe = /WHY_PICKED:\s*(\{[^\n]+\})/;
+  const wpMatch = body.match(wpRe);
+  if (wpMatch) {
+    try {
+      whyPicked = JSON.parse(wpMatch[1]);
+      body = body.replace(wpMatch[0], "").trim();
+    } catch { /* fallthrough */ }
+  }
+  body = body.replace(/\nWHY_PICKED:.*/, "").trim();
+  body = body.replace(/^WHY_PICKED:.*\n?/, "").trim();
+
+  return { products, verdict, body, decisionSummary, whyPicked };
 }
 
 export interface JourneyStage {
@@ -121,11 +142,14 @@ interface Props {
 }
 
 export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9EFF", journeyStages }: Props) {
-  const { products, verdict, body, decisionSummary } = parseContent(content);
+  const { products, verdict, body, decisionSummary, whyPicked } = parseContent(content);
   const vs = verdict ? V_STYLE[verdict.type] : null;
 
   return (
     <div>
+      {/* Decision Meter */}
+      {decisionSummary && <DecisionMeter data={decisionSummary} />}
+
       {/* Verdict badge */}
       {verdict && vs && (
         <div style={{
@@ -152,18 +176,21 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 14 }}>
                 <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 5 }}>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: "#00CF72", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                      🏆 Buy This
-                    </div>
-                    {winner.score != null && (
-                      <div style={{ fontSize: 10, fontWeight: 700, background: "rgba(0,207,114,0.12)", color: "#00CF72", borderRadius: 4, padding: "2px 7px" }}>
-                        {winner.score}/100
-                      </div>
-                    )}
+                  <div style={{ fontSize: 10, fontWeight: 800, color: "#00CF72", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 }}>
+                    🏆 Buy This
                   </div>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: "#EFF3FF" }}>{winner.name}</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: "#EFF3FF", fontFamily: "monospace", marginTop: 2 }}>{winner.price}</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: "#EFF3FF", lineHeight: 1.2 }}>{winner.name}</div>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: "#EFF3FF", fontFamily: "monospace", marginTop: 4, letterSpacing: "-0.02em" }}>{winner.price}</div>
+                  {winner.score != null && (
+                    <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span style={{ background: "rgba(0,207,114,0.12)", color: "#00CF72", borderRadius: 5, padding: "3px 10px", fontSize: 11, fontWeight: 800, letterSpacing: "0.02em" }}>
+                        BuyRight Score™ {winner.score}
+                      </span>
+                      {winner.scoreLabel && (
+                        <span style={{ fontSize: 11, color: "#3A6050" }}>{winner.scoreLabel}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <a
                   href={storeSearchUrl(winner.store, winner.name)}
@@ -196,10 +223,13 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
               <div style={{ fontSize: 11, color: "#2D4060", marginTop: 10 }}>{winner.store}</div>
             </div>
 
+            {/* Why We Picked It */}
+            {whyPicked && <WhyPickedCard data={whyPicked} accent={accent} />}
+
             {/* Why not the others */}
             {others.length > 0 && (
               <>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "#3D5571", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 7 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#3D5571", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 7, marginTop: whyPicked ? 12 : 0 }}>
                   Why not the others?
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
@@ -301,29 +331,40 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
       )}
 
       {/* Journey progress tracker */}
-      {journeyStages && journeyStages.length > 0 && (
-        <div style={{ marginTop: 16, paddingTop: 12, borderTop: "0.5px solid rgba(255,255,255,0.06)" }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "#2D4060", letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 9 }}>
-            Your Buying Journey
+      {journeyStages && journeyStages.length > 0 && (() => {
+        const allDone = journeyStages.every(s => s.done);
+        if (allDone) return (
+          <div style={{ marginTop: 16, paddingTop: 12, borderTop: "0.5px solid rgba(255,255,255,0.06)", textAlign: "center" }}>
+            <div style={{ fontSize: 22, marginBottom: 6 }}>🎉</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#00CF72" }}>Buying Journey Complete</div>
+            <div style={{ fontSize: 11, color: "#3A6050", marginTop: 3 }}>You're ready to buy with total confidence.</div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {journeyStages.map((stage, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 12 }}>
-                <span style={{
-                  width: 17, height: 17, borderRadius: "50%", flexShrink: 0,
-                  background: stage.done ? "rgba(0,207,114,0.13)" : "rgba(255,255,255,0.03)",
-                  border: stage.done ? "1px solid rgba(0,207,114,0.4)" : "1px solid rgba(255,255,255,0.09)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 8, color: stage.done ? "#00CF72" : "transparent",
-                }}>
-                  {stage.done ? "✓" : ""}
-                </span>
-                <span style={{ color: stage.done ? "#7B98B8" : "#2D4060" }}>{stage.label}</span>
-              </div>
-            ))}
+        );
+        return (
+          <div style={{ marginTop: 16, paddingTop: 12, borderTop: "0.5px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#2D4060", letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 10 }}>
+              Buying Journey
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              {journeyStages.map((stage, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{
+                    width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
+                    background: stage.done ? "rgba(0,207,114,0.13)" : "rgba(255,255,255,0.03)",
+                    border: stage.done ? "1.5px solid rgba(0,207,114,0.45)" : "1px solid rgba(255,255,255,0.1)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: stage.done ? 9 : 10, fontWeight: 700,
+                    color: stage.done ? "#00CF72" : "#2D4060",
+                  }}>
+                    {stage.done ? "✓" : i + 1}
+                  </div>
+                  <span style={{ fontSize: 12, color: stage.done ? "#7B98B8" : "#2D4060" }}>{stage.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Follow-up chips */}
       {followups.length > 0 && onFollowUp && (
@@ -345,6 +386,65 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function MeterGauge({ pct, color }: { pct: number; color: string }) {
+  const r = 22, cx = 28, cy = 28;
+  const circ = 2 * Math.PI * r;
+  const trackLen = circ * 0.75;
+  const fillLen = trackLen * Math.min(Math.max(pct, 0), 1);
+  return (
+    <svg width={56} height={56} style={{ flexShrink: 0 }}>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={5} strokeDasharray={`${trackLen} ${circ}`} strokeLinecap="round" transform={`rotate(135 ${cx} ${cy})`} />
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={5} strokeDasharray={`${fillLen} ${circ}`} strokeLinecap="round" transform={`rotate(135 ${cx} ${cy})`} />
+      <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="middle" fill={color} fontSize={13} fontWeight={800} fontFamily="monospace">{Math.round(pct * 100)}</text>
+    </svg>
+  );
+}
+
+function DecisionMeter({ data }: { data: DecisionSummaryData }) {
+  const pct = (data.confidence ?? 80) / 100;
+  const color = data.wait ? "#F5A83A" : "#00CF72";
+  const verdict = data.verdict ?? (data.wait ? "WAIT" : "BUY");
+  return (
+    <div style={{ background: "rgba(0,0,0,0.18)", border: "0.5px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: "#3D5571", letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 10 }}>Should You Buy?</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <MeterGauge pct={pct} color={color} />
+        <div>
+          <div style={{ fontSize: 22, fontWeight: 900, color, letterSpacing: "0.04em", lineHeight: 1 }}>{verdict}</div>
+          <div style={{ fontSize: 12, color: "#5A7A90", marginTop: 4 }}>{data.confidence}% confidence</div>
+          {data.reason && <div style={{ fontSize: 12, color: "#4A6070", marginTop: 5, lineHeight: 1.5 }}>{data.reason}</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WhyPickedCard({ data, accent }: { data: WhyPickedData; accent: string }) {
+  return (
+    <div style={{ background: "rgba(255,255,255,0.015)", border: "0.5px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "12px 14px", marginTop: 12 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: "#3D5571", letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 10 }}>Why We Picked It</div>
+      <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 22, fontWeight: 900, color: "#EFF3FF", fontFamily: "monospace", lineHeight: 1 }}>{data.compared}</div>
+          <div style={{ fontSize: 10, color: "#4A6080", marginTop: 3 }}>compared</div>
+        </div>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 22, fontWeight: 900, color: "#3D5571", fontFamily: "monospace", lineHeight: 1 }}>{data.rejected}</div>
+          <div style={{ fontSize: 10, color: "#3A5070", marginTop: 3 }}>rejected</div>
+        </div>
+        <div style={{ flex: 1, minWidth: 120 }}>
+          <div style={{ fontSize: 10, color: "#3D5571", marginBottom: 6 }}>We checked</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+            {data.checked.map((c, i) => (
+              <span key={i} style={{ background: `${accent}10`, border: `0.5px solid ${accent}28`, borderRadius: 4, padding: "2px 8px", fontSize: 10, color: accent }}>{c}</span>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

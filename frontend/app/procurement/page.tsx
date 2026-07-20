@@ -44,11 +44,11 @@ function getMsgs(text: string): string[] {
 }
 
 const JOURNEY_INIT: JourneyStage[] = [
-  { label: "Found the best product", done: false },
-  { label: "Explained why it wins", done: false },
-  { label: "Found the best deal", done: false },
-  { label: "Completed your setup", done: false },
-  { label: "Helped after purchase", done: false },
+  { label: "Product Found", done: false },
+  { label: "Decision Made", done: false },
+  { label: "Best Deal", done: false },
+  { label: "Setup", done: false },
+  { label: "Ownership", done: false },
 ];
 
 function getChips(messages: Message[]): string[] {
