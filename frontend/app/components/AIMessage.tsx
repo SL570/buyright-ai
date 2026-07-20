@@ -25,10 +25,11 @@ interface DecisionSummaryData {
   skipIf?: string;
   buyBefore?: string;
   wait: boolean;
-  confidence: number;
+  confidence?: number;
   lifespan?: string;
   verdict?: string;
   reason?: string;
+  regretRisk?: string;
 }
 
 interface WhyPickedData {
@@ -153,8 +154,13 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
 
   return (
     <div>
-      {/* Decision Meter */}
-      {decisionSummary && <DecisionMeter data={decisionSummary} />}
+      {/* Decision Meter — uses BuyRight Score from winner so the number is consistent */}
+      {decisionSummary && (
+        <DecisionMeter
+          data={decisionSummary}
+          score={(products?.find(p => p.recommended) ?? products?.[0])?.score}
+        />
+      )}
 
       {/* Verdict badge */}
       {verdict && vs && (
@@ -410,8 +416,8 @@ function MeterGauge({ pct, color }: { pct: number; color: string }) {
   );
 }
 
-function DecisionMeter({ data }: { data: DecisionSummaryData }) {
-  const pct = (data.confidence ?? 80) / 100;
+function DecisionMeter({ data, score }: { data: DecisionSummaryData; score?: number }) {
+  const pct = (score ?? data.confidence ?? 80) / 100;
   const color = data.wait ? "#F5A83A" : "#00CF72";
   const verdict = data.verdict ?? (data.wait ? "WAIT" : "BUY");
   return (
@@ -467,6 +473,7 @@ function DecisionSummaryCard({ data, accent, onFindPrice }: { data: DecisionSumm
     ...(data.skipIf       ? [{ label: "Skip If",       value: data.skipIf,      color: "#F5A83A" }] : []),
     ...(data.buyBefore    ? [{ label: "Best Timing",   value: data.buyBefore                      }] : []),
     ...(data.lifespan     ? [{ label: "Lifespan",      value: data.lifespan,    color: "#7B98B8" }] : []),
+    ...(data.regretRisk   ? [{ label: "Regret Risk",   value: data.regretRisk,  color: data.regretRisk === "Very Low" || data.regretRisk === "Low" ? "#00CF72" : data.regretRisk === "High" ? "#F06565" : "#F5A83A" }] : []),
   ];
   return (
     <div style={{
