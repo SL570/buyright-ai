@@ -9,10 +9,19 @@ export interface Product {
   badge: string;
   badgeType: "success" | "warning" | "neutral" | "danger";
   recommended: boolean;
+  score?: number;
   store: string;
   pros: string[];
   cons: string[];
   rejection_reason?: string;
+}
+
+interface DecisionSummaryData {
+  buy: string;
+  price: string;
+  wait: boolean;
+  confidence: number;
+  lifespan?: string;
 }
 
 type VerdictType = "success" | "warning" | "danger" | "info";
@@ -78,11 +87,24 @@ function parseContent(raw: string) {
     body = body.replace(vMatch[0], "").trim();
   }
 
-  // Strip NEXT_ACTIONS from rendered body (it's used by parent, not displayed)
+  // Strip NEXT_ACTIONS from rendered body
   body = body.replace(/\nNEXT_ACTIONS:\s*\[[\s\S]*?\](\n|$)/, "\n").trim();
   body = body.replace(/^NEXT_ACTIONS:\s*\[[\s\S]*?\](\n|$)/, "").trim();
 
-  return { products, verdict, body };
+  // Extract DECISION_SUMMARY (single-line JSON)
+  let decisionSummary: DecisionSummaryData | null = null;
+  const dsRe = /DECISION_SUMMARY:\s*(\{[^\n]+\})/;
+  const dsMatch = body.match(dsRe);
+  if (dsMatch) {
+    try {
+      decisionSummary = JSON.parse(dsMatch[1]);
+      body = body.replace(dsMatch[0], "").trim();
+    } catch { /* fallthrough */ }
+  }
+  // Strip incomplete DECISION_SUMMARY during streaming
+  body = body.replace(/\nDECISION_SUMMARY:.*/, "").trim();
+
+  return { products, verdict, body, decisionSummary };
 }
 
 export interface JourneyStage {
@@ -99,7 +121,7 @@ interface Props {
 }
 
 export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9EFF", journeyStages }: Props) {
-  const { products, verdict, body } = parseContent(content);
+  const { products, verdict, body, decisionSummary } = parseContent(content);
   const vs = verdict ? V_STYLE[verdict.type] : null;
 
   return (
@@ -128,10 +150,17 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
               border: "1.5px solid rgba(0,207,114,0.35)",
               borderRadius: 14, padding: "18px 20px", marginBottom: 10,
             }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 14 }}>
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: "#00CF72", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 5 }}>
-                    🏆 Buy This
+                  <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 5 }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: "#00CF72", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                      🏆 Buy This
+                    </div>
+                    {winner.score != null && (
+                      <div style={{ fontSize: 10, fontWeight: 700, background: "rgba(0,207,114,0.12)", color: "#00CF72", borderRadius: 4, padding: "2px 7px" }}>
+                        {winner.score}/100
+                      </div>
+                    )}
                   </div>
                   <div style={{ fontSize: 17, fontWeight: 700, color: "#EFF3FF" }}>{winner.name}</div>
                   <div style={{ fontSize: 22, fontWeight: 800, color: "#EFF3FF", fontFamily: "monospace", marginTop: 2 }}>{winner.price}</div>
@@ -144,19 +173,27 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                   Find Lowest Price →
                 </a>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {winner.pros.map((t, j) => (
-                  <div key={j} style={{ fontSize: 12, color: "#C8D8F0", display: "flex", gap: 7, alignItems: "flex-start" }}>
-                    <span style={{ color: "#00CF72", flexShrink: 0, lineHeight: 1.6 }}>✓</span>{t}
+              {winner.pros.length > 0 && (
+                <div style={{ marginBottom: winner.cons.length > 0 ? 10 : 0 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#00CF72", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 7 }}>Perfect for</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                    {winner.pros.map((t, j) => (
+                      <span key={j} style={{ background: "rgba(0,207,114,0.08)", border: "0.5px solid rgba(0,207,114,0.25)", borderRadius: 99, padding: "4px 11px", fontSize: 12, color: "#5DDBA8" }}>{t}</span>
+                    ))}
                   </div>
-                ))}
-              </div>
-              {winner.cons.length > 0 && (
-                <div style={{ marginTop: 10, paddingTop: 10, borderTop: "0.5px solid rgba(255,255,255,0.07)", fontSize: 12, color: "#F5A83A", display: "flex", gap: 6 }}>
-                  <span style={{ flexShrink: 0 }}>⚠</span>{winner.cons[0]}
                 </div>
               )}
-              <div style={{ fontSize: 11, color: "#2D4060", marginTop: 8 }}>{winner.store}</div>
+              {winner.cons.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#4A6080", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 7 }}>Not ideal for</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                    {winner.cons.map((t, j) => (
+                      <span key={j} style={{ background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.07)", borderRadius: 99, padding: "4px 11px", fontSize: 11, color: "#4A6080" }}>{t}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div style={{ fontSize: 11, color: "#2D4060", marginTop: 10 }}>{winner.store}</div>
             </div>
 
             {/* Why not the others */}
@@ -175,7 +212,10 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                         borderRadius: 10, padding: "12px 14px",
                       }}>
                         <div style={{ fontSize: 12, fontWeight: 600, color: "#4A6080" }}>{p.name}</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "monospace", color: "#4A6080", marginTop: 1 }}>{p.price}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "monospace", color: "#4A6080" }}>{p.price}</div>
+                          {p.score != null && <div style={{ fontSize: 10, color: "#2D4060" }}>{p.score}/100</div>}
+                        </div>
                         {reason && <div style={{ fontSize: 11, color: "#3D5571", marginTop: 6, lineHeight: 1.55 }}>{reason}</div>}
                         <a
                           href={storeSearchUrl(p.store, p.name)}
@@ -253,6 +293,13 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
         </ReactMarkdown>
       </div>
 
+      {/* Decision Summary card */}
+      {decisionSummary && (
+        <DecisionSummaryCard data={decisionSummary} accent={accent} onFindPrice={
+          products ? () => window.open(storeSearchUrl(products.find(p => p.recommended)?.store ?? "amazon", decisionSummary.buy), "_blank") : undefined
+        } />
+      )}
+
       {/* Journey progress tracker */}
       {journeyStages && journeyStages.length > 0 && (
         <div style={{ marginTop: 16, paddingTop: 12, borderTop: "0.5px solid rgba(255,255,255,0.06)" }}>
@@ -297,6 +344,42 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
             </button>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+function DecisionSummaryCard({ data, accent, onFindPrice }: { data: DecisionSummaryData; accent: string; onFindPrice?: () => void }) {
+  const rows: { label: string; value: string; color?: string }[] = [
+    { label: "Buy", value: data.buy, color: "#EFF3FF" },
+    { label: "Price", value: data.price, color: "#EFF3FF" },
+    { label: "Wait?", value: data.wait ? "Yes" : "No", color: data.wait ? "#F5A83A" : "#00CF72" },
+    { label: "Confidence", value: `${data.confidence}%`, color: "#EFF3FF" },
+    ...(data.lifespan ? [{ label: "Lifespan", value: data.lifespan, color: "#7B98B8" }] : []),
+  ];
+  return (
+    <div style={{
+      background: "rgba(255,255,255,0.02)", border: `0.5px solid ${accent}22`,
+      borderRadius: 12, padding: "14px 16px", marginTop: 14,
+    }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: accent, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>
+        Decision Summary
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 20px", marginBottom: 12 }}>
+        {rows.map((r, i) => (
+          <div key={i}>
+            <div style={{ fontSize: 10, color: "#3D5571", marginBottom: 2 }}>{r.label}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: r.color ?? "#EFF3FF" }}>{r.value}</div>
+          </div>
+        ))}
+      </div>
+      {onFindPrice && (
+        <button
+          onClick={onFindPrice}
+          style={{ width: "100%", background: `${accent}15`, border: `0.5px solid ${accent}30`, color: accent, borderRadius: 8, padding: "8px 0", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+        >
+          Find Lowest Price →
+        </button>
       )}
     </div>
   );

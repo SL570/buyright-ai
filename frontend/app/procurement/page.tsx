@@ -22,14 +22,26 @@ const STARTERS = [
   "Get me a standing desk and monitor setup for under $600",
 ];
 
-const LOADING_MSGS = [
-  "Comparing products across major retailers...",
-  "Filtering out weak specs and bad reviews...",
-  "Checking today's live prices...",
-  "Weighing your budget and priorities...",
-  "Finding hidden catches...",
-  "Almost done...",
-];
+const LOADING_MSGS: Record<string, string[]> = {
+  tv:        ["Comparing panel types...", "Checking HDR and refresh rates...", "Looking for open box deals...", "Finding the best timing to buy...", "Almost done..."],
+  laptop:    ["Running CPU benchmarks...", "Testing battery life claims...", "Checking student discounts...", "Comparing build quality...", "Almost done..."],
+  headphone: ["Testing ANC performance...", "Checking flight compatibility...", "Comparing comfort for long trips...", "Finding the best value...", "Almost done..."],
+  phone:     ["Comparing camera systems...", "Checking carrier deals...", "Looking at trade-in values...", "Testing battery claims...", "Almost done..."],
+  desk:      ["Measuring ergonomic specs...", "Checking weight capacity...", "Comparing monitor arms...", "Finding the best bundle...", "Almost done..."],
+  camera:    ["Comparing sensor performance...", "Checking lens compatibility...", "Looking at refurbished options...", "Reviewing firmware support...", "Almost done..."],
+  default:   ["Comparing products across major retailers...", "Filtering out weak specs and bad reviews...", "Checking today's live prices...", "Weighing your budget and priorities...", "Finding hidden catches...", "Almost done..."],
+};
+
+function getMsgs(text: string): string[] {
+  const t = text.toLowerCase();
+  if (/\b(tv|television|oled|qled|4k|8k)\b/.test(t)) return LOADING_MSGS.tv;
+  if (/\b(laptop|macbook|notebook|chromebook)\b/.test(t)) return LOADING_MSGS.laptop;
+  if (/\b(headphone|earbud|airpod|speaker|anc|noise.cancel)\b/.test(t)) return LOADING_MSGS.headphone;
+  if (/\b(phone|iphone|android|pixel|galaxy)\b/.test(t)) return LOADING_MSGS.phone;
+  if (/\b(desk|monitor|keyboard|mouse|standing|office)\b/.test(t)) return LOADING_MSGS.desk;
+  if (/\b(camera|lens|photography|mirrorless|dslr)\b/.test(t)) return LOADING_MSGS.camera;
+  return LOADING_MSGS.default;
+}
 
 const JOURNEY_INIT: JourneyStage[] = [
   { label: "Found the best product", done: false },
@@ -93,7 +105,8 @@ export default function ProcurementPage() {
   const [messages, setMessages]     = useState<Message[]>([]);
   const [input, setInput]           = useState("");
   const [loading, setLoading]       = useState(false);
-  const [loadingMsg, setLoadingMsg] = useState(LOADING_MSGS[0]);
+  const [loadingMsg, setLoadingMsg] = useState(LOADING_MSGS.default[0]);
+  const activeMsgsRef = useRef(LOADING_MSGS.default);
   const [listening, setListening]   = useState(false);
   const [journey, setJourney]       = useState<JourneyStage[]>(JOURNEY_INIT);
   const bottomRef                   = useRef<HTMLDivElement>(null);
@@ -101,9 +114,9 @@ export default function ProcurementPage() {
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
   useEffect(() => {
-    if (!loading) { setLoadingMsg(LOADING_MSGS[0]); return; }
+    if (!loading) { setLoadingMsg(activeMsgsRef.current[0]); return; }
     let i = 0;
-    const id = setInterval(() => { i = (i + 1) % LOADING_MSGS.length; setLoadingMsg(LOADING_MSGS[i]); }, 1800);
+    const id = setInterval(() => { i = (i + 1) % activeMsgsRef.current.length; setLoadingMsg(activeMsgsRef.current[i]); }, 1800);
     return () => clearInterval(id);
   }, [loading]);
 
@@ -144,6 +157,8 @@ export default function ProcurementPage() {
     const userText = (text ?? input).trim();
     if (!userText || loading) return;
     setInput("");
+    activeMsgsRef.current = getMsgs(userText);
+    setLoadingMsg(activeMsgsRef.current[0]);
     const next: Message[] = [...messages, { role: "user", content: userText }];
     setMessages(next);
     setLoading(true);
