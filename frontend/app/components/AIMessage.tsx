@@ -78,7 +78,16 @@ function parseContent(raw: string) {
     body = body.replace(vMatch[0], "").trim();
   }
 
+  // Strip NEXT_ACTIONS from rendered body (it's used by parent, not displayed)
+  body = body.replace(/\nNEXT_ACTIONS:\s*\[[\s\S]*?\](\n|$)/, "\n").trim();
+  body = body.replace(/^NEXT_ACTIONS:\s*\[[\s\S]*?\](\n|$)/, "").trim();
+
   return { products, verdict, body };
+}
+
+export interface JourneyStage {
+  label: string;
+  done: boolean;
 }
 
 interface Props {
@@ -86,9 +95,10 @@ interface Props {
   onFollowUp?: (q: string) => void;
   followups?: string[];
   accent?: string;
+  journeyStages?: JourneyStage[];
 }
 
-export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9EFF" }: Props) {
+export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9EFF", journeyStages }: Props) {
   const { products, verdict, body } = parseContent(content);
   const vs = verdict ? V_STYLE[verdict.type] : null;
 
@@ -242,6 +252,31 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
           {body}
         </ReactMarkdown>
       </div>
+
+      {/* Journey progress tracker */}
+      {journeyStages && journeyStages.length > 0 && (
+        <div style={{ marginTop: 16, paddingTop: 12, borderTop: "0.5px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#2D4060", letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 9 }}>
+            Your Buying Journey
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {journeyStages.map((stage, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 12 }}>
+                <span style={{
+                  width: 17, height: 17, borderRadius: "50%", flexShrink: 0,
+                  background: stage.done ? "rgba(0,207,114,0.13)" : "rgba(255,255,255,0.03)",
+                  border: stage.done ? "1px solid rgba(0,207,114,0.4)" : "1px solid rgba(255,255,255,0.09)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 8, color: stage.done ? "#00CF72" : "transparent",
+                }}>
+                  {stage.done ? "✓" : ""}
+                </span>
+                <span style={{ color: stage.done ? "#7B98B8" : "#2D4060" }}>{stage.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Follow-up chips */}
       {followups.length > 0 && onFollowUp && (

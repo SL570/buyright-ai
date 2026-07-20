@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import LoadingScreen from "../components/LoadingScreen";
-import { AIMessage } from "../components/AIMessage";
+import { AIMessage, JourneyStage } from "../components/AIMessage";
 
 interface Message {
   role: "user" | "assistant";
@@ -31,43 +31,57 @@ const LOADING_MSGS = [
   "Almost done...",
 ];
 
+const JOURNEY_INIT: JourneyStage[] = [
+  { label: "Found the best product", done: false },
+  { label: "Explained why it wins", done: false },
+  { label: "Found the best deal", done: false },
+  { label: "Completed your setup", done: false },
+  { label: "Helped after purchase", done: false },
+];
+
 function getChips(messages: Message[]): string[] {
   const text = messages.map(m => m.content).join(" ").toLowerCase();
   const lastUser = messages.filter(m => m.role === "user").pop()?.content.toLowerCase() ?? "";
 
-  // After a savings/price question — go deeper, not broader
   if (/pay less|cheaper|discount|save|deal|open.?box|price|coupon/.test(lastUser)) {
-    return ["Best Cashback Card for This?", "Open Box — Is It Worth It?", "Negotiate In-Store Script"];
+    return ["💳 Best Cashback Card?", "📦 Open Box — Worth It?", "📉 Should I Wait for a Sale?"];
   }
-  // After a comparison question
   if (/compare|vs\b|versus|difference|better|which one/.test(lastUser)) {
-    return ["Which One for Heavy Use?", "Any Hidden Issues?", "Should I Wait for a Sale?"];
+    return ["💪 Which One for Heavy Use?", "🕵 Any Hidden Issues?", "📉 Should I Wait?"];
   }
-  // Category: TV
   if (/\b(tv|television|oled|qled|4k|8k|screen|display|inch)\b/.test(text)) {
-    return ["Open Box Deals?", "Best Soundbar to Pair?", "Should I Wait for a Sale?"];
+    return ["📦 Open Box Deals?", "🔊 Best Soundbar to Pair?", "📉 Should I Wait for a Sale?", "🛡 Warranty Worth It?"];
   }
-  // Category: Laptop
   if (/\b(laptop|notebook|macbook|chromebook|ultrabook)\b/.test(text)) {
-    return ["Student Discount?", "Which Accessories Actually Matter?", "How Long Will This Last?"];
+    return ["🎓 Student Discount?", "🎒 Which Accessories Matter?", "📉 Track Price Drop", "🛡 Warranty Worth It?"];
   }
-  // Category: Phone
   if (/\b(phone|iphone|android|pixel|galaxy|smartphone)\b/.test(text)) {
-    return ["Best Case for This?", "Trade-In Value?", "Which Carrier Has the Best Deal?"];
+    return ["📱 Best Case for This?", "♻ Trade-In Value?", "📶 Best Carrier Deal?", "🛡 Warranty Worth It?"];
   }
-  // Category: Headphones/Audio
   if (/\b(headphone|earbud|airpod|speaker|audio|anc|noise.cancel)\b/.test(text)) {
-    return ["Best for Flights?", "Compare to AirPods Pro?", "Warranty Worth It?"];
+    return ["✈ Best for Flights?", "🆚 Compare to AirPods Pro?", "📦 Open Box Deals?", "🛡 Warranty Worth It?"];
   }
-  // Category: Desk/Office
   if (/\b(desk|chair|monitor|keyboard|mouse|office|standing)\b/.test(text)) {
-    return ["Cable Management Tips?", "Best Monitor for This Setup?", "Ergonomic Add-ons?"];
+    return ["🖥 Best Monitor for This?", "⚡ Ergonomic Add-ons?", "📦 Open Box Deals?", "🛡 Warranty Worth It?"];
   }
-  // Category: Camera
   if (/\b(camera|lens|photography|mirrorless|dslr)\b/.test(text)) {
-    return ["Which Lens First?", "Best Bag for Travel?", "Buy New vs Refurbished?"];
+    return ["🔭 Which Lens First?", "🎒 Best Bag for Travel?", "📦 Buy New vs Refurbished?", "🛡 Warranty Worth It?"];
   }
-  return ["Open Box Deals?", "Which One Would You Actually Buy?"];
+  return ["📦 Open Box Deals?", "📉 Should I Wait?", "💳 Best Cashback Card?"];
+}
+
+function getFollowups(messages: Message[], idx: number): string[] {
+  if (idx !== messages.length - 1) return [];
+  const msg = messages[idx];
+  if (msg.role !== "assistant") return [];
+  const naMatch = msg.content.match(/NEXT_ACTIONS:\s*(\[[\s\S]*?\])/);
+  if (naMatch) {
+    try {
+      const actions = JSON.parse(naMatch[1]);
+      if (Array.isArray(actions) && actions.length > 0) return actions as string[];
+    } catch { /* fallthrough */ }
+  }
+  return getChips(messages.slice(0, idx + 1));
 }
 
 export default function ProcurementPage() {
@@ -81,6 +95,7 @@ export default function ProcurementPage() {
   const [loading, setLoading]       = useState(false);
   const [loadingMsg, setLoadingMsg] = useState(LOADING_MSGS[0]);
   const [listening, setListening]   = useState(false);
+  const [journey, setJourney]       = useState<JourneyStage[]>(JOURNEY_INIT);
   const bottomRef                   = useRef<HTMLDivElement>(null);
   const recogRef                    = useRef<any>(null);
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
@@ -171,6 +186,25 @@ export default function ProcurementPage() {
           }
         }
       }
+      // Update journey stages based on what was asked and what came back
+      setJourney(prev => {
+        const next = prev.map(s => ({ ...s }));
+        const low = userText.toLowerCase();
+        if (fullText.includes("END_PRODUCT_GRID")) {
+          next[0].done = true;
+          next[1].done = true;
+        }
+        if (/open.?box|cashback|price.?drop|discount|student|coupon|cheaper|save|negotiate/.test(low)) {
+          next[2].done = true;
+        }
+        if (/soundbar|mount|cable|accessories|setup|keyboard|mouse|bag|case|lens|monitor|ergon/.test(low)) {
+          next[3].done = true;
+        }
+        if (/warranty|after|return|refund|post.?purchase|broke|defect/.test(low)) {
+          next[4].done = true;
+        }
+        return next;
+      });
     } catch (e: any) {
       setMessages(prev => [...prev, { role: "assistant", content: `**Error:** ${e.message}` }]);
     } finally {
@@ -242,8 +276,9 @@ export default function ProcurementPage() {
                   <AIMessage
                     content={m.content}
                     onFollowUp={send}
-                    followups={i === messages.length - 1 ? getChips(messages.slice(0, i + 1)) : []}
+                    followups={getFollowups(messages, i)}
                     accent={ACCENT}
+                    journeyStages={i === messages.length - 1 ? journey : undefined}
                   />
                 </div>
               )}
