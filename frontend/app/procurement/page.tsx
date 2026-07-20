@@ -457,7 +457,7 @@ export default function ProcurementPage() {
           />
           <button onClick={() => send()} disabled={loading || !input.trim()} style={S.sendBtn}>Send</button>
         </div>
-        <p style={S.hint}>Press 🎤 to speak · Powered by Claude</p>
+        <p style={S.hint}>Press 🎤 to speak</p>
       </div>
 
       <style>{`

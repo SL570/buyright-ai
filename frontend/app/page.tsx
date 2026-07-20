@@ -105,7 +105,7 @@ export default function Home() {
             <div style={{ ...S.icon, background: "rgba(251,191,36,0.1)", color: "#FBBF24" }}>💬</div>
             <h3 style={S.cardTitle}>AI Shopping Advisor</h3>
             <p style={S.cardText}>
-              Ask anything — deal timing, negotiation scripts, product comparisons, retailer policy breakdowns. Real answers powered by Claude, not sponsored search results.
+              Ask anything — deal timing, negotiation scripts, product comparisons, retailer policy breakdowns. Real answers, not sponsored search results.
             </p>
             <span style={S.cardTag}>Free</span>
           </div>
@@ -145,7 +145,7 @@ export default function Home() {
       </section>
 
       <footer style={S.footer}>
-        <span>© 2026 BuyRight AI · Powered by Claude</span>
+        <span>© 2026 BuyRight AI</span>
       </footer>
     </main>
   );

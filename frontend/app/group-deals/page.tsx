@@ -376,7 +376,7 @@ export default function GroupDealsPage() {
               />
               <button onClick={() => sendChat()} disabled={chatLoading || !input.trim()} style={S.sendBtn}>Send</button>
             </div>
-            <p style={S.hint}>Press 🎤 to speak · Powered by Claude · Sees your live deal board</p>
+            <p style={S.hint}>Press 🎤 to speak · Sees your live deal board</p>
           </div>
         </>
       )}
