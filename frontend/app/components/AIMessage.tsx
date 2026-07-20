@@ -192,8 +192,25 @@ interface Props {
   journeyStages?: JourneyStage[];
 }
 
+const SECTION_LABELS: Record<string, string> = {
+  "🕵": "BuyRight Hidden Catches",
+  "⭐": "Future Proof",
+  "😬": "Common Regrets",
+  "🔍": "After Living With It",
+  "❌": "Skip This If",
+  "🔀": "Compare Alternatives",
+  "✅": "Before You Buy",
+};
+
+function resolveHeader(header: string): string {
+  const trimmed = header.trim();
+  if (SECTION_LABELS[trimmed]) return `${trimmed} ${SECTION_LABELS[trimmed]}`;
+  return header;
+}
+
 function CollapsibleSection({ header, children, accent }: { header: string; children: React.ReactNode; accent: string }) {
   const [open, setOpen] = useState(false);
+  const label = resolveHeader(header);
   return (
     <div style={{ borderTop: "0.5px solid rgba(255,255,255,0.05)", marginTop: 2 }}>
       <button
@@ -204,7 +221,7 @@ function CollapsibleSection({ header, children, accent }: { header: string; chil
           padding: "11px 0", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
         }}
       >
-        <span style={{ fontSize: 13, fontWeight: 600, color: open ? "#A8C0D8" : "#7B98B8" }}>{header}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: open ? "#A8C0D8" : "#7B98B8" }}>{label}</span>
         <svg
           width="14" height="14" viewBox="0 0 14 14" fill="none"
           style={{
@@ -274,27 +291,79 @@ function BundleCard({ data, accent }: { data: BundleData; accent: string }) {
         ))}
       </div>
       <div style={{
-        display: "flex", justifyContent: "space-between", alignItems: "center",
         borderTop: "0.5px solid rgba(255,255,255,0.07)", paddingTop: 10,
       }}>
-        <div>
-          <span style={{ fontSize: 11, color: "#3D5571" }}>Total </span>
-          <span style={{ fontSize: 18, fontWeight: 900, color: "#EFF3FF", fontFamily: "monospace" }}>${total}</span>
-          {data.budget && data.budget > 0 && (
-            <span style={{ fontSize: 11, color: "#3D5571" }}> of ${data.budget} budget</span>
-          )}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div>
+            <span style={{ fontSize: 11, color: "#3D5571" }}>Complete setup: </span>
+            <span style={{ fontSize: 18, fontWeight: 900, color: "#EFF3FF", fontFamily: "monospace" }}>${total}</span>
+            {data.budget && data.budget > 0 && (
+              <span style={{ fontSize: 11, color: "#3D5571" }}> of ${data.budget} budget</span>
+            )}
+          </div>
+          <button
+            onClick={() => data.items.forEach(item => window.open(storeSearchUrl(item.store, item.name), "_blank"))}
+            style={{
+              background: accent, color: "#0B0F19", border: "none",
+              borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700,
+              cursor: "pointer", fontFamily: "inherit",
+            }}
+          >
+            Buy Everything →
+          </button>
         </div>
-        <button
-          onClick={() => data.items.forEach(item => window.open(storeSearchUrl(item.store, item.name), "_blank"))}
-          style={{
-            background: accent, color: "#0B0F19", border: "none",
-            borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700,
-            cursor: "pointer", fontFamily: "inherit",
-          }}
-        >
-          Buy Everything →
-        </button>
+        <div style={{ fontSize: 12, color: "#4A6080", lineHeight: 1.5 }}>
+          Everything you need arrives in one order. No compatibility headaches.
+        </div>
       </div>
+    </div>
+  );
+}
+
+function ConfidenceBox({ data, score }: { data: DecisionSummaryData; score?: number }) {
+  const raw = score ?? 80;
+  const buy = !data.wait;
+  const color = buy ? "#00CF72" : "#F5A83A";
+  const regretColor = (r: string) =>
+    r === "Very Low" || r === "Low" ? "#00CF72" : r === "High" ? "#F06565" : "#F5A83A";
+
+  const cells: { label: string; value: string; color?: string }[] = [
+    { label: "Confidence", value: `${raw}%`, color },
+    ...(data.regretRisk ? [{ label: "Regret Risk", value: data.regretRisk.toUpperCase(), color: regretColor(data.regretRisk) }] : []),
+    ...(data.buyBefore   ? [{ label: "Best Time",  value: data.buyBefore }] : []),
+    ...(data.priceStatus ? [{ label: "Price",       value: data.priceStatus }] : []),
+  ];
+
+  return (
+    <div style={{
+      background: buy ? "rgba(0,207,114,0.05)" : "rgba(245,168,58,0.05)",
+      border: `1px solid ${color}28`, borderRadius: 14,
+      padding: "16px 20px", marginBottom: 14,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#3D5571", letterSpacing: "0.09em", textTransform: "uppercase" }}>
+          Would I Buy This?
+        </div>
+        <div style={{ fontSize: 28, fontWeight: 900, color, lineHeight: 1, letterSpacing: "-0.01em" }}>
+          {buy ? "YES" : "WAIT"}
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 20px", marginBottom: data.reason ? 14 : 0 }}>
+        {cells.map((cell, i) => (
+          <div key={i}>
+            <div style={{ fontSize: 10, color: "#3D5571", marginBottom: 2 }}>{cell.label}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: cell.color ?? "#8BA3C4" }}>{cell.value}</div>
+          </div>
+        ))}
+      </div>
+      {data.reason && (
+        <div style={{
+          fontSize: 13, color: "#C4D4E8", lineHeight: 1.7,
+          borderTop: `0.5px solid ${color}20`, paddingTop: 12,
+        }}>
+          {data.reason}
+        </div>
+      )}
     </div>
   );
 }
@@ -355,14 +424,13 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
     },
   };
 
+  const winnerScore = (products?.find(p => p.recommended) ?? products?.[0])?.score;
+
   return (
     <div>
-      {/* Decision Meter — score from winner keeps the number consistent with hero card */}
+      {/* Confidence box — executive summary: Would I Buy This? */}
       {decisionSummary && (
-        <DecisionMeter
-          data={decisionSummary}
-          score={(products?.find(p => p.recommended) ?? products?.[0])?.score}
-        />
+        <ConfidenceBox data={decisionSummary} score={winnerScore} />
       )}
 
       {/* Verdict badge */}
@@ -432,7 +500,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
             </div>
 
             {/* Why We Picked It */}
-            {whyPicked && <WhyPickedCard data={whyPicked} accent={accent} winnerName={winner.name} />}
+            {whyPicked && <WhyPickedCard data={whyPicked} accent={accent} />}
 
             {/* Why not the others */}
             {others.length > 0 && (
@@ -472,6 +540,11 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
         );
       })()}
 
+      {/* Complete Setup — shown before content so it's one of the first things seen */}
+      {bundleData && bundleData.items.length > 0 && (
+        <BundleCard data={bundleData} accent={accent} />
+      )}
+
       {/* Markdown body — detail sections collapsed by default */}
       <div style={{ fontSize: 14, lineHeight: 1.75, color: "#E2E8F0" }}>
         {splitBodyIntoSections(body).map((section, i) =>
@@ -497,11 +570,6 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
           } />
           <RegretPanel data={decisionSummary} />
         </>
-      )}
-
-      {/* Bundle card — only shown for explicit setup/kit responses, after the main recommendation */}
-      {bundleData && bundleData.items.length > 0 && (
-        <BundleCard data={bundleData} accent={accent} />
       )}
 
       {/* Journey progress tracker */}
@@ -632,50 +700,48 @@ function DecisionMeter({ data, score }: { data: DecisionSummaryData; score?: num
   );
 }
 
-function WhyPickedCard({ data, accent, winnerName }: { data: WhyPickedData; accent: string; winnerName?: string }) {
+function WhyPickedCard({ data, accent }: { data: WhyPickedData; accent: string }) {
   const noun = data.category || "products";
-  const steps = [
-    { label: `Started with ${data.analyzed} ${noun}`, color: "#EFF3FF", dimmed: false },
-    { label: `Rejected ${data.eliminated}`, color: "#2D4060", dimmed: true },
-    { label: `Compared ${data.finalists}`, color: accent, dimmed: false },
-    { label: winnerName ?? "Winner", color: "#00CF72", dimmed: false, winner: true },
-  ];
+  const pct = data.analyzed > 0 ? Math.round((data.finalists / data.analyzed) * 100) : 10;
+  const rankLabel = pct <= 5 ? "Top 5% Pick" : pct <= 12 ? "Top 10% Pick" : "Best Overall Value";
   return (
-    <div style={{ background: "rgba(255,255,255,0.015)", border: "0.5px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "12px 14px", marginTop: 12 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
-        <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "#3D5571", letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 10 }}>Why We Picked It</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-            {steps.map((step, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 0 }}>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginRight: 8, flexShrink: 0 }}>
-                  <div style={{
-                    width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
-                    background: step.dimmed ? "rgba(255,255,255,0.12)" : step.color,
-                  }} />
-                  {i < steps.length - 1 && <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.07)" }} />}
-                </div>
-                <span style={{ fontSize: i === steps.length - 1 ? 12 : 11, fontWeight: i === steps.length - 1 ? 700 : 400, color: step.color, paddingTop: i === 0 ? 0 : 4, paddingBottom: i === steps.length - 1 ? 0 : 4 }}>
-                  {step.label}
-                </span>
+    <div style={{ background: "rgba(255,255,255,0.015)", border: "0.5px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "14px 16px", marginTop: 12 }}>
+      {/* Header row */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#3D5571", letterSpacing: "0.09em", textTransform: "uppercase" }}>Why We Picked It</div>
+        <span style={{ fontSize: 10, fontWeight: 700, color: "#00CF72", background: "rgba(0,207,114,0.1)", border: "0.5px solid rgba(0,207,114,0.25)", borderRadius: 99, padding: "2px 10px" }}>{rankLabel}</span>
+      </div>
+
+      {/* Stats */}
+      <div style={{ display: "flex", gap: 0, marginBottom: 14 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 22, fontWeight: 900, color: "#EFF3FF", fontFamily: "monospace", lineHeight: 1 }}>{data.analyzed}</div>
+          <div style={{ fontSize: 10, color: "#3D5571", marginTop: 3 }}>{noun} evaluated</div>
+        </div>
+        <div style={{ width: "0.5px", background: "rgba(255,255,255,0.06)", margin: "0 16px" }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 22, fontWeight: 900, color: accent, fontFamily: "monospace", lineHeight: 1 }}>{data.finalists}</div>
+          <div style={{ fontSize: 10, color: "#3D5571", marginTop: 3 }}>finalists survived testing</div>
+        </div>
+      </div>
+
+      {/* Winner based on */}
+      {data.checked.length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 10, color: "#4A6080", marginBottom: 7 }}>Winner selected based on:</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            {data.checked.map((c, i) => (
+              <div key={i} style={{ display: "flex", gap: 7, fontSize: 12, color: "#7B98B8" }}>
+                <span style={{ color: "#00CF72", flexShrink: 0, fontSize: 10 }}>✓</span>
+                <span>{c}</span>
               </div>
             ))}
           </div>
         </div>
-        {data.checked.length > 0 && (
-          <div style={{ minWidth: 110 }}>
-            <div style={{ fontSize: 10, color: "#3D5571", marginBottom: 6 }}>We checked</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-              {data.checked.map((c, i) => (
-                <span key={i} style={{ background: `${accent}10`, border: `0.5px solid ${accent}28`, borderRadius: 4, padding: "2px 8px", fontSize: 10, color: accent }}>{c}</span>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Trust signals */}
-      <div style={{ marginTop: 12, paddingTop: 10, borderTop: "0.5px solid rgba(255,255,255,0.05)" }}>
+      <div style={{ paddingTop: 10, borderTop: "0.5px solid rgba(255,255,255,0.05)" }}>
         <div style={{ fontSize: 9, fontWeight: 700, color: "#2D4060", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 7 }}>
           Why trust this recommendation
         </div>
@@ -684,7 +750,7 @@ function WhyPickedCard({ data, accent, winnerName }: { data: WhyPickedData; acce
             `Compared ${data.analyzed} ${noun}`,
             "Read thousands of verified owner reviews",
             "Checked price history and deal timing",
-            "No sponsored rankings or affiliate bias",
+            "Recommendations are chosen before we look at retailers or commissions.",
           ].map((line, i) => (
             <div key={i} style={{ display: "flex", gap: 7, fontSize: 11, color: "#4A6080" }}>
               <span style={{ color: "#00CF72", flexShrink: 0, fontSize: 10 }}>✓</span>

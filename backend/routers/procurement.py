@@ -85,12 +85,14 @@ After the grid, write these sections in order:
    | 💰 Tightest budget | Hisense A6N |
    2–3 rows only. Emoji + scenario on left, product name on right. No extra text.
 
-2. **Why you'll love it** — exactly 4 tight bullets. What they'll actually feel. NOT specs.
+2. **Why you'll love it** — exactly 4 short bullets. What they'll actually feel. NOT specs.
    ✓ [The moment they'll know they chose right — physical/sensory, not a feature]
    ✓ [What it does better than expected at this price]
    ✓ [The use case it nails — specific to what they said they need]
    ✓ [The thing they feared that won't actually bother them]
-   Each bullet under 12 words. One truth per bullet. No specs, no brand names.
+   Each bullet 5-7 words max. Lead with verb. No subject pronoun. No specs, no brand names.
+   Good: "Standing becomes effortless." "Text stays crisp all day." "One tap, perfect height."
+   Bad: "You'll hit the up button and forget standing felt like a chore."
 
 3. **🕵 BuyRight Hidden Catches**
    Each catch gets a severity + a concrete Fix or Avoid action:
