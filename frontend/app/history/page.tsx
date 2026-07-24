@@ -78,9 +78,13 @@ export default function HistoryPage() {
 
   async function load(t: string) {
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
       const res = await fetch(`${BASE}/history`, {
         headers: { Authorization: `Bearer ${t}` },
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       if (res.ok) setSessions(await res.json());
     } finally {
       setLoading(false);
