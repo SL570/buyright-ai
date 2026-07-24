@@ -546,7 +546,21 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                     🏆 Buy This
                   </div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: "#EFF3FF", lineHeight: 1.2 }}>{winner.name}</div>
-                  <div style={{ fontSize: 28, fontWeight: 900, color: "#EFF3FF", fontFamily: "monospace", marginTop: 4, letterSpacing: "-0.02em" }}>{winner.price}</div>
+                  {(() => {
+                    const live = priceLinks.length ? [...priceLinks].sort((a,b) => parsePrice(a.price)-parsePrice(b.price))[0] : null;
+                    const displayPrice = live ? live.price : winner.price;
+                    const isLive = live && live.price !== winner.price;
+                    return (
+                      <div style={{ marginTop: 4 }}>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                          <span style={{ fontSize: 28, fontWeight: 900, color: "#EFF3FF", fontFamily: "monospace", letterSpacing: "-0.02em" }}>{displayPrice}</span>
+                          {isLive && <span style={{ fontSize: 10, fontWeight: 700, color: "#00F5D4", background: "rgba(0,245,212,0.12)", border: "0.5px solid rgba(0,245,212,0.3)", borderRadius: 4, padding: "2px 6px", letterSpacing: "0.06em" }}>LIVE</span>}
+                          {isLive && <span style={{ fontSize: 11, color: "#4A6080", textDecoration: "line-through" }}>{winner.price}</span>}
+                        </div>
+                        {live && <div style={{ fontSize: 11, color: "#3A6050", marginTop: 3 }}>at {live.store}</div>}
+                      </div>
+                    );
+                  })()}
                   {winner.scoreLabel && (
                     <div style={{ marginTop: 6, fontSize: 11, color: "#3A6050" }}>{winner.scoreLabel}</div>
                   )}
