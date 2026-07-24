@@ -396,62 +396,57 @@ function matchLinks(name: string, priceLinks: PriceLink[]): PriceLink[] {
     .sort((a, b) => parsePrice(a.price) - parsePrice(b.price));
 }
 
-function PriceLinkBar({ name, priceLinks, accent }: { name: string; priceLinks: PriceLink[]; accent: string }) {
-  const [open, setOpen] = React.useState(false);
-  const matches = matchLinks(name, priceLinks);
-  if (!matches.length) return null;
-
-  const cheapest = matches[0];
-  const rest = matches.slice(1);
+function ComparePrices({ priceLinks, accent }: { priceLinks: PriceLink[]; accent: string }) {
+  if (!priceLinks.length) return null;
+  const sorted = [...priceLinks].sort((a, b) => parsePrice(a.price) - parsePrice(b.price));
+  const cheapest = sorted[0];
 
   return (
-    <div style={{ marginTop: 10, borderTop: "0.5px solid rgba(255,255,255,0.07)", paddingTop: 10 }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: "#3D5571", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
-        Live Prices
+    <div style={{ marginTop: 12, borderTop: "0.5px solid rgba(255,255,255,0.07)", paddingTop: 12 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: "#3D5571", letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 8 }}>
+        Compare Prices
       </div>
-      {/* Cheapest row always visible */}
-      <a
-        href={cheapest.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", padding: "6px 10px", borderRadius: 8, background: `${accent}12`, border: `0.5px solid ${accent}30`, marginBottom: rest.length ? 4 : 0 }}
-      >
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: accent, background: `${accent}20`, borderRadius: 4, padding: "1px 5px" }}>BEST</span>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#EFF3FF" }}>{cheapest.store}</span>
-        </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 800, color: accent, fontFamily: "monospace" }}>{cheapest.price}</span>
-          <span style={{ fontSize: 11, color: accent }}>Buy →</span>
-        </span>
-      </a>
-
-      {/* Remaining retailers */}
-      {rest.length > 0 && (
-        <>
-          {open && rest.map((item, i) => (
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {sorted.map((item, i) => {
+          const isBest = item.store === cheapest.store && item.price === cheapest.price;
+          return (
             <a
               key={i}
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", padding: "5px 10px", borderRadius: 8, background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.07)", marginBottom: 3 }}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                textDecoration: "none", padding: "8px 12px", borderRadius: 8,
+                background: isBest ? `${accent}10` : "rgba(255,255,255,0.025)",
+                border: `0.5px solid ${isBest ? accent + "35" : "rgba(255,255,255,0.07)"}`,
+                transition: "border-color 0.15s",
+              }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = isBest ? accent + "60" : "rgba(255,255,255,0.15)")}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = isBest ? accent + "35" : "rgba(255,255,255,0.07)")}
             >
-              <span style={{ fontSize: 12, color: "#8BA3C4" }}>{item.store}</span>
               <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#8BA3C4", fontFamily: "monospace" }}>{item.price}</span>
-                <span style={{ fontSize: 10, color: "#4A6080" }}>→</span>
+                {isBest && (
+                  <span style={{ fontSize: 9, fontWeight: 800, color: accent, background: `${accent}20`, borderRadius: 4, padding: "2px 6px", letterSpacing: "0.06em" }}>
+                    BEST
+                  </span>
+                )}
+                <span style={{ fontSize: 13, fontWeight: isBest ? 700 : 500, color: isBest ? "#EFF3FF" : "#8BA3C4" }}>
+                  {item.store}
+                </span>
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 14, fontWeight: 800, fontFamily: "monospace", color: isBest ? accent : "#8BA3C4" }}>
+                  {item.price}
+                </span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: isBest ? accent : "#4A6080" }}>
+                  Buy →
+                </span>
               </span>
             </a>
-          ))}
-          <button
-            onClick={() => setOpen(o => !o)}
-            style={{ background: "none", border: "none", color: "#4A6080", fontSize: 11, cursor: "pointer", padding: "3px 0", fontFamily: "inherit" }}
-          >
-            {open ? "Hide" : `+${rest.length} more store${rest.length > 1 ? "s" : ""}`}
-          </button>
-        </>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -587,7 +582,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                 </div>
               )}
               <div style={{ fontSize: 11, color: "#2D4060", marginTop: 10 }}>{winner.store}</div>
-              <PriceLinkBar name={winner.name} priceLinks={priceLinks} accent={accent} />
+              <ComparePrices priceLinks={priceLinks} accent={accent} />
             </div>
 
             {/* Why We Picked It */}

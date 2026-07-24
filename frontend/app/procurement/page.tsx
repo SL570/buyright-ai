@@ -294,9 +294,18 @@ function ProcurementPageInner() {
         if (fullText.includes("END_PRODUCT_GRID")) {
           setJourneyStep(prev => Math.max(prev, 1));
         }
-        // Auto-save conversation to history
+        // After AI responds, search Serper for the EXACT recommended product to get direct retailer URLs
         const finalMsgs = [...next, { role: "assistant" as const, content: fullText }];
         const prod = getFirstProduct(finalMsgs);
+        if (prod?.name && token) {
+          fetch(`${BASE_URL}/prices`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ query: prod.name }),
+          }).then(r => r.ok ? r.json() : []).then(links => {
+            if (Array.isArray(links) && links.length) setPriceLinks(links);
+          }).catch(() => {});
+        }
         const title = next[0]?.content.slice(0, 60) ?? "Research";
         try {
           if (sessionId) {

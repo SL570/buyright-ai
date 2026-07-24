@@ -401,3 +401,44 @@ def fulfillment(req: ProcurementRequest, user: User = Depends(get_current_user))
         raise HTTPException(status_code=429, detail="Too many requests. Please wait before sending another message.")
     history = req.messages[-20:]
     return _sse_stream(FULFILLMENT_PROMPT, [{"role": m.role, "content": m.content} for m in history], "FULFILLMENT")
+
+
+class PricesRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=200)
+
+
+@router.post("/prices")
+def product_prices(req: PricesRequest, user: User = Depends(get_current_user)):
+    """Look up direct retailer URLs for an exact recommended product."""
+    if not SERPER_KEY:
+        return []
+    try:
+        resp = httpx.post(
+            "https://google.serper.dev/shopping",
+            headers={"X-API-KEY": SERPER_KEY, "Content-Type": "application/json"},
+            json={"q": req.query, "num": 10, "gl": "us"},
+            timeout=5.0,
+        )
+        if resp.status_code != 200:
+            return []
+        items = resp.json().get("shopping", [])
+        seen_stores: set = set()
+        results = []
+        for item in items:
+            store = item.get("source", "")
+            price = item.get("price", "")
+            link  = item.get("link", "")
+            title = item.get("title", "")
+            if not store or not price or not link:
+                continue
+            if "google.com" in link:
+                continue
+            # One result per store — keep the first (cheapest after Serper sorts by relevance)
+            if store in seen_stores:
+                continue
+            seen_stores.add(store)
+            results.append({"store": store, "price": price, "url": link, "title": title})
+        return results
+    except Exception as e:
+        print(f"[PRICES] Error: {e}")
+        return []
