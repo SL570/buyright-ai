@@ -14,17 +14,16 @@ from services.ratelimit import check_user_rate_limit
 SERPER_KEY = os.getenv("SERPER_API_KEY", "")
 
 
-def _fetch_live_prices(messages: list) -> str:
+def _fetch_live_prices(messages: list) -> tuple[str, dict]:
     """
-    Search Google Shopping for real-time prices and return them as a
-    system-prompt injection. Returns "" if Serper is not configured or fails.
+    Search Google Shopping for real-time prices.
+    Returns (system_prompt_injection, {title: url}) — both empty on failure.
     """
     if not SERPER_KEY:
-        return ""
-    # Use the first user message as the search query (that's where product intent lives)
+        return "", {}
     query = next((m["content"][:200] for m in messages if m["role"] == "user"), "")
     if not query:
-        return ""
+        return "", {}
     try:
         resp = httpx.post(
             "https://google.serper.dev/shopping",
@@ -33,15 +32,16 @@ def _fetch_live_prices(messages: list) -> str:
             timeout=4.0,
         )
         if resp.status_code != 200:
-            return ""
+            return "", {}
         items = resp.json().get("shopping", [])
         if not items:
-            return ""
+            return "", {}
+
+        link_map: dict = {}
         lines = [
             "\n\n---",
             "## LIVE PRICE DATA — fetched right now from Google Shopping",
-            "CRITICAL: Use these exact prices AND urls in your PRODUCT_GRID. Do NOT use prices from memory or training data.",
-            "Include the `url` field on every product using the direct product link provided below.",
+            "CRITICAL: Use these exact prices in your PRODUCT_GRID. Do NOT use prices from memory.",
         ]
         for item in items[:7]:
             title  = item.get("title", "")
@@ -50,13 +50,14 @@ def _fetch_live_prices(messages: list) -> str:
             link   = item.get("link", "")
             rating = item.get("rating", "")
             rating_str = f" · {rating}★" if rating else ""
-            url_str = f" | url: {link}" if link else ""
-            lines.append(f"- **{title}**: {price} at {source}{rating_str}{url_str}")
+            lines.append(f"- **{title}**: {price} at {source}{rating_str}")
+            if title and link:
+                link_map[title] = link
         lines.append("---\n")
-        return "\n".join(lines)
+        return "\n".join(lines), link_map
     except Exception as e:
         print(f"[SERPER] Price fetch failed: {e}")
-        return ""
+        return "", {}
 
 router = APIRouter(tags=["procurement"])
 
@@ -340,9 +341,12 @@ class ProcurementRequest(BaseModel):
     messages: List[ChatMessage] = Field(..., max_length=40)
 
 
-def _sse_stream(system_prompt: str, messages_data: list, label: str):
+def _sse_stream(system_prompt: str, messages_data: list, label: str, link_map: dict | None = None):
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     def _gen():
+        # Emit price links before text so the frontend can map product names → direct URLs
+        if link_map:
+            yield f"data: {json.dumps({'price_links': link_map})}\n\n"
         try:
             with client.messages.stream(
                 model="claude-sonnet-4-6",
@@ -371,9 +375,9 @@ def procurement(req: ProcurementRequest, user: User = Depends(get_current_user))
     if not check_user_rate_limit(user.email):
         raise HTTPException(status_code=429, detail="Too many requests. Please wait before sending another message.")
     history = [{"role": m.role, "content": m.content} for m in req.messages[-20:]]
-    live_prices = _fetch_live_prices(history)
+    live_prices, link_map = _fetch_live_prices(history)
     system = PROCUREMENT_PROMPT + live_prices
-    return _sse_stream(system, history, "PROCUREMENT")
+    return _sse_stream(system, history, "PROCUREMENT", link_map)
 
 
 @router.post("/fulfillment")

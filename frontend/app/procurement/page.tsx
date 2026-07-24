@@ -159,6 +159,7 @@ function ProcurementPageInner() {
   const [listening, setListening]       = useState(false);
   const [journeyStep, setJourneyStep]   = useState(0);
   const [sessionId, setSessionId]       = useState<number | null>(null);
+  const [priceLinks, setPriceLinks]     = useState<Record<string, string>>({});
   const bottomRef                       = useRef<HTMLDivElement>(null);
   const recogRef                        = useRef<any>(null);
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
@@ -279,6 +280,7 @@ function ProcurementPageInner() {
             try {
               const parsed = JSON.parse(payload);
               if (parsed.error) throw new Error(parsed.error);
+              if (parsed.price_links) { setPriceLinks(parsed.price_links); }
               if (parsed.text) {
                 if (firstChunk) { setLoading(false); firstChunk = false; }
                 fullText += parsed.text;
@@ -337,6 +339,7 @@ function ProcurementPageInner() {
     setSessionId(null);
     setJourneyStep(0);
     setInput("");
+    setPriceLinks({});
     router.replace("/procurement");
   }
 
@@ -429,6 +432,7 @@ function ProcurementPageInner() {
                     onFollowUp={send}
                     followups={loading ? [] : getFollowups(messages, i)}
                     accent={ACCENT}
+                    priceLinks={priceLinks}
                   />
                 </div>
               )}

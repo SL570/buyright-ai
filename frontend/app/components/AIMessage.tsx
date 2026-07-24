@@ -191,6 +191,7 @@ interface Props {
   followups?: string[];
   accent?: string;
   journeyStages?: JourneyStage[];
+  priceLinks?: Record<string, string>;
 }
 
 const SECTION_LABELS: Record<string, string> = {
@@ -370,7 +371,28 @@ function ConfidenceBox({ data, score }: { data: DecisionSummaryData; score?: num
   );
 }
 
-export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9EFF", journeyStages }: Props) {
+function findProductUrl(name: string, priceLinks: Record<string, string>): string | undefined {
+  if (!name || !priceLinks) return undefined;
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, " ").replace(/\s+/g, " ").trim();
+  const target = norm(name);
+  // Exact match first
+  for (const [title, url] of Object.entries(priceLinks)) {
+    if (norm(title) === target) return url;
+  }
+  // Partial match: product name words mostly appear in the Serper title
+  const words = target.split(" ").filter(w => w.length > 2);
+  let bestUrl: string | undefined;
+  let bestScore = 0;
+  for (const [title, url] of Object.entries(priceLinks)) {
+    const t = norm(title);
+    const matched = words.filter(w => t.includes(w)).length;
+    const score = matched / words.length;
+    if (score > bestScore && score >= 0.5) { bestScore = score; bestUrl = url; }
+  }
+  return bestUrl;
+}
+
+export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9EFF", journeyStages, priceLinks = {} }: Props) {
   const { products, verdict, body, decisionSummary, whyPicked, bundleData } = parseContent(content);
   const vs = verdict ? V_STYLE[verdict.type] : null;
 
@@ -471,7 +493,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                   )}
                 </div>
                 <a
-                  href={winner.url || storeSearchUrl(winner.store, winner.name)}
+                  href={findProductUrl(winner.name, priceLinks) || storeSearchUrl(winner.store, winner.name)}
                   target="_blank" rel="noopener noreferrer"
                   style={{ fontSize: 12, fontWeight: 700, color: "#0B0F19", background: "#00CF72", borderRadius: 8, padding: "9px 16px", textDecoration: "none", flexShrink: 0, whiteSpace: "nowrap" }}
                 >
@@ -526,7 +548,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                         </div>
                         {reason && <div style={{ fontSize: 11, color: "#3D5571", marginTop: 6, lineHeight: 1.55 }}>{reason}</div>}
                         <a
-                          href={p.url || storeSearchUrl(p.store, p.name)}
+                          href={findProductUrl(p.name, priceLinks) || storeSearchUrl(p.store, p.name)}
                           target="_blank" rel="noopener noreferrer"
                           style={{ fontSize: 10, color: "#3D5571", textDecoration: "none", marginTop: 8, display: "inline-block" }}
                         >
@@ -570,7 +592,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
           <DecisionSummaryCard data={decisionSummary} accent={accent} onFindPrice={
             products ? () => {
               const winner = products.find(p => p.recommended);
-              window.open(winner?.url || storeSearchUrl(winner?.store ?? "amazon", decisionSummary.buy), "_blank");
+              window.open(findProductUrl(decisionSummary.buy, priceLinks) || storeSearchUrl(winner?.store ?? "amazon", decisionSummary.buy), "_blank");
             } : undefined
           } />
           <RegretPanel data={decisionSummary} />
