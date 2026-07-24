@@ -12,6 +12,7 @@ export interface Product {
   score?: number;
   scoreLabel?: string;
   store: string;
+  url?: string;
   pros: string[];
   cons: string[];
   rejection_reason?: string;
@@ -286,6 +287,7 @@ function BundleCard({ data, accent }: { data: BundleData; accent: string }) {
               >
                 {item.store} →
               </a>
+
             </div>
           </div>
         ))}
@@ -469,7 +471,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                   )}
                 </div>
                 <a
-                  href={storeSearchUrl(winner.store, winner.name)}
+                  href={winner.url || storeSearchUrl(winner.store, winner.name)}
                   target="_blank" rel="noopener noreferrer"
                   style={{ fontSize: 12, fontWeight: 700, color: "#0B0F19", background: "#00CF72", borderRadius: 8, padding: "9px 16px", textDecoration: "none", flexShrink: 0, whiteSpace: "nowrap" }}
                 >
@@ -524,7 +526,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                         </div>
                         {reason && <div style={{ fontSize: 11, color: "#3D5571", marginTop: 6, lineHeight: 1.55 }}>{reason}</div>}
                         <a
-                          href={storeSearchUrl(p.store, p.name)}
+                          href={p.url || storeSearchUrl(p.store, p.name)}
                           target="_blank" rel="noopener noreferrer"
                           style={{ fontSize: 10, color: "#3D5571", textDecoration: "none", marginTop: 8, display: "inline-block" }}
                         >
@@ -566,7 +568,10 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
       {decisionSummary && (
         <>
           <DecisionSummaryCard data={decisionSummary} accent={accent} onFindPrice={
-            products ? () => window.open(storeSearchUrl(products.find(p => p.recommended)?.store ?? "amazon", decisionSummary.buy), "_blank") : undefined
+            products ? () => {
+              const winner = products.find(p => p.recommended);
+              window.open(winner?.url || storeSearchUrl(winner?.store ?? "amazon", decisionSummary.buy), "_blank");
+            } : undefined
           } />
           <RegretPanel data={decisionSummary} />
         </>

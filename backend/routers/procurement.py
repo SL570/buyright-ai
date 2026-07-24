@@ -40,15 +40,18 @@ def _fetch_live_prices(messages: list) -> str:
         lines = [
             "\n\n---",
             "## LIVE PRICE DATA — fetched right now from Google Shopping",
-            "CRITICAL: Use these exact prices in your PRODUCT_GRID. Do NOT use prices from memory or training data.",
+            "CRITICAL: Use these exact prices AND urls in your PRODUCT_GRID. Do NOT use prices from memory or training data.",
+            "Include the `url` field on every product using the direct product link provided below.",
         ]
         for item in items[:7]:
             title  = item.get("title", "")
             price  = item.get("price", "N/A")
             source = item.get("source", "")
+            link   = item.get("link", "")
             rating = item.get("rating", "")
             rating_str = f" · {rating}★" if rating else ""
-            lines.append(f"- **{title}**: {price} at {source}{rating_str}")
+            url_str = f" | url: {link}" if link else ""
+            lines.append(f"- **{title}**: {price} at {source}{rating_str}{url_str}")
         lines.append("---\n")
         return "\n".join(lines)
     except Exception as e:
@@ -102,6 +105,7 @@ PRODUCT_GRID:
     "score": 94,
     "scoreLabel": "Excellent · Top 5% in this price range",
     "store": "Best Buy / Amazon",
+    "url": "https://www.bestbuy.com/site/sony-wh-1000xm5/6505727.p",
     "pros": ["✈ Flights", "💼 Focus work", "📞 Calls", "🎵 Music"],
     "cons": ["🏋 Gym (too bulky)"]
   },
@@ -114,6 +118,7 @@ PRODUCT_GRID:
     "score": 81,
     "rejection_reason": "Saves $200. ANC is 30% weaker and mic quality drops on calls.",
     "store": "Amazon",
+    "url": "https://www.amazon.com/dp/B0BWKFQX4B",
     "pros": [],
     "cons": []
   }
