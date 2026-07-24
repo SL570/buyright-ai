@@ -51,7 +51,8 @@ def _fetch_live_prices(messages: list) -> tuple[str, dict]:
             rating = item.get("rating", "")
             rating_str = f" · {rating}★" if rating else ""
             lines.append(f"- **{title}**: {price} at {source}{rating_str}")
-            if title and link:
+            # Only keep direct retailer URLs — skip Google Shopping redirects
+            if title and link and "google.com" not in link:
                 link_map[title] = link
         lines.append("---\n")
         return "\n".join(lines), link_map
