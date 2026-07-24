@@ -14,36 +14,36 @@ from services.ratelimit import check_user_rate_limit
 SERPER_KEY = os.getenv("SERPER_API_KEY", "")
 
 
-def _fetch_live_prices(messages: list) -> tuple[str, dict]:
+def _fetch_live_prices(messages: list) -> tuple[str, list]:
     """
     Search Google Shopping for real-time prices.
-    Returns (system_prompt_injection, {title: url}) — both empty on failure.
+    Returns (system_prompt_injection, [{store, price, url, title}]).
     """
     if not SERPER_KEY:
-        return "", {}
+        return "", []
     query = next((m["content"][:200] for m in messages if m["role"] == "user"), "")
     if not query:
-        return "", {}
+        return "", []
     try:
         resp = httpx.post(
             "https://google.serper.dev/shopping",
             headers={"X-API-KEY": SERPER_KEY, "Content-Type": "application/json"},
-            json={"q": query, "num": 8, "gl": "us"},
+            json={"q": query, "num": 10, "gl": "us"},
             timeout=4.0,
         )
         if resp.status_code != 200:
-            return "", {}
+            return "", []
         items = resp.json().get("shopping", [])
         if not items:
-            return "", {}
+            return "", []
 
-        link_map: dict = {}
+        retailer_links: list = []
         lines = [
             "\n\n---",
             "## LIVE PRICE DATA — fetched right now from Google Shopping",
             "CRITICAL: Use these exact prices in your PRODUCT_GRID. Do NOT use prices from memory.",
         ]
-        for item in items[:7]:
+        for item in items[:10]:
             title  = item.get("title", "")
             price  = item.get("price", "N/A")
             source = item.get("source", "")
@@ -51,14 +51,18 @@ def _fetch_live_prices(messages: list) -> tuple[str, dict]:
             rating = item.get("rating", "")
             rating_str = f" · {rating}★" if rating else ""
             lines.append(f"- **{title}**: {price} at {source}{rating_str}")
-            # Only keep direct retailer URLs — skip Google Shopping redirects
-            if title and link and "google.com" not in link:
-                link_map[title] = link
+            if source and price and link and "google.com" not in link:
+                retailer_links.append({
+                    "store": source,
+                    "price": price,
+                    "url":   link,
+                    "title": title,
+                })
         lines.append("---\n")
-        return "\n".join(lines), link_map
+        return "\n".join(lines), retailer_links
     except Exception as e:
         print(f"[SERPER] Price fetch failed: {e}")
-        return "", {}
+        return "", []
 
 router = APIRouter(tags=["procurement"])
 
@@ -90,6 +94,13 @@ Then output WHY_PICKED on one line (valid JSON). Use the product category noun (
 WHY_PICKED: {"analyzed":31,"eliminated":28,"finalists":3,"category":"laptops","checked":["Reviews","Price history","Reliability","Gaming","Battery"]}
 
 Then output a PRODUCT_GRID — 2-3 products, never more. Mark ONE as recommended: true.
+
+PRODUCT LINKS — follow strictly:
+- NEVER return a search results page URL (no /s?k=, no searchpage.jsp, no /search?q=)
+- ALWAYS return the direct product page for the exact model recommended
+- Priority: manufacturer page → retailer product page → omit the url field entirely
+- If you cannot identify the exact product page URL with confidence, leave the url field out
+- NEVER fabricate or guess URLs
 
 CRITICAL: Do NOT default to the most expensive option. When a budget option gets 85%+ of the result for significantly less, recommend it. Use badge "Best Value" with badgeType "warning".
 
@@ -342,12 +353,11 @@ class ProcurementRequest(BaseModel):
     messages: List[ChatMessage] = Field(..., max_length=40)
 
 
-def _sse_stream(system_prompt: str, messages_data: list, label: str, link_map: dict | None = None):
+def _sse_stream(system_prompt: str, messages_data: list, label: str, retailer_links: list | None = None):
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     def _gen():
-        # Emit price links before text so the frontend can map product names → direct URLs
-        if link_map:
-            yield f"data: {json.dumps({'price_links': link_map})}\n\n"
+        if retailer_links:
+            yield f"data: {json.dumps({'price_links': retailer_links})}\n\n"
         try:
             with client.messages.stream(
                 model="claude-sonnet-4-6",

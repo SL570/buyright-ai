@@ -185,13 +185,15 @@ export interface JourneyStage {
   done: boolean;
 }
 
+export interface PriceLink { store: string; price: string; url: string; title: string; }
+
 interface Props {
   content: string;
   onFollowUp?: (q: string) => void;
   followups?: string[];
   accent?: string;
   journeyStages?: JourneyStage[];
-  priceLinks?: Record<string, string>;
+  priceLinks?: PriceLink[];
 }
 
 const SECTION_LABELS: Record<string, string> = {
@@ -371,28 +373,90 @@ function ConfidenceBox({ data, score }: { data: DecisionSummaryData; score?: num
   );
 }
 
-function findProductUrl(name: string, priceLinks: Record<string, string>): string | undefined {
-  if (!name || !priceLinks) return undefined;
-  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, " ").replace(/\s+/g, " ").trim();
-  const target = norm(name);
-  // Exact match first
-  for (const [title, url] of Object.entries(priceLinks)) {
-    if (norm(title) === target) return url;
-  }
-  // Partial match: product name words mostly appear in the Serper title
-  const words = target.split(" ").filter(w => w.length > 2);
-  let bestUrl: string | undefined;
-  let bestScore = 0;
-  for (const [title, url] of Object.entries(priceLinks)) {
-    const t = norm(title);
-    const matched = words.filter(w => t.includes(w)).length;
-    const score = matched / words.length;
-    if (score > bestScore && score >= 0.5) { bestScore = score; bestUrl = url; }
-  }
-  return bestUrl;
+function norm(s: string) {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, " ").replace(/\s+/g, " ").trim();
 }
 
-export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9EFF", journeyStages, priceLinks = {} }: Props) {
+function parsePrice(p: string): number {
+  return parseFloat(p.replace(/[^0-9.]/g, "")) || 999999;
+}
+
+function matchLinks(name: string, priceLinks: PriceLink[]): PriceLink[] {
+  if (!name || !priceLinks?.length) return [];
+  const target = norm(name);
+  const words = target.split(" ").filter(w => w.length > 2);
+  return priceLinks
+    .filter(item => {
+      if (!item.url) return false;
+      const t = norm(item.title);
+      if (t === target) return true;
+      const matched = words.filter(w => t.includes(w)).length;
+      return matched / words.length >= 0.45;
+    })
+    .sort((a, b) => parsePrice(a.price) - parsePrice(b.price));
+}
+
+function PriceLinkBar({ name, priceLinks, accent }: { name: string; priceLinks: PriceLink[]; accent: string }) {
+  const [open, setOpen] = React.useState(false);
+  const matches = matchLinks(name, priceLinks);
+  if (!matches.length) return null;
+
+  const cheapest = matches[0];
+  const rest = matches.slice(1);
+
+  return (
+    <div style={{ marginTop: 10, borderTop: "0.5px solid rgba(255,255,255,0.07)", paddingTop: 10 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: "#3D5571", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
+        Live Prices
+      </div>
+      {/* Cheapest row always visible */}
+      <a
+        href={cheapest.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", padding: "6px 10px", borderRadius: 8, background: `${accent}12`, border: `0.5px solid ${accent}30`, marginBottom: rest.length ? 4 : 0 }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: accent, background: `${accent}20`, borderRadius: 4, padding: "1px 5px" }}>BEST</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "#EFF3FF" }}>{cheapest.store}</span>
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: accent, fontFamily: "monospace" }}>{cheapest.price}</span>
+          <span style={{ fontSize: 11, color: accent }}>Buy →</span>
+        </span>
+      </a>
+
+      {/* Remaining retailers */}
+      {rest.length > 0 && (
+        <>
+          {open && rest.map((item, i) => (
+            <a
+              key={i}
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", padding: "5px 10px", borderRadius: 8, background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.07)", marginBottom: 3 }}
+            >
+              <span style={{ fontSize: 12, color: "#8BA3C4" }}>{item.store}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#8BA3C4", fontFamily: "monospace" }}>{item.price}</span>
+                <span style={{ fontSize: 10, color: "#4A6080" }}>→</span>
+              </span>
+            </a>
+          ))}
+          <button
+            onClick={() => setOpen(o => !o)}
+            style={{ background: "none", border: "none", color: "#4A6080", fontSize: 11, cursor: "pointer", padding: "3px 0", fontFamily: "inherit" }}
+          >
+            {open ? "Hide" : `+${rest.length} more store${rest.length > 1 ? "s" : ""}`}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9EFF", journeyStages, priceLinks = [] }: Props) {
   const { products, verdict, body, decisionSummary, whyPicked, bundleData } = parseContent(content);
   const vs = verdict ? V_STYLE[verdict.type] : null;
 
@@ -492,13 +556,15 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                     <div style={{ marginTop: 6, fontSize: 11, color: "#3A6050" }}>{winner.scoreLabel}</div>
                   )}
                 </div>
-                <a
-                  href={findProductUrl(winner.name, priceLinks) || storeSearchUrl(winner.store, winner.name)}
-                  target="_blank" rel="noopener noreferrer"
-                  style={{ fontSize: 12, fontWeight: 700, color: "#0B0F19", background: "#00CF72", borderRadius: 8, padding: "9px 16px", textDecoration: "none", flexShrink: 0, whiteSpace: "nowrap" }}
-                >
-                  Find Lowest Price →
-                </a>
+                {!priceLinks.length && (
+                  <a
+                    href={storeSearchUrl(winner.store, winner.name)}
+                    target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: 12, fontWeight: 700, color: "#0B0F19", background: "#00CF72", borderRadius: 8, padding: "9px 16px", textDecoration: "none", flexShrink: 0, whiteSpace: "nowrap" }}
+                  >
+                    Find Lowest Price →
+                  </a>
+                )}
               </div>
               {winner.pros.length > 0 && (
                 <div style={{ marginBottom: winner.cons.length > 0 ? 10 : 0 }}>
@@ -521,6 +587,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                 </div>
               )}
               <div style={{ fontSize: 11, color: "#2D4060", marginTop: 10 }}>{winner.store}</div>
+              <PriceLinkBar name={winner.name} priceLinks={priceLinks} accent={accent} />
             </div>
 
             {/* Why We Picked It */}
@@ -548,7 +615,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                         </div>
                         {reason && <div style={{ fontSize: 11, color: "#3D5571", marginTop: 6, lineHeight: 1.55 }}>{reason}</div>}
                         <a
-                          href={findProductUrl(p.name, priceLinks) || storeSearchUrl(p.store, p.name)}
+                          href={matchLinks(p.name, priceLinks)[0]?.url || storeSearchUrl(p.store, p.name)}
                           target="_blank" rel="noopener noreferrer"
                           style={{ fontSize: 10, color: "#3D5571", textDecoration: "none", marginTop: 8, display: "inline-block" }}
                         >
@@ -592,7 +659,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
           <DecisionSummaryCard data={decisionSummary} accent={accent} onFindPrice={
             products ? () => {
               const winner = products.find(p => p.recommended);
-              window.open(findProductUrl(decisionSummary.buy, priceLinks) || storeSearchUrl(winner?.store ?? "amazon", decisionSummary.buy), "_blank");
+              window.open(matchLinks(decisionSummary.buy, priceLinks)[0]?.url || storeSearchUrl(winner?.store ?? "amazon", decisionSummary.buy), "_blank");
             } : undefined
           } />
           <RegretPanel data={decisionSummary} />
