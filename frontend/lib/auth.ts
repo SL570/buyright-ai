@@ -1,6 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import GitHubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
+import { encode } from "next-auth/jwt";
 
 const providers = [
   GitHubProvider({
@@ -36,6 +37,10 @@ export const authOptions: NextAuthOptions = {
         session.user.name = token.name as string;
         session.user.image = token.picture as string;
       }
+      (session as any).accessToken = await encode({
+        token,
+        secret: process.env.NEXTAUTH_SECRET!,
+      });
       return session;
     },
   },
