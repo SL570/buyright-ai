@@ -5,10 +5,55 @@ from typing import Literal, List
 import os
 import json
 import anthropic
+import httpx
 
 from auth import get_current_user
 from models import User
 from services.ratelimit import check_user_rate_limit
+
+SERPER_KEY = os.getenv("SERPER_API_KEY", "")
+
+
+def _fetch_live_prices(messages: list) -> str:
+    """
+    Search Google Shopping for real-time prices and return them as a
+    system-prompt injection. Returns "" if Serper is not configured or fails.
+    """
+    if not SERPER_KEY:
+        return ""
+    # Use the first user message as the search query (that's where product intent lives)
+    query = next((m["content"][:200] for m in messages if m["role"] == "user"), "")
+    if not query:
+        return ""
+    try:
+        resp = httpx.post(
+            "https://google.serper.dev/shopping",
+            headers={"X-API-KEY": SERPER_KEY, "Content-Type": "application/json"},
+            json={"q": query, "num": 8, "gl": "us"},
+            timeout=4.0,
+        )
+        if resp.status_code != 200:
+            return ""
+        items = resp.json().get("shopping", [])
+        if not items:
+            return ""
+        lines = [
+            "\n\n---",
+            "## LIVE PRICE DATA — fetched right now from Google Shopping",
+            "CRITICAL: Use these exact prices in your PRODUCT_GRID. Do NOT use prices from memory or training data.",
+        ]
+        for item in items[:7]:
+            title  = item.get("title", "")
+            price  = item.get("price", "N/A")
+            source = item.get("source", "")
+            rating = item.get("rating", "")
+            rating_str = f" · {rating}★" if rating else ""
+            lines.append(f"- **{title}**: {price} at {source}{rating_str}")
+        lines.append("---\n")
+        return "\n".join(lines)
+    except Exception as e:
+        print(f"[SERPER] Price fetch failed: {e}")
+        return ""
 
 router = APIRouter(tags=["procurement"])
 
@@ -320,8 +365,10 @@ def procurement(req: ProcurementRequest, user: User = Depends(get_current_user))
         raise HTTPException(status_code=400, detail="No messages provided")
     if not check_user_rate_limit(user.email):
         raise HTTPException(status_code=429, detail="Too many requests. Please wait before sending another message.")
-    history = req.messages[-20:]
-    return _sse_stream(PROCUREMENT_PROMPT, [{"role": m.role, "content": m.content} for m in history], "PROCUREMENT")
+    history = [{"role": m.role, "content": m.content} for m in req.messages[-20:]]
+    live_prices = _fetch_live_prices(history)
+    system = PROCUREMENT_PROMPT + live_prices
+    return _sse_stream(system, history, "PROCUREMENT")
 
 
 @router.post("/fulfillment")
