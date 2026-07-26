@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import LoadingScreen from "../components/LoadingScreen";
 
 const BASE   = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 const ACCENT = "#00F5D4";
@@ -117,7 +116,11 @@ export default function DashboardPage() {
 
   const firstName = session?.user?.name?.split(" ")[0] ?? "there";
 
-  if (status === "loading" || !token) return <LoadingScreen />;
+  // Hard redirect only for unauthenticated — never block the whole page on token loading
+  if (status === "unauthenticated") {
+    router.push("/sign-in");
+    return null;
+  }
 
   return (
     <main style={S.page}>
