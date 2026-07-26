@@ -10,7 +10,7 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "authenticated") router.push("/procurement");
+    if (status === "authenticated") router.push("/dashboard");
   }, [status, router]);
 
   return (

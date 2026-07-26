@@ -117,7 +117,7 @@ export default function HistoryPage() {
       {/* Header */}
       <div style={{ borderBottom: "0.5px solid rgba(255,255,255,0.07)", padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <button onClick={() => router.push("/procurement")} style={{ background: "none", border: "none", color: "#3D5571", fontSize: 18, cursor: "pointer", padding: 0 }}>←</button>
+          <button onClick={() => router.push("/dashboard")} style={{ background: "none", border: "none", color: "#3D5571", fontSize: 18, cursor: "pointer", padding: 0 }}>←</button>
           <span style={{ fontSize: 16, fontWeight: 700, color: "#EFF3FF" }}>Research History</span>
         </div>
         <button

@@ -162,6 +162,7 @@ function ProcurementPageInner() {
   const [priceLinks, setPriceLinks]     = useState<{store:string;price:string;url:string;title:string}[]>([]);
   const bottomRef                       = useRef<HTMLDivElement>(null);
   const recogRef                        = useRef<any>(null);
+  const autoSendRef                     = useRef("");
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
   useEffect(() => {
@@ -170,6 +171,16 @@ function ProcurementPageInner() {
     const id = setInterval(() => { i = (i + 1) % activeMsgsRef.current.length; setLoadingMsg(activeMsgsRef.current[i]); }, 1800);
     return () => clearInterval(id);
   }, [loading]);
+
+  // Fire auto-send once token is available (query came from dashboard search)
+  useEffect(() => {
+    if (token && autoSendRef.current) {
+      const q = autoSendRef.current;
+      autoSendRef.current = "";
+      send(q);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/sign-in"); return; }
@@ -180,6 +191,15 @@ function ProcurementPageInner() {
           if (!d.token) { router.push("/sign-in"); return; }
           setToken(d.token);
           // Resume a saved session if ?session=N is in the URL
+          // Stash dashboard search query to auto-send once token is in state
+          const initialQ = searchParams.get("q");
+          if (initialQ) {
+            autoSendRef.current = decodeURIComponent(initialQ);
+            const url = new URL(window.location.href);
+            url.searchParams.delete("q");
+            window.history.replaceState({}, "", url.pathname);
+          }
+
           const sid = searchParams.get("session");
           if (sid) {
             try {
@@ -395,11 +415,11 @@ function ProcurementPageInner() {
     <main style={S.page}>
       <div style={S.header}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Link href="/dashboard" style={{ ...S.navLink, color: "#475569" }}>← Home</Link>
+          <span style={S.divider}>|</span>
           <Link href="/group-deals" style={S.navLink}>Group Deals</Link>
           <span style={S.divider}>|</span>
           <Link href="/fulfillment" style={S.navLink}>Fulfillment</Link>
-          <span style={S.divider}>|</span>
-          <Link href="/chat" style={S.navLink}>AI Advisor</Link>
           <span style={S.divider}>|</span>
           <Link href="/history" style={{ ...S.navLink, color: ACCENT, fontWeight: 700 }}>History</Link>
         </div>
