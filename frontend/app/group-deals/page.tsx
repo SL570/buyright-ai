@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import LoadingScreen from "../components/LoadingScreen";
 
 interface Deal {
   id: number;
@@ -225,28 +224,30 @@ export default function GroupDealsPage() {
     }
   }
 
-  if (status === "loading" || !token) return <LoadingScreen />;
+  if (status === "unauthenticated") { router.push("/sign-in"); return null; }
 
   const formingDeals = deals.filter(d => d.status === "forming");
   const activeDeals = deals.filter(d => d.status === "active");
 
   return (
     <main style={S.page}>
-      <div style={S.header}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Link href="/procurement" style={S.navLink}>Procurement</Link>
-          <span style={S.divider}>|</span>
-          <Link href="/fulfillment" style={S.navLink}>Fulfillment</Link>
-          <span style={S.divider}>|</span>
-          <Link href="/chat" style={S.navLink}>AI Advisor</Link>
+      <nav style={S.header}>
+        <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
+          <Link href="/dashboard" style={S.brand}>BuyRight <span style={{ color: "#00F5D4" }}>AI</span></Link>
+          <div style={{ display: "flex", gap: 24 }}>
+            <Link href="/dashboard"   style={S.navLink}>Home</Link>
+            <Link href="/procurement" style={S.navLink}>AI Advisor</Link>
+            <Link href="/group-deals" style={{ ...S.navLink, color: "#00F5D4", fontWeight: 700 }}>Group Deals</Link>
+            <Link href="/history"     style={S.navLink}>History</Link>
+            <Link href="/pricing"     style={S.navLink}>Pricing</Link>
+          </div>
         </div>
-        <span style={S.brand}>BuyRight <span style={{ color: "#818CF8" }}>AI</span></span>
         <button onClick={() => signOut({ callbackUrl: "/sign-in" })} style={S.ghostBtn}>Sign out</button>
-      </div>
+      </nav>
 
       <div style={S.pageHeader}>
         <div>
-          <h1 style={S.pageTitle}>🤝 Collective Bargaining</h1>
+          <h1 style={S.pageTitle}>Collective Bargaining</h1>
           <p style={S.pageSub}>
             Pool buying power with other shoppers. Once your group hits the target size, we generate a bulk discount negotiation script to send to the retailer — something no consumer can do alone.
           </p>
@@ -270,7 +271,6 @@ export default function GroupDealsPage() {
             <div style={S.centered}><div style={S.spinner} /></div>
           ) : deals.length === 0 ? (
             <div style={S.emptyState}>
-              <div style={{ fontSize: 56, marginBottom: 16 }}>🤝</div>
               <h3 style={{ color: "#F1F5F9", fontSize: 20, fontWeight: 700, margin: "0 0 8px" }}>No active deals yet</h3>
               <p style={{ color: "#64748B", fontSize: 14, margin: "0 0 24px", lineHeight: 1.6, maxWidth: 400 }}>
                 Start the first group deal. When enough people join, we automatically generate a bulk discount negotiation script.
@@ -281,7 +281,7 @@ export default function GroupDealsPage() {
             <div style={S.dealSections}>
               {formingDeals.length > 0 && (
                 <div>
-                  <p style={S.sectionLabel}>🔄 Forming — needs more members</p>
+                  <p style={S.sectionLabel}>Forming — needs more members</p>
                   <div style={S.dealGrid}>
                     {formingDeals.map(deal => (
                       <DealCard
@@ -299,7 +299,7 @@ export default function GroupDealsPage() {
               )}
               {activeDeals.length > 0 && (
                 <div>
-                  <p style={S.sectionLabel}>✅ Active — target reached, scripts ready</p>
+                  <p style={S.sectionLabel}>Active — target reached, scripts ready</p>
                   <div style={S.dealGrid}>
                     {activeDeals.map(deal => (
                       <DealCard
@@ -326,7 +326,6 @@ export default function GroupDealsPage() {
             <div style={S.chatInner}>
               {messages.length === 0 && (
                 <div style={S.emptyChat}>
-                  <div style={{ fontSize: 44, marginBottom: 12 }}>🤝</div>
                   <h2 style={S.emptyTitle}>Collective Bargaining AI</h2>
                   <p style={S.emptySub}>
                     Ask how group buying works, get pricing strategy tips, or get a word-for-word negotiation script to send to any retailer. I can also see your live deals above.
@@ -340,13 +339,13 @@ export default function GroupDealsPage() {
               )}
               {messages.map((m, i) => (
                 <div key={i} style={{ ...S.msgRow, justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
-                  {m.role === "assistant" && <div style={S.avatar}>🤝</div>}
+                  {m.role === "assistant" && <div style={S.avatar}>AI</div>}
                   <div style={m.role === "user" ? S.userBubble : S.aiBubble}>{m.content}</div>
                 </div>
               ))}
               {chatLoading && (
                 <div style={{ ...S.msgRow, justifyContent: "flex-start" }}>
-                  <div style={S.avatar}>🤝</div>
+                  <div style={S.avatar}>AI</div>
                   <div style={{ ...S.aiBubble, ...S.typing }}>
                     <span style={S.dot} />
                     <span style={{ ...S.dot, animationDelay: "0.2s" }} />
@@ -364,7 +363,7 @@ export default function GroupDealsPage() {
                 style={{ ...S.micBtn, background: listening ? "rgba(129,140,248,0.3)" : "rgba(255,255,255,0.05)" }}
                 title="Voice input"
               >
-                🎤
+                ♪
               </button>
               <input
                 style={S.input}
@@ -376,7 +375,7 @@ export default function GroupDealsPage() {
               />
               <button onClick={() => sendChat()} disabled={chatLoading || !input.trim()} style={S.sendBtn}>Send</button>
             </div>
-            <p style={S.hint}>Press 🎤 to speak · Sees your live deal board</p>
+            <p style={S.hint}>Press the mic button to speak · Sees your live deal board</p>
           </div>
         </>
       )}
@@ -595,12 +594,11 @@ function DealCard({
 }
 
 const S: Record<string, React.CSSProperties> = {
-  page:         { minHeight: "100vh", background: "#0B0F19", display: "flex", flexDirection: "column", fontFamily: "system-ui" },
-  header:       { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 24px", borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 },
-  brand:        { color: "#F1F5F9", fontSize: 16, fontWeight: 700 },
-  navLink:      { color: "#94A3B8", fontSize: 13, textDecoration: "none" },
-  divider:      { color: "#334155", fontSize: 13 },
-  ghostBtn:     { background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#94A3B8", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 13 },
+  page:         { minHeight: "100vh", background: "#0B0F19", display: "flex", flexDirection: "column", fontFamily: "system-ui,-apple-system,sans-serif" },
+  header:       { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 40px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 },
+  brand:        { color: "#F1F5F9", fontSize: 18, fontWeight: 700, textDecoration: "none" },
+  navLink:      { color: "#94A3B8", fontSize: 14, textDecoration: "none" },
+  ghostBtn:     { background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#94A3B8", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 13, fontFamily: "inherit" },
   pageHeader:   { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, padding: "28px 32px 20px", borderBottom: "1px solid rgba(255,255,255,0.05)", flexWrap: "wrap" },
   pageTitle:    { color: "#F1F5F9", fontSize: 22, fontWeight: 800, margin: "0 0 6px", letterSpacing: "-0.3px" },
   pageSub:      { color: "#64748B", fontSize: 13, margin: 0, lineHeight: 1.6, maxWidth: 560 },

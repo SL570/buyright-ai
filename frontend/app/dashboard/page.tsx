@@ -134,6 +134,7 @@ export default function DashboardPage() {
           <div style={S.navLinks}>
             <Link href="/dashboard"   style={{ ...S.navLink, color: ACCENT, fontWeight: 700 }}>Home</Link>
             <Link href="/procurement" style={S.navLink}>AI Advisor</Link>
+            <Link href="/group-deals" style={S.navLink}>Group Deals</Link>
             <Link href="/history"     style={S.navLink}>History</Link>
             <Link href="/pricing"     style={S.navLink}>Pricing</Link>
           </div>
