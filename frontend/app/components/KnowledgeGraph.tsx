@@ -1,60 +1,61 @@
 "use client";
 import { useEffect, useRef } from "react";
 
-const W = 900, H = 500, CX = 450, CY = 250;
+const W = 900, H = 500;
 
-interface NodeDef {
-  id:        string;
-  label:     string;
-  ring:      0 | 1 | 2 | 3;
-  baseAngle: number;
-  size:      number;
-}
+interface NNode { id: string; label: string; x: number; y: number; r: number; }
+interface NEdge { s: string; t: string; }
+interface Pulse  { ei: number; t: number; speed: number; }
 
-const NODES: NodeDef[] = [
-  { id: "center",    label: "BuyRight AI",    ring: 0, baseAngle: 0,     size: 16 },
-  // Ring 1 — 3 nodes, 120° apart
-  { id: "price",     label: "Price Tracking", ring: 1, baseAngle: 0,     size: 10 },
-  { id: "deals",     label: "Group Deals",    ring: 1, baseAngle: 2.094, size: 9  },
-  { id: "elec",      label: "Electronics",    ring: 1, baseAngle: 4.189, size: 9  },
-  // Ring 2 — 9 nodes, 40° apart
-  { id: "laptops",   label: "Laptops",        ring: 2, baseAngle: 0,     size: 8  },
-  { id: "phones",    label: "Smartphones",    ring: 2, baseAngle: 0.698, size: 7  },
-  { id: "gaming",    label: "Gaming",         ring: 2, baseAngle: 1.396, size: 7  },
-  { id: "tvs",       label: "TVs & Displays", ring: 2, baseAngle: 2.094, size: 6  },
-  { id: "audio",     label: "Audio",          ring: 2, baseAngle: 2.793, size: 6  },
-  { id: "smarthome", label: "Smart Home",     ring: 2, baseAngle: 3.491, size: 6  },
-  { id: "apps",      label: "Appliances",     ring: 2, baseAngle: 4.189, size: 6  },
-  { id: "fashion",   label: "Fashion",        ring: 2, baseAngle: 4.887, size: 5  },
-  { id: "sports",    label: "Sports",         ring: 2, baseAngle: 5.585, size: 5  },
-  // Ring 3 — 5 nodes, 72° apart
-  { id: "amazon",    label: "Amazon",         ring: 3, baseAngle: 0.3,   size: 4  },
-  { id: "bestbuy",   label: "Best Buy",       ring: 3, baseAngle: 1.557, size: 4  },
-  { id: "walmart",   label: "Walmart",        ring: 3, baseAngle: 2.813, size: 4  },
-  { id: "target",    label: "Target",         ring: 3, baseAngle: 4.070, size: 3  },
-  { id: "costco",    label: "Costco",         ring: 3, baseAngle: 5.327, size: 3  },
+// Organic scatter — category cluster (left), core (center), retailer cluster (right)
+const NODES: NNode[] = [
+  { id: "center",    label: "BuyRight AI",    x: 450, y: 250, r: 13 },
+  // Core signals (center-left)
+  { id: "price",     label: "Price Tracking", x: 345, y: 168, r: 9  },
+  { id: "deals",     label: "Group Deals",    x: 358, y: 334, r: 8  },
+  // Category cluster (left)
+  { id: "elec",      label: "Electronics",    x: 256, y: 152, r: 8  },
+  { id: "laptops",   label: "Laptops",        x: 194, y: 82,  r: 7  },
+  { id: "phones",    label: "Smartphones",    x: 146, y: 210, r: 7  },
+  { id: "gaming",    label: "Gaming",         x: 190, y: 318, r: 7  },
+  { id: "tvs",       label: "TVs & Displays", x: 280, y: 390, r: 6  },
+  { id: "audio",     label: "Audio",          x: 108, y: 316, r: 6  },
+  { id: "smarthome", label: "Smart Home",     x: 90,  y: 196, r: 6  },
+  { id: "apps",      label: "Appliances",     x: 156, y: 426, r: 6  },
+  { id: "fashion",   label: "Fashion",        x: 290, y: 448, r: 5  },
+  { id: "sports",    label: "Sports",         x: 386, y: 428, r: 5  },
+  // Retailer cluster (right)
+  { id: "amazon",    label: "Amazon",         x: 554, y: 152, r: 6  },
+  { id: "bestbuy",   label: "Best Buy",       x: 648, y: 200, r: 6  },
+  { id: "walmart",   label: "Walmart",        x: 614, y: 316, r: 5  },
+  { id: "target",    label: "Target",         x: 540, y: 382, r: 5  },
+  { id: "costco",    label: "Costco",         x: 710, y: 278, r: 5  },
 ];
 
-const RING_R   = [0, 78, 148, 210] as const;
-const RING_SPD = [0, 0.00040, 0.00025, 0.00015] as const;
-
-const EDGES: Array<{ source: string; target: string }> = [
-  { source: "center",    target: "price"     },
-  { source: "center",    target: "deals"     },
-  { source: "center",    target: "elec"      },
-  { source: "price",     target: "laptops"   },
-  { source: "price",     target: "phones"    },
-  { source: "price",     target: "amazon"    },
-  { source: "price",     target: "bestbuy"   },
-  { source: "deals",     target: "amazon"    },
-  { source: "deals",     target: "walmart"   },
-  { source: "elec",      target: "laptops"   },
-  { source: "elec",      target: "gaming"    },
-  { source: "elec",      target: "tvs"       },
-  { source: "elec",      target: "phones"    },
-  { source: "gaming",    target: "tvs"       },
-  { source: "laptops",   target: "bestbuy"   },
-  { source: "smarthome", target: "apps"      },
+// Dense connections — always visible, form the neural web
+const EDGES: NEdge[] = [
+  { s: "center", t: "price"     }, { s: "center", t: "deals"     },
+  { s: "center", t: "elec"      }, { s: "center", t: "laptops"   },
+  { s: "center", t: "amazon"    }, { s: "center", t: "bestbuy"   },
+  { s: "center", t: "phones"    }, { s: "center", t: "walmart"   },
+  { s: "price",  t: "laptops"   }, { s: "price",  t: "phones"    },
+  { s: "price",  t: "amazon"    }, { s: "price",  t: "bestbuy"   },
+  { s: "price",  t: "elec"      }, { s: "price",  t: "tvs"       },
+  { s: "deals",  t: "amazon"    }, { s: "deals",  t: "walmart"   },
+  { s: "deals",  t: "target"    }, { s: "deals",  t: "tvs"       },
+  { s: "elec",   t: "laptops"   }, { s: "elec",   t: "phones"    },
+  { s: "elec",   t: "gaming"    }, { s: "elec",   t: "tvs"       },
+  { s: "elec",   t: "audio"     }, { s: "elec",   t: "smarthome" },
+  { s: "laptops",t: "bestbuy"   }, { s: "laptops",t: "amazon"    },
+  { s: "laptops",t: "gaming"    }, { s: "phones", t: "audio"     },
+  { s: "phones", t: "amazon"    }, { s: "phones", t: "target"    },
+  { s: "gaming", t: "tvs"       }, { s: "gaming", t: "bestbuy"   },
+  { s: "tvs",    t: "costco"    }, { s: "tvs",    t: "target"    },
+  { s: "audio",  t: "smarthome" }, { s: "audio",  t: "apps"      },
+  { s: "smarthome", t: "apps"   }, { s: "smarthome", t: "walmart" },
+  { s: "apps",   t: "walmart"   }, { s: "fashion",t: "sports"    },
+  { s: "fashion",t: "target"    }, { s: "sports", t: "amazon"    },
+  { s: "bestbuy",t: "costco"    }, { s: "walmart",t: "costco"    },
 ];
 
 const LEGEND = [
@@ -69,7 +70,6 @@ const LEGEND = [
 export default function KnowledgeGraph() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef   = useRef(0);
-  const hoverRef  = useRef<string | null>(null);
   const frameRef  = useRef(0);
 
   useEffect(() => {
@@ -78,198 +78,159 @@ export default function KnowledgeGraph() {
     const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
     if (!ctx) return;
 
-    interface Star { x: number; y: number; r: number; a: number; phase: number; }
-    const stars: Star[] = Array.from({ length: 220 }, () => ({
-      x:     Math.random() * W,
-      y:     Math.random() * H,
-      r:     Math.random() * 0.85 + 0.1,
-      a:     Math.random() * 0.18 + 0.04,
-      phase: Math.random() * Math.PI * 2,
-    }));
+    const nodeMap = new Map(NODES.map(n => [n.id, n]));
 
-    function nodePos(n: NodeDef, f: number) {
-      if (n.ring === 0) return { x: CX, y: CY };
-      const a = n.baseAngle + f * RING_SPD[n.ring];
-      return { x: CX + RING_R[n.ring] * Math.cos(a), y: CY + RING_R[n.ring] * Math.sin(a) };
+    // Pre-compute bezier control points — offset perpendicular to each edge
+    // gives axon-like organic curves
+    const ctrlPts = EDGES.map((e, i) => {
+      const sn = nodeMap.get(e.s)!;
+      const tn = nodeMap.get(e.t)!;
+      const dx = tn.x - sn.x, dy = tn.y - sn.y;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      const offset = Math.sin(i * 2.619 + 1.2) * 40; // deterministic, varies per edge
+      return {
+        x: (sn.x + tn.x) / 2 + (-dy / len) * offset,
+        y: (sn.y + tn.y) / 2 + ( dx / len) * offset,
+      };
+    });
+
+    // Point along a quadratic bezier at parameter t
+    function bezierAt(ei: number, t: number) {
+      const sn = nodeMap.get(EDGES[ei].s)!;
+      const tn = nodeMap.get(EDGES[ei].t)!;
+      const cp = ctrlPts[ei];
+      const mt = 1 - t;
+      return {
+        x: mt * mt * sn.x + 2 * mt * t * cp.x + t * t * tn.x,
+        y: mt * mt * sn.y + 2 * mt * t * cp.y + t * t * tn.y,
+      };
     }
 
-    function hitTest(clientX: number, clientY: number): string | null {
-      const rect = canvas.getBoundingClientRect();
-      const sx = (clientX - rect.left) * (W / rect.width);
-      const sy = (clientY - rect.top)  * (H / rect.height);
-      for (const n of NODES) {
-        const p = nodePos(n, frameRef.current);
-        const d2 = (sx - p.x) ** 2 + (sy - p.y) ** 2;
-        if (d2 <= (n.size + 10) ** 2) return n.id;
-      }
-      return null;
-    }
+    // Action potential pulses
+    const pulses: Pulse[] = [];
+    let nextPulseAt = 30;
 
     function draw(frame: number) {
+      // Spawn new pulse
+      if (frame >= nextPulseAt) {
+        pulses.push({
+          ei:    Math.floor(Math.random() * EDGES.length),
+          t:     0,
+          speed: 0.007 + Math.random() * 0.005,
+        });
+        nextPulseAt = frame + 38 + Math.floor(Math.random() * 55);
+      }
+
       ctx.clearRect(0, 0, W, H);
 
-      // Deep space background
-      ctx.fillStyle = "#06080F";
+      // ── Background ──────────────────────────────────────────────────────
+      ctx.fillStyle = "#060911";
       ctx.fillRect(0, 0, W, H);
 
-      // Galactic core glow — very faint, blue-white
-      const coreGrd = ctx.createRadialGradient(CX, CY, 0, CX, CY, 170);
-      coreGrd.addColorStop(0,   "rgba(100, 150, 255, 0.055)");
-      coreGrd.addColorStop(0.5, "rgba(100, 150, 255, 0.012)");
-      coreGrd.addColorStop(1,   "rgba(0,0,0,0)");
-      ctx.fillStyle = coreGrd;
+      // Ambient tissue glow — off-center, very faint
+      const ambient = ctx.createRadialGradient(W * 0.38, H * 0.44, 0, W * 0.38, H * 0.44, 320);
+      ambient.addColorStop(0, "rgba(70, 110, 200, 0.04)");
+      ambient.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = ambient;
       ctx.fillRect(0, 0, W, H);
 
-      // Twinkling star field
-      for (const s of stars) {
-        const twinkle = 0.65 + 0.35 * Math.sin(s.phase + frame * 0.008);
+      // ── Axon / dendrite connections (always drawn) ───────────────────────
+      for (let i = 0; i < EDGES.length; i++) {
+        const sn = nodeMap.get(EDGES[i].s)!;
+        const tn = nodeMap.get(EDGES[i].t)!;
+        const cp = ctrlPts[i];
         ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,255,255,${(s.a * twinkle).toFixed(3)})`;
+        ctx.moveTo(sn.x, sn.y);
+        ctx.quadraticCurveTo(cp.x, cp.y, tn.x, tn.y);
+        ctx.strokeStyle = "rgba(150, 195, 255, 0.13)";
+        ctx.lineWidth   = 0.55;
+        ctx.stroke();
+      }
+
+      // ── Action potential pulses ─────────────────────────────────────────
+      for (let i = pulses.length - 1; i >= 0; i--) {
+        pulses[i].t += pulses[i].speed;
+        if (pulses[i].t >= 1) { pulses.splice(i, 1); continue; }
+        const { x, y } = bezierAt(pulses[i].ei, pulses[i].t);
+        ctx.save();
+        ctx.shadowColor = "rgba(210, 235, 255, 1)";
+        ctx.shadowBlur  = 14;
+        ctx.beginPath();
+        ctx.arc(x, y, 2.2, 0, Math.PI * 2);
+        ctx.fillStyle = "#E4F0FF";
         ctx.fill();
+        ctx.restore();
       }
 
-      // Orbit rings — dashed, barely there
-      ctx.save();
-      ctx.setLineDash([1, 12]);
-      ctx.lineWidth    = 0.4;
-      ctx.strokeStyle  = "rgba(255,255,255,0.04)";
-      for (let ring = 1; ring <= 3; ring++) {
-        ctx.beginPath();
-        ctx.arc(CX, CY, RING_R[ring], 0, Math.PI * 2);
-        ctx.stroke();
-      }
-      ctx.restore();
-
-      const hov = hoverRef.current;
-      const pos = new Map(NODES.map(n => [n.id, nodePos(n, frame)]));
-
-      // Edges
-      for (const e of EDGES) {
-        const s = pos.get(e.source)!;
-        const t = pos.get(e.target)!;
-        const hi = !!hov && (e.source === hov || e.target === hov);
-        ctx.beginPath();
-        ctx.moveTo(s.x, s.y);
-        ctx.lineTo(t.x, t.y);
-        ctx.strokeStyle = hi ? "rgba(200,220,255,0.30)" : "rgba(200,220,255,0.048)";
-        ctx.lineWidth   = hi ? 0.9 : 0.35;
-        ctx.stroke();
-      }
-
-      // Center breathing pulse
-      const breathe = 1 + Math.sin(frame * 0.016) * 0.10;
-
-      // Nodes + labels
+      // ── Soma (cell body) nodes ─────────────────────────────────────────
       for (const n of NODES) {
-        const { x, y } = pos.get(n.id)!;
-        const isCenter = n.ring === 0;
-        const isHov    = n.id === hov;
-        const isConn   = hov ? EDGES.some(
-          e => (e.source === hov && e.target === n.id) ||
-               (e.target === hov && e.source === n.id)
-        ) : false;
-        const dim = !!hov && !isHov && !isConn && !isCenter;
-        const r   = (isCenter ? n.size * breathe : n.size) * (isHov ? 1.35 : 1);
+        const isCenter = n.id === "center";
 
-        ctx.globalAlpha = dim ? 0.12 : 1;
-
-        // Glow
-        if (isCenter) {
-          ctx.shadowColor = "#78A9FF";
-          ctx.shadowBlur  = 26 * breathe;
-        } else if (isHov) {
-          ctx.shadowColor = "rgba(255,255,255,0.85)";
-          ctx.shadowBlur  = 16;
-        } else {
-          ctx.shadowColor = "rgba(255,255,255,0.35)";
-          ctx.shadowBlur  = isConn && !!hov ? 12 : 4;
-        }
-
+        // Soma glow
+        ctx.save();
+        ctx.shadowColor = isCenter ? "rgba(130, 185, 255, 0.9)" : "rgba(200, 220, 255, 0.30)";
+        ctx.shadowBlur  = isCenter ? 24 : 7;
         ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fillStyle = isCenter
-          ? "#78A9FF"
-          : (isConn && hov ? "#D8E8FF" : "#FFFFFF");
+        ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+        ctx.fillStyle = isCenter ? "#9EC5FF" : "#FFFFFF";
         ctx.fill();
-        ctx.shadowBlur  = 0;
-        ctx.globalAlpha = 1;
+        ctx.restore();
 
-        // Center label
+        // Interior label for center node
         if (isCenter) {
-          ctx.fillStyle    = "#06080F";
+          ctx.fillStyle    = "#06090F";
           ctx.font         = "bold 7px system-ui,sans-serif";
           ctx.textAlign    = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText("BR AI", x, y);
+          ctx.fillText("BR AI", n.x, n.y);
         }
 
-        // Satellite labels — angle outward from center
+        // Satellite node labels — angled away from canvas center
         if (!isCenter) {
-          const angle  = Math.atan2(y - CY, x - CX);
-          const lx     = x + Math.cos(angle) * (r + 12);
-          const ly     = y + Math.sin(angle) * (r + 12);
-
-          ctx.globalAlpha  = dim ? 0.12 : isHov ? 1 : 0.52;
-          ctx.font         = `${isHov ? 11 : 9.5}px system-ui,sans-serif`;
-          ctx.textAlign    = Math.cos(angle) < 0 ? "right" : "left";
+          const ax = Math.atan2(n.y - H / 2, n.x - W / 2);
+          const lx = n.x + Math.cos(ax) * (n.r + 10);
+          const ly = n.y + Math.sin(ax) * (n.r + 10);
+          ctx.font         = "9.5px system-ui, -apple-system, sans-serif";
+          ctx.textAlign    = Math.cos(ax) >= 0 ? "left" : "right";
           ctx.textBaseline = "middle";
-          ctx.fillStyle    = isHov ? "#E8F0FF" : "#7A94B8";
+          ctx.fillStyle    = "rgba(145, 175, 215, 0.52)";
           ctx.fillText(n.label, lx, ly);
-          ctx.globalAlpha  = 1;
         }
       }
     }
 
     function loop() {
-      frameRef.current++;
-      draw(frameRef.current);
+      draw(frameRef.current++);
       animRef.current = requestAnimationFrame(loop);
     }
     animRef.current = requestAnimationFrame(loop);
-
-    function onMove(e: MouseEvent) {
-      const id = hitTest(e.clientX, e.clientY);
-      hoverRef.current = id;
-      canvas.style.cursor = id ? "crosshair" : "default";
-    }
-    function onLeave() {
-      hoverRef.current = null;
-      canvas.style.cursor = "default";
-    }
-
-    canvas.addEventListener("mousemove",  onMove);
-    canvas.addEventListener("mouseleave", onLeave);
-    return () => {
-      cancelAnimationFrame(animRef.current);
-      canvas.removeEventListener("mousemove",  onMove);
-      canvas.removeEventListener("mouseleave", onLeave);
-    };
+    return () => cancelAnimationFrame(animRef.current);
   }, []);
 
   return (
     <div>
-      <div style={{ position: "relative", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(255,255,255,0.04)" }}>
+      <div style={{
+        borderRadius: 14,
+        overflow: "hidden",
+        border: "1px solid rgba(255,255,255,0.04)",
+      }}>
         <canvas
           ref={canvasRef}
           width={W}
           height={H}
           style={{ width: "100%", height: "auto", display: "block" }}
         />
-        <p style={{
-          position: "absolute", bottom: 14, right: 18,
-          color: "rgba(255,255,255,0.13)", fontSize: 11,
-          margin: 0, letterSpacing: "0.3px",
-        }}>
-          Hover to explore
-        </p>
       </div>
 
-      {/* Legend — IBM Carbon table style, no color noise */}
+      {/* Signal category legend — IBM Carbon table style */}
       <div style={{ marginTop: 24, borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 20 }}>
         <p style={{
-          color: "#304060", fontSize: 10, fontWeight: 700,
-          textTransform: "uppercase", letterSpacing: "1.4px", margin: "0 0 14px",
+          color: "#2A3D56",
+          fontSize: 10,
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: "1.4px",
+          margin: "0 0 14px",
         }}>
           Signal categories
         </p>
@@ -280,8 +241,8 @@ export default function KnowledgeGraph() {
         }}>
           {LEGEND.map(l => (
             <div key={l.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ color: "#506080", fontSize: 12 }}>{l.label}</span>
-              <span style={{ color: "#2E4060", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>{l.count}</span>
+              <span style={{ color: "#3A5270", fontSize: 12 }}>{l.label}</span>
+              <span style={{ color: "#2A3D56", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>{l.count}</span>
             </div>
           ))}
         </div>
