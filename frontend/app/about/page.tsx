@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import KnowledgeGraph from "../components/KnowledgeGraph";
 
 export const metadata: Metadata = {
   title: "About — BuyRight AI",
@@ -116,6 +117,18 @@ export default function AboutPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Knowledge Graph */}
+      <section style={S.section}>
+        <div style={S.sectionInner}>
+          <div style={S.pill}>What we know</div>
+          <h2 style={S.h2}>Intelligence across every product category.</h2>
+          <p style={{ color: "#64748B", fontSize: 15, lineHeight: 1.7, margin: "0 0 40px", maxWidth: 560 }}>
+            BuyRight AI is trained across hundreds of product categories and tracks live pricing from every major retailer. Hover a node to explore connections.
+          </p>
+          <KnowledgeGraph />
         </div>
       </section>
 
