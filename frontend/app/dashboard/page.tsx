@@ -37,42 +37,42 @@ function greeting(): string {
   return "Good evening";
 }
 
-function categoryEmoji(cat: string | null): string {
+function categoryIcon(cat: string | null): string {
   const c = (cat ?? "").toLowerCase();
-  if (c.includes("tv") || c.includes("television")) return "📺";
-  if (c.includes("laptop") || c.includes("notebook")) return "💻";
-  if (c.includes("headphone") || c.includes("earbud")) return "🎧";
-  if (c.includes("phone")) return "📱";
-  if (c.includes("desk") || c.includes("monitor")) return "🖥";
-  if (c.includes("camera")) return "📷";
-  return "🛒";
+  if (c.includes("tv") || c.includes("television")) return "TV";
+  if (c.includes("laptop") || c.includes("notebook")) return "PC";
+  if (c.includes("headphone") || c.includes("earbud")) return "AU";
+  if (c.includes("phone")) return "PH";
+  if (c.includes("desk") || c.includes("monitor")) return "MN";
+  if (c.includes("camera")) return "CM";
+  return "AI";
 }
 
 const QUICK_CHIPS = [
-  { label: "💻  Laptop", q: "Best laptop for college under $1,000" },
-  { label: "📺  TV",     q: "Best 65-inch TV under $800 right now" },
-  { label: "📱  Phone",  q: "iPhone 16 vs Pixel 9 — best camera under $800" },
-  { label: "🎧  Audio",  q: "Best noise-cancelling headphones under $300" },
-  { label: "🖥  Desk",   q: "Best standing desk and monitor setup under $700" },
-  { label: "⌚  Watch",  q: "Best smartwatch under $400 — health tracking focus" },
+  { label: "Laptop", q: "Best laptop for college under $1,000" },
+  { label: "TV",     q: "Best 65-inch TV under $800 right now" },
+  { label: "Phone",  q: "iPhone 16 vs Pixel 9 — best camera under $800" },
+  { label: "Audio",  q: "Best noise-cancelling headphones under $300" },
+  { label: "Desk",   q: "Best standing desk and monitor setup under $700" },
+  { label: "Watch",  q: "Best smartwatch under $400 — health tracking focus" },
 ];
 
 const TRENDING = [
-  { icon: "📺", label: "Best TVs This Week",      badge: "🔥 Hot",    q: "Find me the best 65-inch 4K TV under $800 right now" },
-  { icon: "💻", label: "Student Laptop Guide",    badge: "🎓 School", q: "Best laptops for college under $1,000 — should I buy now or wait?" },
-  { icon: "🎧", label: "Headphones Ranked",       badge: "📈 Rising", q: "Rank the best noise-cancelling headphones under $300 for 2025" },
-  { icon: "📱", label: "Best Budget Phones",      badge: "💰 Value",  q: "Best Android phone under $500 in 2025 — what should I buy?" },
-  { icon: "🏠", label: "Home Office Setup",       badge: "🏠 WFH",    q: "Build me the best home office for $1,200: desk, chair, monitor" },
-  { icon: "⌨️", label: "Keyboard & Mouse Deals", badge: "⚡ Deals",   q: "Best mechanical keyboard and mouse combo for coding under $200" },
+  { label: "Best TVs This Week",      badge: "Hot",    q: "Find me the best 65-inch 4K TV under $800 right now" },
+  { label: "Student Laptop Guide",    badge: "School", q: "Best laptops for college under $1,000 — should I buy now or wait?" },
+  { label: "Headphones Ranked",       badge: "Rising", q: "Rank the best noise-cancelling headphones under $300 for 2025" },
+  { label: "Best Budget Phones",      badge: "Value",  q: "Best Android phone under $500 in 2025 — what should I buy?" },
+  { label: "Home Office Setup",       badge: "WFH",    q: "Build me the best home office for $1,200: desk, chair, monitor" },
+  { label: "Keyboard & Mouse Deals",  badge: "Deals",  q: "Best mechanical keyboard and mouse combo for coding under $200" },
 ];
 
 const COLLECTIONS = [
-  { icon: "🎓", label: "College Starter Pack",  desc: "Everything for dorm life",        q: "I'm heading to college in August. What tech should I buy? Budget $2,000 total." },
-  { icon: "🎮", label: "Gaming Setup",          desc: "PC, monitor, peripherals, chair",  q: "Build me the best gaming setup under $1,500 — PC, monitor, keyboard, mouse, headset" },
-  { icon: "🏠", label: "First Apartment",       desc: "Furniture, appliances, tech",      q: "I'm moving into my first apartment. Help me prioritize what to buy and when. Budget $3,000." },
-  { icon: "✈️", label: "Travel Essentials",     desc: "Luggage, electronics, gear",       q: "Best travel tech for frequent fliers — headphones, portable charger, laptop bag under $500" },
-  { icon: "💼", label: "Work From Home",        desc: "Desk, chair, monitor, webcam",     q: "Complete WFH setup: standing desk, ergonomic chair, 4K monitor. Budget $1,500." },
-  { icon: "📷", label: "Creator Kit",           desc: "Camera, lighting, microphone",     q: "I want to start a YouTube channel. Best camera, mic, and lighting under $800." },
+  { label: "College Starter Pack",  desc: "Everything for dorm life",        q: "I'm heading to college in August. What tech should I buy? Budget $2,000 total." },
+  { label: "Gaming Setup",          desc: "PC, monitor, peripherals, chair",  q: "Build me the best gaming setup under $1,500 — PC, monitor, keyboard, mouse, headset" },
+  { label: "First Apartment",       desc: "Furniture, appliances, tech",      q: "I'm moving into my first apartment. Help me prioritize what to buy and when. Budget $3,000." },
+  { label: "Travel Essentials",     desc: "Luggage, electronics, gear",       q: "Best travel tech for frequent fliers — headphones, portable charger, laptop bag under $500" },
+  { label: "Work From Home",        desc: "Desk, chair, monitor, webcam",     q: "Complete WFH setup: standing desk, ergonomic chair, 4K monitor. Budget $1,500." },
+  { label: "Creator Kit",           desc: "Camera, lighting, microphone",     q: "I want to start a YouTube channel. Best camera, mic, and lighting under $800." },
 ];
 
 export default function DashboardPage() {
@@ -157,7 +157,7 @@ export default function DashboardPage() {
 
           <form onSubmit={handleSearch} style={S.searchWrap}>
             <div style={S.searchBox}>
-              <span style={S.searchIcon}>🔍</span>
+              <span style={S.searchIcon}>⌕</span>
               <input
                 ref={inputRef}
                 style={S.searchInput}
@@ -201,7 +201,7 @@ export default function DashboardPage() {
                       onClick={() => router.push(`/procurement?session=${s.id}`)}
                       style={S.recentCard}
                     >
-                      <div style={S.recentEmoji}>{categoryEmoji(s.category)}</div>
+                      <div style={S.recentEmoji}>{categoryIcon(s.category)}</div>
                       <div style={S.recentInfo}>
                         <p style={S.recentProduct}>
                           {s.product ?? s.title ?? "Research session"}
@@ -227,7 +227,6 @@ export default function DashboardPage() {
             {TRENDING.map(t => (
               <button key={t.label} onClick={() => ask(t.q)} style={S.trendCard}>
                 <div style={S.trendTop}>
-                  <span style={S.trendIcon}>{t.icon}</span>
                   <span style={S.trendBadge}>{t.badge}</span>
                 </div>
                 <p style={S.trendLabel}>{t.label}</p>
@@ -245,7 +244,6 @@ export default function DashboardPage() {
           <div style={S.collGrid}>
             {COLLECTIONS.map(c => (
               <button key={c.label} onClick={() => ask(c.q)} style={S.collCard}>
-                <span style={S.collIcon}>{c.icon}</span>
                 <div>
                   <p style={S.collLabel}>{c.label}</p>
                   <p style={S.collDesc}>{c.desc}</p>
@@ -312,7 +310,7 @@ const S: Record<string, React.CSSProperties> = {
   seeAll:           { color: ACCENT, fontSize: 13, textDecoration: "none", fontWeight: 600 },
   recentGrid:       { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 },
   recentCard:       { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "18px 16px", display: "flex", flexDirection: "column", gap: 12, cursor: "pointer", textAlign: "left" as const, fontFamily: "inherit" },
-  recentEmoji:      { fontSize: 32 },
+  recentEmoji:      { fontSize: 11, fontWeight: 700, color: ACCENT, background: "rgba(0,245,212,0.08)", border: "1px solid rgba(0,245,212,0.15)", borderRadius: 6, padding: "4px 7px", letterSpacing: "0.5px", flexShrink: 0, alignSelf: "flex-start" },
   recentInfo:       { flex: 1 },
   recentProduct:    { color: "#E2E8F0", fontSize: 14, fontWeight: 600, margin: "0 0 5px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const },
   recentMeta:       { color: "#475569", fontSize: 12, margin: 0 },
