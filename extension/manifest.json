@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "BuyRight AI",
+  "version": "1.0.0",
+  "description": "AI shopping advisor — get a buy / wait / negotiate verdict on any product page in seconds.",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": [
+    "https://*.amazon.com/*",
+    "https://*.bestbuy.com/*",
+    "https://*.walmart.com/*",
+    "https://*.target.com/*",
+    "https://*.costco.com/*",
+    "https://*.newegg.com/*",
+    "https://buyright-ai.onrender.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.amazon.com/dp/*",
+        "https://*.amazon.com/gp/product/*",
+        "https://*.bestbuy.com/site/*",
+        "https://*.walmart.com/ip/*",
+        "https://*.target.com/p/*",
+        "https://*.costco.com/*/product.*",
+        "https://*.newegg.com/p/*",
+        "https://*.newegg.com/*/p/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "BuyRight AI"
+  }
+}

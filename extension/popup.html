@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BuyRight AI</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 300px;
+      background: #0B0F19;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      color: #F1F5F9;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .brand { font-size: 16px; font-weight: 800; }
+    .brand span { color: #00F5D4; }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #334155;
+      transition: background 0.3s;
+    }
+    .status-dot.connected { background: #00F5D4; }
+
+    /* Body */
+    .body { padding: 16px 18px; }
+
+    /* Connected state */
+    .connected-card {
+      background: rgba(0,245,212,0.05);
+      border: 1px solid rgba(0,245,212,0.15);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .connected-card.show { display: block; }
+    .connected-label {
+      color: #00F5D4;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 4px;
+    }
+    .connected-email { color: #94A3B8; font-size: 13px; }
+    .btn-disconnect {
+      background: none;
+      border: none;
+      color: #334155;
+      font-size: 12px;
+      cursor: pointer;
+      padding: 0;
+      font-family: inherit;
+      margin-top: 8px;
+      display: block;
+    }
+    .btn-disconnect:hover { color: #94A3B8; }
+
+    /* Connect state */
+    .connect-card {
+      display: none;
+    }
+    .connect-card.show { display: block; }
+    .connect-title {
+      color: #F1F5F9;
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .connect-sub {
+      color: #475569;
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    /* Token input section */
+    .token-section { margin-bottom: 14px; }
+    .token-label {
+      color: #64748B;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .token-row { display: flex; gap: 8px; }
+    .token-input {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: #F1F5F9;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+    }
+    .token-input:focus { border-color: rgba(0,245,212,0.4); }
+    .token-input::placeholder { color: #334155; }
+    .btn-save {
+      background: #00F5D4;
+      color: #0B0F19;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+
+    .btn-get-token {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: #94A3B8;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      text-align: left;
+      margin-bottom: 10px;
+    }
+    .btn-get-token:hover { background: rgba(255,255,255,0.06); }
+
+    /* How to connect instructions */
+    .instructions {
+      background: rgba(255,255,255,0.02);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+    }
+    .instructions-title {
+      color: #64748B;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .step-n {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: rgba(0,245,212,0.1);
+      color: #00F5D4;
+      font-size: 10px;
+      font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .step-text { color: #475569; font-size: 12px; line-height: 1.5; }
+    .step-text a { color: #00F5D4; text-decoration: none; }
+
+    /* Alert */
+    .alert {
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      margin-bottom: 12px;
+      display: none;
+    }
+    .alert.show { display: block; }
+    .alert.success { background: rgba(0,245,212,0.08); color: #00F5D4; border: 1px solid rgba(0,245,212,0.2); }
+    .alert.error   { background: rgba(248,113,113,0.08); color: #F87171; border: 1px solid rgba(248,113,113,0.2); }
+
+    /* Links section */
+    .links {
+      display: flex;
+      gap: 0;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      margin-top: 4px;
+    }
+    .link-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 12px 8px;
+      color: #334155;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: inherit;
+      text-decoration: none;
+      transition: color 0.15s;
+      border-right: 1px solid rgba(255,255,255,0.05);
+    }
+    .link-btn:last-child { border-right: none; }
+    .link-btn:hover { color: #94A3B8; }
+
+    /* Current page pill */
+    .page-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      display: none;
+    }
+    .page-pill.show { display: flex; }
+    .page-emoji { font-size: 18px; }
+    .page-info { flex: 1; min-width: 0; }
+    .page-name {
+      color: #E2E8F0;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .page-retailer { color: #475569; font-size: 11px; margin-top: 2px; }
+    .btn-analyze {
+      background: #00F5D4;
+      color: #0B0F19;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <span class="brand">BuyRight <span>AI</span></span>
+    <div class="status-dot" id="status-dot"></div>
+  </div>
+
+  <div class="body">
+
+    <!-- Alert -->
+    <div class="alert" id="alert"></div>
+
+    <!-- Current page (shown when on product page) -->
+    <div class="page-pill" id="page-pill">
+      <span class="page-emoji" id="page-emoji">🛒</span>
+      <div class="page-info">
+        <div class="page-name" id="page-name"></div>
+        <div class="page-retailer" id="page-retailer"></div>
+      </div>
+      <button class="btn-analyze" id="btn-analyze">Analyze</button>
+    </div>
+
+    <!-- Connected -->
+    <div class="connected-card" id="connected-card">
+      <div class="connected-label">✓ Connected</div>
+      <div class="connected-email" id="connected-email">BuyRight AI account linked</div>
+      <button class="btn-disconnect" id="btn-disconnect">Disconnect →</button>
+    </div>
+
+    <!-- Not connected -->
+    <div class="connect-card" id="connect-card">
+      <div class="connect-title">Connect your account</div>
+      <div class="connect-sub">Link your BuyRight AI account to get instant verdicts on any product page.</div>
+
+      <button class="btn-get-token" id="btn-get-token">
+        <span>🔑</span>
+        <span>Get your token from BuyRight AI</span>
+      </button>
+
+      <div class="instructions">
+        <div class="instructions-title">How to connect</div>
+        <div class="step">
+          <div class="step-n">1</div>
+          <div class="step-text">Click the button above to open <a href="https://buyright-ai.vercel.app" target="_blank">BuyRight AI</a> and sign in</div>
+        </div>
+        <div class="step">
+          <div class="step-n">2</div>
+          <div class="step-text">Copy the token shown on the page</div>
+        </div>
+        <div class="step">
+          <div class="step-n">3</div>
+          <div class="step-text">Paste it below and click Save</div>
+        </div>
+      </div>
+
+      <div class="token-section">
+        <label class="token-label" for="token-input">Your token</label>
+        <div class="token-row">
+          <input
+            type="password"
+            class="token-input"
+            id="token-input"
+            placeholder="Paste token here…"
+          />
+          <button class="btn-save" id="btn-save">Save</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Links -->
+  <div class="links">
+    <a class="link-btn" href="https://buyright-ai.vercel.app/dashboard" target="_blank">🏠 Dashboard</a>
+    <a class="link-btn" href="https://buyright-ai.vercel.app/history"   target="_blank">📋 History</a>
+    <a class="link-btn" href="https://buyright-ai.vercel.app/pricing"   target="_blank">⭐ Pro</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
