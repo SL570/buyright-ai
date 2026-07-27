@@ -1,76 +1,48 @@
 "use client";
 import { useEffect, useRef } from "react";
 
-const W = 900, H = 500;
+const W = 900, H = 560, CX = 450, CY = 280;
+const MAIN_R = 148; // center → main node radius
+const SUB_R  = 68;  // main node → sub-item radius
 
-interface NNode { id: string; label: string; x: number; y: number; r: number; }
-interface NEdge { s: string; t: string; }
-interface Pulse  { ei: number; t: number; speed: number; }
+interface Branch {
+  label:    string;
+  angleDeg: number;
+  items:    string[];
+}
 
-// Organic scatter — category cluster (left), core (center), retailer cluster (right)
-const NODES: NNode[] = [
-  { id: "center",    label: "BuyRight AI",    x: 450, y: 250, r: 13 },
-  // Core signals (center-left)
-  { id: "price",     label: "Price Tracking", x: 345, y: 168, r: 9  },
-  { id: "deals",     label: "Group Deals",    x: 358, y: 334, r: 8  },
-  // Category cluster (left)
-  { id: "elec",      label: "Electronics",    x: 256, y: 152, r: 8  },
-  { id: "laptops",   label: "Laptops",        x: 194, y: 82,  r: 7  },
-  { id: "phones",    label: "Smartphones",    x: 146, y: 210, r: 7  },
-  { id: "gaming",    label: "Gaming",         x: 190, y: 318, r: 7  },
-  { id: "tvs",       label: "TVs & Displays", x: 280, y: 390, r: 6  },
-  { id: "audio",     label: "Audio",          x: 108, y: 316, r: 6  },
-  { id: "smarthome", label: "Smart Home",     x: 90,  y: 196, r: 6  },
-  { id: "apps",      label: "Appliances",     x: 156, y: 426, r: 6  },
-  { id: "fashion",   label: "Fashion",        x: 290, y: 448, r: 5  },
-  { id: "sports",    label: "Sports",         x: 386, y: 428, r: 5  },
-  // Retailer cluster (right)
-  { id: "amazon",    label: "Amazon",         x: 554, y: 152, r: 6  },
-  { id: "bestbuy",   label: "Best Buy",       x: 648, y: 200, r: 6  },
-  { id: "walmart",   label: "Walmart",        x: 614, y: 316, r: 5  },
-  { id: "target",    label: "Target",         x: 540, y: 382, r: 5  },
-  { id: "costco",    label: "Costco",         x: 710, y: 278, r: 5  },
-];
-
-// Dense connections — always visible, form the neural web
-const EDGES: NEdge[] = [
-  { s: "center", t: "price"     }, { s: "center", t: "deals"     },
-  { s: "center", t: "elec"      }, { s: "center", t: "laptops"   },
-  { s: "center", t: "amazon"    }, { s: "center", t: "bestbuy"   },
-  { s: "center", t: "phones"    }, { s: "center", t: "walmart"   },
-  { s: "price",  t: "laptops"   }, { s: "price",  t: "phones"    },
-  { s: "price",  t: "amazon"    }, { s: "price",  t: "bestbuy"   },
-  { s: "price",  t: "elec"      }, { s: "price",  t: "tvs"       },
-  { s: "deals",  t: "amazon"    }, { s: "deals",  t: "walmart"   },
-  { s: "deals",  t: "target"    }, { s: "deals",  t: "tvs"       },
-  { s: "elec",   t: "laptops"   }, { s: "elec",   t: "phones"    },
-  { s: "elec",   t: "gaming"    }, { s: "elec",   t: "tvs"       },
-  { s: "elec",   t: "audio"     }, { s: "elec",   t: "smarthome" },
-  { s: "laptops",t: "bestbuy"   }, { s: "laptops",t: "amazon"    },
-  { s: "laptops",t: "gaming"    }, { s: "phones", t: "audio"     },
-  { s: "phones", t: "amazon"    }, { s: "phones", t: "target"    },
-  { s: "gaming", t: "tvs"       }, { s: "gaming", t: "bestbuy"   },
-  { s: "tvs",    t: "costco"    }, { s: "tvs",    t: "target"    },
-  { s: "audio",  t: "smarthome" }, { s: "audio",  t: "apps"      },
-  { s: "smarthome", t: "apps"   }, { s: "smarthome", t: "walmart" },
-  { s: "apps",   t: "walmart"   }, { s: "fashion",t: "sports"    },
-  { s: "fashion",t: "target"    }, { s: "sports", t: "amazon"    },
-  { s: "bestbuy",t: "costco"    }, { s: "walmart",t: "costco"    },
-];
-
-const LEGEND = [
-  { label: "Price Tracking", count: 89 }, { label: "Group Deals",  count: 32 },
-  { label: "Electronics",    count: 24 }, { label: "Laptops",      count: 22 },
-  { label: "Gaming",         count: 21 }, { label: "Smartphones",  count: 19 },
-  { label: "TVs & Displays", count: 18 }, { label: "Audio",        count: 16 },
-  { label: "Smart Home",     count: 14 }, { label: "Appliances",   count: 12 },
-  { label: "Sports",         count: 9  }, { label: "Fashion",      count: 8  },
+// Business content — what a decision-maker needs to see in one glance
+const BRANCHES: Branch[] = [
+  {
+    label:    "Price Intelligence",
+    angleDeg: 0,
+    items:    ["80+ retailers tracked", "Live price history", "Sale timing prediction"],
+  },
+  {
+    label:    "AI Advisor",
+    angleDeg: 72,
+    items:    ["Buy · Wait · Negotiate", "Natural language", "Instant verdict"],
+  },
+  {
+    label:    "Post-Purchase",
+    angleDeg: 144,
+    items:    ["Price drop auto-filing", "Return automation", "Delivery tracking"],
+  },
+  {
+    label:    "Group Deals",
+    angleDeg: 216,
+    items:    ["Collective buying power", "Wholesale pricing", "Auto-negotiation"],
+  },
+  {
+    label:    "Procurement",
+    angleDeg: 288,
+    items:    ["Research to purchase", "Budget-matched picks", "Full audit trail"],
+  },
 ];
 
 export default function KnowledgeGraph() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef   = useRef(0);
-  const frameRef  = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current as HTMLCanvasElement;
@@ -78,175 +50,174 @@ export default function KnowledgeGraph() {
     const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
     if (!ctx) return;
 
-    const nodeMap = new Map(NODES.map(n => [n.id, n]));
-
-    // Pre-compute bezier control points — offset perpendicular to each edge
-    // gives axon-like organic curves
-    const ctrlPts = EDGES.map((e, i) => {
-      const sn = nodeMap.get(e.s)!;
-      const tn = nodeMap.get(e.t)!;
-      const dx = tn.x - sn.x, dy = tn.y - sn.y;
-      const len = Math.sqrt(dx * dx + dy * dy) || 1;
-      const offset = Math.sin(i * 2.619 + 1.2) * 40; // deterministic, varies per edge
-      return {
-        x: (sn.x + tn.x) / 2 + (-dy / len) * offset,
-        y: (sn.y + tn.y) / 2 + ( dx / len) * offset,
-      };
+    // Pre-compute all positions once
+    const branches = BRANCHES.map(b => {
+      const rad = (b.angleDeg * Math.PI) / 180;
+      const mx  = CX + MAIN_R * Math.cos(rad);
+      const my  = CY + MAIN_R * Math.sin(rad);
+      const items = b.items.map((text, i) => {
+        const sa = rad + ((i - 1) * 32 * Math.PI) / 180; // ±32° fan
+        return { text, x: mx + SUB_R * Math.cos(sa), y: my + SUB_R * Math.sin(sa), sa };
+      });
+      return { ...b, rad, mx, my, items };
     });
 
-    // Point along a quadratic bezier at parameter t
-    function bezierAt(ei: number, t: number) {
-      const sn = nodeMap.get(EDGES[ei].s)!;
-      const tn = nodeMap.get(EDGES[ei].t)!;
-      const cp = ctrlPts[ei];
-      const mt = 1 - t;
-      return {
-        x: mt * mt * sn.x + 2 * mt * t * cp.x + t * t * tn.x,
-        y: mt * mt * sn.y + 2 * mt * t * cp.y + t * t * tn.y,
-      };
+    // Rounded rect helper
+    function pill(x: number, y: number, w: number, h: number, r: number) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
     }
 
-    // Action potential pulses
-    const pulses: Pulse[] = [];
-    let nextPulseAt = 30;
+    let prog = 0;
+    const FRAMES = 96; // ~1.6 s draw-in at 60 fps
 
-    function draw(frame: number) {
-      // Spawn new pulse
-      if (frame >= nextPulseAt) {
-        pulses.push({
-          ei:    Math.floor(Math.random() * EDGES.length),
-          t:     0,
-          speed: 0.007 + Math.random() * 0.005,
-        });
-        nextPulseAt = frame + 38 + Math.floor(Math.random() * 55);
-      }
-
+    function draw(p: number) {
       ctx.clearRect(0, 0, W, H);
 
       // ── Background ──────────────────────────────────────────────────────
-      ctx.fillStyle = "#060911";
+      ctx.fillStyle = "#07090F";
       ctx.fillRect(0, 0, W, H);
 
-      // Ambient tissue glow — off-center, very faint
-      const ambient = ctx.createRadialGradient(W * 0.38, H * 0.44, 0, W * 0.38, H * 0.44, 320);
-      ambient.addColorStop(0, "rgba(70, 110, 200, 0.04)");
-      ambient.addColorStop(1, "rgba(0, 0, 0, 0)");
-      ctx.fillStyle = ambient;
+      // Subtle ambient glow around center
+      const aura = ctx.createRadialGradient(CX, CY, 0, CX, CY, 160);
+      aura.addColorStop(0, "rgba(0, 245, 212, 0.032)");
+      aura.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = aura;
       ctx.fillRect(0, 0, W, H);
 
-      // ── Axon / dendrite connections (always drawn) ───────────────────────
-      for (let i = 0; i < EDGES.length; i++) {
-        const sn = nodeMap.get(EDGES[i].s)!;
-        const tn = nodeMap.get(EDGES[i].t)!;
-        const cp = ctrlPts[i];
+      // ── Staged reveal timings ────────────────────────────────────────────
+      const tCenter   = ease(clamp01((p - 0.00) / 0.18)); // 0.00 → 0.18
+      const tMainConn = ease(clamp01((p - 0.12) / 0.36)); // 0.12 → 0.48
+      const tMainPill = ease(clamp01((p - 0.32) / 0.26)); // 0.32 → 0.58
+      const tSubConn  = ease(clamp01((p - 0.50) / 0.26)); // 0.50 → 0.76
+      const tSubText  = ease(clamp01((p - 0.64) / 0.36)); // 0.64 → 1.00
+
+      // ── Center → main node connections (bezier, grow with lineDash) ──────
+      for (const b of branches) {
+        const cp1x = CX + 54 * Math.cos(b.rad);
+        const cp1y = CY + 54 * Math.sin(b.rad);
+        const cp2x = b.mx - 44 * Math.cos(b.rad);
+        const cp2y = b.my - 44 * Math.sin(b.rad);
+        const len  = Math.hypot(b.mx - CX, b.my - CY) * 1.06;
+
+        ctx.save();
+        ctx.setLineDash([len * tMainConn, len + 2]);
         ctx.beginPath();
-        ctx.moveTo(sn.x, sn.y);
-        ctx.quadraticCurveTo(cp.x, cp.y, tn.x, tn.y);
-        ctx.strokeStyle = "rgba(150, 195, 255, 0.13)";
-        ctx.lineWidth   = 0.55;
+        ctx.moveTo(CX, CY);
+        ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, b.mx, b.my);
+        ctx.strokeStyle = "rgba(0, 245, 212, 0.28)";
+        ctx.lineWidth   = 1.0;
         ctx.stroke();
-      }
-
-      // ── Action potential pulses ─────────────────────────────────────────
-      for (let i = pulses.length - 1; i >= 0; i--) {
-        pulses[i].t += pulses[i].speed;
-        if (pulses[i].t >= 1) { pulses.splice(i, 1); continue; }
-        const { x, y } = bezierAt(pulses[i].ei, pulses[i].t);
-        ctx.save();
-        ctx.shadowColor = "rgba(210, 235, 255, 1)";
-        ctx.shadowBlur  = 14;
-        ctx.beginPath();
-        ctx.arc(x, y, 2.2, 0, Math.PI * 2);
-        ctx.fillStyle = "#E4F0FF";
-        ctx.fill();
         ctx.restore();
       }
 
-      // ── Soma (cell body) nodes ─────────────────────────────────────────
-      for (const n of NODES) {
-        const isCenter = n.id === "center";
-
-        // Soma glow
-        ctx.save();
-        ctx.shadowColor = isCenter ? "rgba(130, 185, 255, 0.9)" : "rgba(200, 220, 255, 0.30)";
-        ctx.shadowBlur  = isCenter ? 24 : 7;
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-        ctx.fillStyle = isCenter ? "#9EC5FF" : "#FFFFFF";
-        ctx.fill();
-        ctx.restore();
-
-        // Interior label for center node
-        if (isCenter) {
-          ctx.fillStyle    = "#06090F";
-          ctx.font         = "bold 7px system-ui,sans-serif";
-          ctx.textAlign    = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText("BR AI", n.x, n.y);
-        }
-
-        // Satellite node labels — angled away from canvas center
-        if (!isCenter) {
-          const ax = Math.atan2(n.y - H / 2, n.x - W / 2);
-          const lx = n.x + Math.cos(ax) * (n.r + 10);
-          const ly = n.y + Math.sin(ax) * (n.r + 10);
-          ctx.font         = "9.5px system-ui, -apple-system, sans-serif";
-          ctx.textAlign    = Math.cos(ax) >= 0 ? "left" : "right";
-          ctx.textBaseline = "middle";
-          ctx.fillStyle    = "rgba(145, 175, 215, 0.52)";
-          ctx.fillText(n.label, lx, ly);
+      // ── Main node → sub-item connections ────────────────────────────────
+      ctx.save();
+      for (const b of branches) {
+        for (const si of b.items) {
+          const len = Math.hypot(si.x - b.mx, si.y - b.my);
+          ctx.setLineDash([len * tSubConn, len + 2]);
+          ctx.beginPath();
+          ctx.moveTo(b.mx, b.my);
+          ctx.lineTo(si.x, si.y);
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.10)";
+          ctx.lineWidth   = 0.55;
+          ctx.stroke();
         }
       }
+      ctx.restore();
+
+      // ── Center node pill ─────────────────────────────────────────────────
+      ctx.globalAlpha = tCenter;
+      ctx.shadowColor = "rgba(0, 245, 212, 0.55)";
+      ctx.shadowBlur  = 24;
+      pill(CX - 64, CY - 21, 128, 42, 21);
+      ctx.fillStyle = "#00F5D4";
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      ctx.fillStyle    = "#060A0E";
+      ctx.font         = "bold 13px system-ui,-apple-system,sans-serif";
+      ctx.textAlign    = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("BuyRight AI", CX, CY);
+      ctx.globalAlpha  = 1;
+
+      // ── Main branch pills ────────────────────────────────────────────────
+      ctx.globalAlpha = tMainPill;
+      for (const b of branches) {
+        const pw = 152, ph = 33, pr = 16;
+
+        ctx.shadowColor = "rgba(0, 245, 212, 0.14)";
+        ctx.shadowBlur  = 12;
+        pill(b.mx - pw / 2, b.my - ph / 2, pw, ph, pr);
+        ctx.fillStyle   = "rgba(0, 245, 212, 0.06)";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(0, 245, 212, 0.26)";
+        ctx.lineWidth   = 0.8;
+        ctx.stroke();
+        ctx.shadowBlur  = 0;
+
+        ctx.fillStyle    = "rgba(0, 245, 212, 0.88)";
+        ctx.font         = "11.5px system-ui,-apple-system,sans-serif";
+        ctx.textAlign    = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(b.label, b.mx, b.my);
+      }
+      ctx.globalAlpha = 1;
+
+      // ── Sub-item dots + labels ───────────────────────────────────────────
+      ctx.globalAlpha = tSubText;
+      for (const b of branches) {
+        for (const si of b.items) {
+          // Dot
+          ctx.beginPath();
+          ctx.arc(si.x, si.y, 2.5, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(0, 245, 212, 0.30)";
+          ctx.fill();
+
+          // Label outward from dot
+          const lx = si.x + Math.cos(si.sa) * 11;
+          const ly = si.y + Math.sin(si.sa) * 11;
+          ctx.font         = "10px system-ui,-apple-system,sans-serif";
+          ctx.textAlign    = Math.cos(si.sa) >= 0 ? "left" : "right";
+          ctx.textBaseline = "middle";
+          ctx.fillStyle    = "rgba(148, 175, 215, 0.70)";
+          ctx.fillText(si.text, lx, ly);
+        }
+      }
+      ctx.globalAlpha = 1;
     }
 
     function loop() {
-      draw(frameRef.current++);
-      animRef.current = requestAnimationFrame(loop);
+      prog = Math.min(1, prog + 1 / FRAMES);
+      draw(prog);
+      if (prog < 1) animRef.current = requestAnimationFrame(loop);
     }
     animRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animRef.current);
   }, []);
 
   return (
-    <div>
-      <div style={{
-        borderRadius: 14,
-        overflow: "hidden",
-        border: "1px solid rgba(255,255,255,0.04)",
-      }}>
-        <canvas
-          ref={canvasRef}
-          width={W}
-          height={H}
-          style={{ width: "100%", height: "auto", display: "block" }}
-        />
-      </div>
-
-      {/* Signal category legend — IBM Carbon table style */}
-      <div style={{ marginTop: 24, borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 20 }}>
-        <p style={{
-          color: "#2A3D56",
-          fontSize: 10,
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: "1.4px",
-          margin: "0 0 14px",
-        }}>
-          Signal categories
-        </p>
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))",
-          gap: "9px 48px",
-        }}>
-          {LEGEND.map(l => (
-            <div key={l.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ color: "#3A5270", fontSize: 12 }}>{l.label}</span>
-              <span style={{ color: "#2A3D56", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>{l.count}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+    <div style={{
+      borderRadius: 16,
+      overflow: "hidden",
+      border: "1px solid rgba(255,255,255,0.05)",
+    }}>
+      <canvas
+        ref={canvasRef}
+        width={W}
+        height={H}
+        style={{ width: "100%", height: "auto", display: "block" }}
+      />
     </div>
   );
 }
+
+function clamp01(v: number) { return Math.max(0, Math.min(1, v)); }
+function ease(t: number)    { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; } // ease in-out quad

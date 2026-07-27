@@ -126,7 +126,7 @@ export default function AboutPage() {
           <div style={S.pill}>What we know</div>
           <h2 style={S.h2}>Intelligence across every product category.</h2>
           <p style={{ color: "#64748B", fontSize: 15, lineHeight: 1.7, margin: "0 0 40px", maxWidth: 560 }}>
-            BuyRight AI is trained across hundreds of product categories and tracks live pricing from every major retailer. Hover a node to explore connections.
+            From price intelligence to group deals — see how BuyRight AI covers every angle of the buying decision.
           </p>
           <KnowledgeGraph />
         </div>
