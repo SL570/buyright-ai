@@ -1,4 +1,4 @@
-const APP_URL = "https://buyright-ai.vercel.app";
+const APP_URL = "https://buyright-ai-ten.vercel.app";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 

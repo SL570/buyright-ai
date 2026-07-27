@@ -335,13 +335,13 @@ class BuyRightWidget {
     if (openBtn) {
       openBtn.onclick = () => {
         const q = encodeURIComponent(`Analyze: ${this.product.name}${this.product.price ? ` at ${this.product.price}` : ""} on ${this.product.retailer}`);
-        window.open(`https://buyright-ai.vercel.app/procurement?q=${q}`, "_blank");
+        window.open(`https://buyright-ai-ten.vercel.app/procurement?q=${q}`, "_blank");
       };
     }
 
     const connectBtn = this.shadow.getElementById("br-connect");
     if (connectBtn) {
-      connectBtn.onclick = () => window.open("https://buyright-ai.vercel.app/sign-in", "_blank");
+      connectBtn.onclick = () => window.open("https://buyright-ai-ten.vercel.app/sign-in", "_blank");
     }
   }
 
@@ -386,7 +386,7 @@ class BuyRightWidget {
         <div class="error-box">
           <div class="error-title">Pro feature</div>
           <div class="error-sub">Upgrade to BuyRight AI Pro to unlock the extension.</div>
-          <a class="btn-connect" href="https://buyright-ai.vercel.app/pricing" target="_blank">View pricing →</a>
+          <a class="btn-connect" href="https://buyright-ai-ten.vercel.app/pricing" target="_blank">View pricing →</a>
         </div>
       `;
     }
