@@ -1,42 +1,122 @@
 "use client";
 import { useEffect, useRef } from "react";
 
-const W = 900, H = 560, CX = 450, CY = 280;
-const MAIN_R = 148; // center → main node radius
-const SUB_R  = 68;  // main node → sub-item radius
+const W = 1600, H = 720;
+const CX = 775, CY = 360;
 
-interface Branch {
-  label:    string;
-  angleDeg: number;
-  items:    string[];
+// Center pill
+const CP = { w: 200, h: 82, r: 22 };
+// Branch pill
+const NP = { w: 170, h: 38, r: 19 };
+// Icon badge radius (sits at the end of each pill)
+const IB = 19;
+// How far sub-items extend horizontally from the fan origin on node edge
+const SUB_REACH = 236;
+// Vertical spacing between sub-items
+const SUB_STEP = 22;
+
+interface MNode {
+  label: string;
+  icon:  string;
+  x:     number;
+  y:     number;
+  color: string;
+  side:  "left" | "right";
+  items: string[];
 }
 
-// Business content — what a decision-maker needs to see in one glance
-const BRANCHES: Branch[] = [
+// BuyRight AI Business Model Canvas
+// Left nodes: sub-items to the left   Right nodes: sub-items to the right
+const NODES: MNode[] = [
   {
-    label:    "Price Intelligence",
-    angleDeg: 0,
-    items:    ["80+ retailers tracked", "Live price history", "Sale timing prediction"],
+    label: "Key Partners", icon: "♥", side: "left",
+    x: 500, y: 80, color: "#EF5350",
+    items: [
+      "OpenAI / Anthropic (Claude)",
+      "Serper search & pricing API",
+      "Stripe (payment processing)",
+      "SendGrid (email service)",
+    ],
   },
   {
-    label:    "AI Advisor",
-    angleDeg: 72,
-    items:    ["Buy · Wait · Negotiate", "Natural language", "Instant verdict"],
+    label: "Key Activities", icon: "⚙", side: "left",
+    x: 500, y: 220, color: "#FF7043",
+    items: [
+      "Real-time price monitoring",
+      "AI verdict generation (buy/wait)",
+      "Group deal coordination",
+      "Post-purchase auto-monitoring",
+    ],
   },
   {
-    label:    "Post-Purchase",
-    angleDeg: 144,
-    items:    ["Price drop auto-filing", "Return automation", "Delivery tracking"],
+    label: "Customer Segments", icon: "●", side: "left",
+    x: 500, y: 360, color: "#AB47BC",
+    items: [
+      "Budget-conscious consumers",
+      "Frequent online shoppers",
+      "Group buying coalitions",
+      "SMB procurement teams",
+    ],
   },
   {
-    label:    "Group Deals",
-    angleDeg: 216,
-    items:    ["Collective buying power", "Wholesale pricing", "Auto-negotiation"],
+    label: "Key Resources", icon: "▦", side: "left",
+    x: 500, y: 500, color: "#26C6DA",
+    items: [
+      "AI models & pricing algorithms",
+      "80+ retailer price database",
+      "Chrome browser extension",
+      "User & group buying network",
+    ],
   },
   {
-    label:    "Procurement",
-    angleDeg: 288,
-    items:    ["Research to purchase", "Budget-matched picks", "Full audit trail"],
+    label: "Cost Structure", icon: "↑", side: "left",
+    x: 500, y: 640, color: "#26A69A",
+    items: [
+      "AI API & compute costs",
+      "Retailer data & access fees",
+      "Engineering & infrastructure",
+      "Marketing & customer growth",
+    ],
+  },
+  {
+    label: "Value Propositions", icon: "◆", side: "right",
+    x: 1062, y: 118, color: "#7E57C2",
+    items: [
+      "Never overpay on any purchase",
+      "Know exactly when to buy or wait",
+      "Negotiate deals automatically",
+      "Wholesale pricing via group buying",
+    ],
+  },
+  {
+    label: "Customer Relationships", icon: "⊙", side: "right",
+    x: 1062, y: 272, color: "#42A5F5",
+    items: [
+      "AI chat advisor available 24/7",
+      "Personalized price drop alerts",
+      "Group deal invitations & updates",
+      "Pro concierge for power users",
+    ],
+  },
+  {
+    label: "Channels", icon: "✦", side: "right",
+    x: 1062, y: 432, color: "#00BCD4",
+    items: [
+      "Web application (buyright-ai)",
+      "Chrome browser extension",
+      "Email & push notifications",
+      "API for enterprise clients",
+    ],
+  },
+  {
+    label: "Revenue Streams", icon: "$", side: "right",
+    x: 1062, y: 580, color: "#FFA726",
+    items: [
+      "Free: unlimited AI queries",
+      "Pro: $9 per month subscription",
+      "Enterprise: custom licensing",
+      "Affiliate & referral revenue",
+    ],
   },
 ];
 
@@ -50,20 +130,21 @@ export default function KnowledgeGraph() {
     const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
     if (!ctx) return;
 
-    // Pre-compute all positions once
-    const branches = BRANCHES.map(b => {
-      const rad = (b.angleDeg * Math.PI) / 180;
-      const mx  = CX + MAIN_R * Math.cos(rad);
-      const my  = CY + MAIN_R * Math.sin(rad);
-      const items = b.items.map((text, i) => {
-        const sa = rad + ((i - 1) * 32 * Math.PI) / 180; // ±32° fan
-        return { text, x: mx + SUB_R * Math.cos(sa), y: my + SUB_R * Math.sin(sa), sa };
-      });
-      return { ...b, rad, mx, my, items };
+    // Pre-compute sub-item positions
+    const subPos = NODES.map(n => {
+      const count = n.items.length;
+      const span  = (count - 1) * SUB_STEP;
+      const fanX  = n.side === "left" ? n.x - NP.w / 2 : n.x + NP.w / 2;
+      const textX = n.side === "left" ? fanX - SUB_REACH : fanX + SUB_REACH;
+      return n.items.map((text, i) => ({
+        text,
+        sy: n.y - span / 2 + i * SUB_STEP,
+        textX,
+        fanX,
+      }));
     });
 
-    // Rounded rect helper
-    function pill(x: number, y: number, w: number, h: number, r: number) {
+    function rrect(x: number, y: number, w: number, h: number, r: number) {
       ctx.beginPath();
       ctx.moveTo(x + r, y);
       ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -73,122 +154,154 @@ export default function KnowledgeGraph() {
       ctx.closePath();
     }
 
+    function shade(hex: string, amt: number) {
+      const n = parseInt(hex.slice(1), 16);
+      const r = clamp(((n >> 16) & 255) + amt, 0, 255);
+      const g = clamp(((n >> 8)  & 255) + amt, 0, 255);
+      const b = clamp(( n        & 255) + amt, 0, 255);
+      return `rgb(${r},${g},${b})`;
+    }
+
     let prog = 0;
-    const FRAMES = 96; // ~1.6 s draw-in at 60 fps
+    const FRAMES = 96;
 
     function draw(p: number) {
       ctx.clearRect(0, 0, W, H);
 
-      // ── Background ──────────────────────────────────────────────────────
-      ctx.fillStyle = "#07090F";
+      // ── White background ────────────────────────────────────────────────
+      ctx.fillStyle = "#FFFFFF";
       ctx.fillRect(0, 0, W, H);
 
-      // Subtle ambient glow around center
-      const aura = ctx.createRadialGradient(CX, CY, 0, CX, CY, 160);
-      aura.addColorStop(0, "rgba(0, 245, 212, 0.032)");
-      aura.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.fillStyle = aura;
-      ctx.fillRect(0, 0, W, H);
+      // Staged reveal timings
+      const t0 = ease(clamp01(p / 0.16));                    // center node
+      const t1 = ease(clamp01((p - 0.10) / 0.38));           // center → main beziers
+      const t2 = ease(clamp01((p - 0.30) / 0.28));           // main node pills
+      const t3 = ease(clamp01((p - 0.48) / 0.28));           // fan lines
+      const t4 = ease(clamp01((p - 0.62) / 0.38));           // sub-item text
 
-      // ── Staged reveal timings ────────────────────────────────────────────
-      const tCenter   = ease(clamp01((p - 0.00) / 0.18)); // 0.00 → 0.18
-      const tMainConn = ease(clamp01((p - 0.12) / 0.36)); // 0.12 → 0.48
-      const tMainPill = ease(clamp01((p - 0.32) / 0.26)); // 0.32 → 0.58
-      const tSubConn  = ease(clamp01((p - 0.50) / 0.26)); // 0.50 → 0.76
-      const tSubText  = ease(clamp01((p - 0.64) / 0.36)); // 0.64 → 1.00
+      // ── Center → main node S-curves ─────────────────────────────────────
+      for (const n of NODES) {
+        const isLeft  = n.side === "left";
+        const startX  = isLeft ? CX - CP.w / 2 : CX + CP.w / 2;
+        const endX    = isLeft ? n.x + NP.w / 2 : n.x - NP.w / 2;
+        const hspan   = Math.abs(endX - startX);
 
-      // ── Center → main node connections (bezier, grow with lineDash) ──────
-      for (const b of branches) {
-        const cp1x = CX + 54 * Math.cos(b.rad);
-        const cp1y = CY + 54 * Math.sin(b.rad);
-        const cp2x = b.mx - 44 * Math.cos(b.rad);
-        const cp2y = b.my - 44 * Math.sin(b.rad);
-        const len  = Math.hypot(b.mx - CX, b.my - CY) * 1.06;
+        // Gentle S-curve control points
+        const cp1x = isLeft ? startX - hspan * 0.4 : startX + hspan * 0.4;
+        const cp1y = CY + (n.y - CY) * 0.12;
+        const cp2x = isLeft ? endX   + hspan * 0.2 : endX   - hspan * 0.2;
+        const cp2y = n.y - (n.y - CY) * 0.12;
+
+        const approxLen = Math.hypot(endX - startX, n.y - CY) * 1.08;
 
         ctx.save();
-        ctx.setLineDash([len * tMainConn, len + 2]);
+        ctx.setLineDash([approxLen * t1, approxLen + 2]);
         ctx.beginPath();
-        ctx.moveTo(CX, CY);
-        ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, b.mx, b.my);
-        ctx.strokeStyle = "rgba(0, 245, 212, 0.28)";
-        ctx.lineWidth   = 1.0;
+        ctx.moveTo(startX, CY);
+        ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, n.y);
+        ctx.strokeStyle = n.color;
+        ctx.lineWidth   = 1.6;
         ctx.stroke();
         ctx.restore();
       }
 
-      // ── Main node → sub-item connections ────────────────────────────────
+      // ── Fan lines: node edge → sub-items ────────────────────────────────
       ctx.save();
-      for (const b of branches) {
-        for (const si of b.items) {
-          const len = Math.hypot(si.x - b.mx, si.y - b.my);
-          ctx.setLineDash([len * tSubConn, len + 2]);
+      for (let ni = 0; ni < NODES.length; ni++) {
+        const n    = NODES[ni];
+        const subs = subPos[ni];
+        for (const s of subs) {
+          const len = Math.hypot(s.textX - s.fanX, s.sy - n.y);
+          ctx.setLineDash([len * t3, len + 2]);
           ctx.beginPath();
-          ctx.moveTo(b.mx, b.my);
-          ctx.lineTo(si.x, si.y);
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.10)";
-          ctx.lineWidth   = 0.55;
+          ctx.moveTo(s.fanX, n.y);
+          // Quadratic bezier for gentle fan curve
+          const cpx = (s.fanX + s.textX) / 2;
+          const cpy = (n.y + s.sy) / 2;
+          ctx.quadraticCurveTo(cpx, cpy, s.textX, s.sy);
+          ctx.strokeStyle = n.color;
+          ctx.lineWidth   = 0.85;
           ctx.stroke();
         }
       }
       ctx.restore();
 
-      // ── Center node pill ─────────────────────────────────────────────────
-      ctx.globalAlpha = tCenter;
-      ctx.shadowColor = "rgba(0, 245, 212, 0.55)";
-      ctx.shadowBlur  = 24;
-      pill(CX - 64, CY - 21, 128, 42, 21);
-      ctx.fillStyle = "#00F5D4";
-      ctx.fill();
-      ctx.shadowBlur = 0;
+      // ── Main node pills ──────────────────────────────────────────────────
+      ctx.globalAlpha = t2;
+      for (const n of NODES) {
+        const isLeft = n.side === "left";
+        const px = n.x - NP.w / 2, py = n.y - NP.h / 2;
 
-      ctx.fillStyle    = "#060A0E";
-      ctx.font         = "bold 13px system-ui,-apple-system,sans-serif";
-      ctx.textAlign    = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("BuyRight AI", CX, CY);
-      ctx.globalAlpha  = 1;
+        // Pill shadow
+        ctx.shadowColor   = "rgba(0,0,0,0.18)";
+        ctx.shadowBlur    = 9;
+        ctx.shadowOffsetY = 3;
 
-      // ── Main branch pills ────────────────────────────────────────────────
-      ctx.globalAlpha = tMainPill;
-      for (const b of branches) {
-        const pw = 152, ph = 33, pr = 16;
-
-        ctx.shadowColor = "rgba(0, 245, 212, 0.14)";
-        ctx.shadowBlur  = 12;
-        pill(b.mx - pw / 2, b.my - ph / 2, pw, ph, pr);
-        ctx.fillStyle   = "rgba(0, 245, 212, 0.06)";
+        // Pill fill
+        rrect(px, py, NP.w, NP.h, NP.r);
+        ctx.fillStyle = n.color;
         ctx.fill();
-        ctx.strokeStyle = "rgba(0, 245, 212, 0.26)";
-        ctx.lineWidth   = 0.8;
-        ctx.stroke();
-        ctx.shadowBlur  = 0;
+        ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
 
-        ctx.fillStyle    = "rgba(0, 245, 212, 0.88)";
-        ctx.font         = "11.5px system-ui,-apple-system,sans-serif";
+        // Icon badge circle (darker shade, at the far end of pill)
+        const badgeX = isLeft ? n.x + NP.w / 2 - IB : n.x - NP.w / 2 + IB;
+        ctx.beginPath();
+        ctx.arc(badgeX, n.y, IB, 0, Math.PI * 2);
+        ctx.fillStyle = shade(n.color, -35);
+        ctx.fill();
+
+        // Icon character
+        ctx.fillStyle    = "rgba(255,255,255,0.90)";
+        ctx.font         = "bold 13px Arial, sans-serif";
         ctx.textAlign    = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(b.label, b.mx, b.my);
+        ctx.fillText(n.icon, badgeX, n.y + 1);
+
+        // Node label (white, bold, in non-badge portion of pill)
+        const labelCX = isLeft
+          ? px + (NP.w - IB * 2) / 2          // left side: centered in left portion
+          : px + IB * 2 + (NP.w - IB * 2) / 2; // right side: centered in right portion
+        ctx.fillStyle    = "#FFFFFF";
+        ctx.font         = "bold 10.5px 'Helvetica Neue', Arial, sans-serif";
+        ctx.textAlign    = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(n.label, labelCX, n.y);
       }
       ctx.globalAlpha = 1;
 
-      // ── Sub-item dots + labels ───────────────────────────────────────────
-      ctx.globalAlpha = tSubText;
-      for (const b of branches) {
-        for (const si of b.items) {
-          // Dot
-          ctx.beginPath();
-          ctx.arc(si.x, si.y, 2.5, 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(0, 245, 212, 0.30)";
-          ctx.fill();
+      // ── Center node pill ─────────────────────────────────────────────────
+      ctx.globalAlpha  = t0;
+      ctx.shadowColor  = "rgba(92,107,192,0.3)";
+      ctx.shadowBlur   = 16;
+      ctx.shadowOffsetY = 4;
+      rrect(CX - CP.w / 2, CY - CP.h / 2, CP.w, CP.h, CP.r);
+      ctx.fillStyle = "#5C6BC0";
+      ctx.fill();
+      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
 
-          // Label outward from dot
-          const lx = si.x + Math.cos(si.sa) * 11;
-          const ly = si.y + Math.sin(si.sa) * 11;
-          ctx.font         = "10px system-ui,-apple-system,sans-serif";
-          ctx.textAlign    = Math.cos(si.sa) >= 0 ? "left" : "right";
+      // Center labels
+      ctx.fillStyle    = "#FFFFFF";
+      ctx.font         = "bold 17px 'Helvetica Neue', Arial, sans-serif";
+      ctx.textAlign    = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("BuyRight AI", CX, CY - 12);
+      ctx.font      = "13px 'Helvetica Neue', Arial, sans-serif";
+      ctx.fillStyle = "rgba(255,255,255,0.80)";
+      ctx.fillText("Business Model", CX, CY + 13);
+      ctx.globalAlpha = 1;
+
+      // ── Sub-item text labels ─────────────────────────────────────────────
+      ctx.globalAlpha = t4;
+      for (let ni = 0; ni < NODES.length; ni++) {
+        const n    = NODES[ni];
+        const subs = subPos[ni];
+        for (const s of subs) {
+          ctx.font         = "10px 'Helvetica Neue', Arial, sans-serif";
+          ctx.textAlign    = n.side === "left" ? "right" : "left";
           ctx.textBaseline = "middle";
-          ctx.fillStyle    = "rgba(148, 175, 215, 0.70)";
-          ctx.fillText(si.text, lx, ly);
+          ctx.fillStyle    = "#424242";
+          const tx = n.side === "left" ? s.textX - 7 : s.textX + 7;
+          ctx.fillText(s.text, tx, s.sy);
         }
       }
       ctx.globalAlpha = 1;
@@ -205,9 +318,10 @@ export default function KnowledgeGraph() {
 
   return (
     <div style={{
-      borderRadius: 16,
+      borderRadius: 12,
       overflow: "hidden",
-      border: "1px solid rgba(255,255,255,0.05)",
+      boxShadow: "0 2px 32px rgba(0,0,0,0.22)",
+      background: "#fff",
     }}>
       <canvas
         ref={canvasRef}
@@ -219,5 +333,6 @@ export default function KnowledgeGraph() {
   );
 }
 
-function clamp01(v: number) { return Math.max(0, Math.min(1, v)); }
-function ease(t: number)    { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; } // ease in-out quad
+function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, v)); }
+function clamp01(v: number) { return clamp(v, 0, 1); }
+function ease(t: number)    { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
