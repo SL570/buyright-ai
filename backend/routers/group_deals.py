@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Literal, List
 from urllib.parse import quote_plus
 import os
 import json
+import httpx
 import anthropic
 from pydantic import BaseModel, Field
 
@@ -172,6 +173,49 @@ def leave_deal(
         raise HTTPException(status_code=404, detail="Not a member of this deal")
     db.delete(membership)
     db.commit()
+
+
+@router.get("/search")
+def search_products(
+    q: str = Query(..., min_length=2, max_length=200),
+    user: User = Depends(get_current_user),
+):
+    """Search Google Shopping for real product prices to seed a group deal."""
+    serper_key = os.getenv("SERPER_API_KEY", "")
+    if not serper_key:
+        return []
+    try:
+        resp = httpx.post(
+            "https://google.serper.dev/shopping",
+            headers={"X-API-KEY": serper_key, "Content-Type": "application/json"},
+            json={"q": q.strip(), "num": 8, "gl": "us"},
+            timeout=5.0,
+        )
+        if resp.status_code != 200:
+            return []
+        results = []
+        for item in resp.json().get("shopping", [])[:6]:
+            title     = item.get("title", "")
+            price_str = item.get("price", "")
+            source    = item.get("source", "")
+            image_url = item.get("imageUrl", "")
+            rating    = item.get("rating")
+            try:
+                price_num = float(price_str.replace("$", "").replace(",", ""))
+            except (ValueError, AttributeError):
+                continue
+            if title and price_num > 0:
+                results.append({
+                    "title":  title[:80],
+                    "price":  price_num,
+                    "store":  source[:40],
+                    "image":  image_url or "",
+                    "rating": rating,
+                })
+        return results
+    except Exception as e:
+        print(f"[GROUP DEALS SEARCH] {type(e).__name__}: {e}")
+        return []
 
 
 class ChatMessage(BaseModel):

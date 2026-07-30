@@ -48,9 +48,15 @@ export default function GroupDealsPage() {
   const [form, setForm] = useState({
     product_name: "",
     current_price: "",
+    store: "",
+    image: "",
     discount_pct: 15,
     target_members: 10,
   });
+  const [createStep, setCreateStep] = useState<"search" | "configure">("search");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<{ title: string; price: number; store: string; image: string; rating?: number }[]>([]);
+  const [searching, setSearching] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
 
@@ -124,6 +130,45 @@ export default function GroupDealsPage() {
     }
   }
 
+  function openCreate() {
+    setShowCreate(true);
+    setCreateStep("search");
+    setSearchQuery("");
+    setSearchResults([]);
+    setCreateError("");
+    setForm({ product_name: "", current_price: "", store: "", image: "", discount_pct: 15, target_members: 10 });
+  }
+
+  async function runSearch(e: React.FormEvent) {
+    e.preventDefault();
+    if (!searchQuery.trim() || searching) return;
+    setSearching(true);
+    setSearchResults([]);
+    try {
+      const res = await fetch(
+        `${BASE}/group-deals/search?q=${encodeURIComponent(searchQuery.trim())}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (res.ok) setSearchResults(await res.json());
+    } catch {
+      // fall through to manual entry
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function selectProduct(p: { title: string; price: number; store: string; image: string }) {
+    setForm(f => ({ ...f, product_name: p.title, current_price: String(p.price), store: p.store, image: p.image }));
+    setCreateStep("configure");
+    setCreateError("");
+  }
+
+  function enterManually() {
+    setForm(f => ({ ...f, product_name: searchQuery.trim(), current_price: "", store: "", image: "" }));
+    setCreateStep("configure");
+    setCreateError("");
+  }
+
   async function handleCreateDeal(e: React.FormEvent) {
     e.preventDefault();
     setCreateError("");
@@ -148,7 +193,6 @@ export default function GroupDealsPage() {
       });
       if (res.ok) {
         setShowCreate(false);
-        setForm({ product_name: "", current_price: "", discount_pct: 15, target_members: 10 });
         await fetchDeals(token);
       } else {
         const data = await res.json();
@@ -261,7 +305,7 @@ export default function GroupDealsPage() {
             Pool buying power with other shoppers. Once your group hits the target size, we generate a bulk discount negotiation script to send to the retailer — something no consumer can do alone.
           </p>
         </div>
-        <button onClick={() => setShowCreate(true)} style={S.createBtn}>+ Start a Deal</button>
+        <button onClick={openCreate} style={S.createBtn}>+ Start a Deal</button>
       </div>
 
       <div style={S.tabRow}>
@@ -284,7 +328,7 @@ export default function GroupDealsPage() {
               <p style={{ color: "#64748B", fontSize: 14, margin: "0 0 24px", lineHeight: 1.6, maxWidth: 400 }}>
                 Start the first group deal. When enough people join, we automatically generate a bulk discount negotiation script.
               </p>
-              <button onClick={() => setShowCreate(true)} style={S.createBtn}>+ Start the first deal</button>
+              <button onClick={openCreate} style={S.createBtn}>+ Start the first deal</button>
             </div>
           ) : (
             <div style={S.dealSections}>
@@ -391,110 +435,203 @@ export default function GroupDealsPage() {
 
       {showCreate && (
         <div style={S.overlay} onClick={() => setShowCreate(false)}>
-          <div style={S.modal} onClick={e => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <h2 style={{ color: "#F1F5F9", fontSize: 18, fontWeight: 700, margin: 0 }}>Start a Group Deal</h2>
+          <div style={{ ...S.modal, maxWidth: createStep === "search" && searchResults.length > 0 ? 620 : 480 }} onClick={e => e.stopPropagation()}>
+
+            {/* Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {createStep === "configure" && (
+                  <button onClick={() => setCreateStep("search")} style={{ background: "none", border: "none", color: "#64748B", fontSize: 18, cursor: "pointer", padding: 0, lineHeight: 1 }}>←</button>
+                )}
+                <h2 style={{ color: "#F1F5F9", fontSize: 17, fontWeight: 700, margin: 0 }}>
+                  {createStep === "search" ? "What do you want to buy?" : "Set your deal terms"}
+                </h2>
+              </div>
               <button onClick={() => setShowCreate(false)} style={S.closeBtn}>✕</button>
             </div>
-            <p style={{ color: "#475569", fontSize: 13, margin: "0 0 24px", lineHeight: 1.5 }}>
-              Name your product, set the price, and pick your discount goal. We'll recruit buyers and generate the negotiation script automatically.
-            </p>
-            <form onSubmit={handleCreateDeal} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-              {/* Product name */}
+            {/* ── Step 1: Product search ── */}
+            {createStep === "search" && (
               <div>
-                <label style={S.label}>What do you want to buy?</label>
-                <input
-                  autoFocus
-                  style={{ ...S.formInput, fontSize: 15 }}
-                  value={form.product_name}
-                  onChange={e => setForm(f => ({ ...f, product_name: e.target.value }))}
-                  placeholder="e.g. Sony WH-1000XM5 Headphones"
-                />
-              </div>
+                <form onSubmit={runSearch} style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+                  <input
+                    autoFocus
+                    style={{ ...S.formInput, flex: 1, fontSize: 15 }}
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="e.g. Sony WH-1000XM5 Headphones"
+                  />
+                  <button type="submit" disabled={searching || !searchQuery.trim()} style={{ ...S.submitBtn, padding: "11px 18px", whiteSpace: "nowrap" }}>
+                    {searching ? "…" : "Search"}
+                  </button>
+                </form>
 
-              {/* Current price */}
-              <div>
-                <label style={S.label}>Current price ($)</label>
-                <input
-                  type="number"
-                  style={S.formInput}
-                  value={form.current_price}
-                  onChange={e => setForm(f => ({ ...f, current_price: e.target.value }))}
-                  placeholder="349"
-                  min="1"
-                  max="10000"
-                  step="1"
-                />
-              </div>
+                {/* Searching spinner */}
+                {searching && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#475569", fontSize: 13, padding: "8px 0 16px" }}>
+                    <div style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid rgba(129,140,248,0.2)", borderTopColor: "#818CF8", animation: "spin 0.8s linear infinite", flexShrink: 0 }} />
+                    Searching Google Shopping…
+                  </div>
+                )}
 
-              {/* Discount target */}
-              <div>
-                <label style={S.label}>Discount goal</label>
-                <div style={{ display: "flex", gap: 8 }}>
-                  {[10, 15, 20, 25].map(pct => (
+                {/* Search results grid */}
+                {!searching && searchResults.length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+                    <p style={{ color: "#475569", fontSize: 11, fontWeight: 600, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      Select a product to auto-fill price
+                    </p>
+                    {searchResults.map((r, i) => (
+                      <button
+                        key={i}
+                        onClick={() => selectProduct(r)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 12,
+                          background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
+                          borderRadius: 12, padding: "12px 14px", cursor: "pointer", textAlign: "left",
+                          transition: "border-color 0.15s, background 0.15s",
+                        }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(129,140,248,0.4)"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(129,140,248,0.06)"; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.08)"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.03)"; }}
+                      >
+                        {r.image ? (
+                          <img src={r.image} alt="" style={{ width: 52, height: 52, objectFit: "contain", borderRadius: 8, background: "#1E293B", flexShrink: 0 }} />
+                        ) : (
+                          <div style={{ width: 52, height: 52, borderRadius: 8, background: "rgba(129,140,248,0.08)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>🛍️</div>
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ color: "#E2E8F0", fontSize: 13, fontWeight: 600, margin: "0 0 3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.title}</p>
+                          <p style={{ color: "#475569", fontSize: 12, margin: 0 }}>{r.store}</p>
+                        </div>
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <p style={{ color: "#00F5D4", fontSize: 16, fontWeight: 800, margin: "0 0 2px" }}>${r.price.toFixed(0)}</p>
+                          {r.rating && <p style={{ color: "#FBBF24", fontSize: 11, margin: 0 }}>★ {r.rating}</p>}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* No results / manual entry fallback */}
+                {!searching && (searchResults.length > 0 || searchQuery.trim()) && (
+                  <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 14 }}>
                     <button
-                      key={pct}
-                      type="button"
-                      onClick={() => setForm(f => ({ ...f, discount_pct: pct }))}
-                      style={{
-                        flex: 1, padding: "10px 4px", borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: "pointer",
-                        background: form.discount_pct === pct ? "rgba(129,140,248,0.2)" : "rgba(255,255,255,0.04)",
-                        border: form.discount_pct === pct ? "1px solid rgba(129,140,248,0.5)" : "1px solid rgba(255,255,255,0.08)",
-                        color: form.discount_pct === pct ? "#818CF8" : "#64748B",
-                        transition: "all 0.15s",
-                      }}
+                      onClick={enterManually}
+                      disabled={!searchQuery.trim()}
+                      style={{ width: "100%", background: "rgba(255,255,255,0.03)", border: "1px dashed rgba(255,255,255,0.1)", borderRadius: 10, padding: "11px 16px", color: "#64748B", fontSize: 13, cursor: "pointer" }}
                     >
-                      {pct}% off
+                      {searchResults.length === 0 ? "Enter price manually instead →" : "Don't see yours? Enter manually →"}
                     </button>
-                  ))}
-                </div>
-                {form.current_price && !isNaN(parseFloat(form.current_price)) && (
-                  <p style={{ color: "#00F5D4", fontSize: 13, margin: "10px 0 0", fontWeight: 600 }}>
-                    Target: ${(parseFloat(form.current_price) * (1 - form.discount_pct / 100)).toFixed(0)}
-                    <span style={{ color: "#475569", fontWeight: 400 }}>
-                      {" "}(save ${(parseFloat(form.current_price) * form.discount_pct / 100).toFixed(0)})
-                    </span>
+                  </div>
+                )}
+
+                {!searching && searchResults.length === 0 && !searchQuery.trim() && (
+                  <p style={{ color: "#334155", fontSize: 13, textAlign: "center", padding: "20px 0" }}>
+                    Search for any product to see real prices from Amazon, Walmart, Best Buy, and more.
                   </p>
                 )}
               </div>
+            )}
 
-              {/* Group size stepper */}
-              <div>
-                <label style={S.label}>Group size needed</label>
-                <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-                  <button
-                    type="button"
-                    onClick={() => setForm(f => ({ ...f, target_members: Math.max(2, f.target_members - 1) }))}
-                    style={{ width: 40, height: 44, borderRadius: "9px 0 0 9px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: "#94A3B8", fontSize: 20, cursor: "pointer" }}
-                  >−</button>
-                  <div style={{ flex: 1, height: 44, border: "1px solid rgba(255,255,255,0.1)", borderLeft: "none", borderRight: "none", background: "rgba(255,255,255,0.02)", display: "flex", alignItems: "center", justifyContent: "center", color: "#F1F5F9", fontSize: 16, fontWeight: 700 }}>
-                    {form.target_members} buyers
+            {/* ── Step 2: Deal configuration ── */}
+            {createStep === "configure" && (
+              <form onSubmit={handleCreateDeal} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
+                {/* Selected product preview */}
+                <div style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(129,140,248,0.06)", border: "1px solid rgba(129,140,248,0.2)", borderRadius: 12, padding: "12px 14px" }}>
+                  {form.image ? (
+                    <img src={form.image} alt="" style={{ width: 44, height: 44, objectFit: "contain", borderRadius: 8, background: "#1E293B", flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: 44, height: 44, borderRadius: 8, background: "rgba(129,140,248,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>🛍️</div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ color: "#E2E8F0", fontSize: 13, fontWeight: 700, margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{form.product_name || "Product"}</p>
+                    {form.store && <p style={{ color: "#475569", fontSize: 12, margin: 0 }}>{form.store}</p>}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setForm(f => ({ ...f, target_members: Math.min(100, f.target_members + 1) }))}
-                    style={{ width: 40, height: 44, borderRadius: "0 9px 9px 0", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: "#94A3B8", fontSize: 20, cursor: "pointer" }}
-                  >+</button>
+                  {form.current_price && (
+                    <p style={{ color: "#00F5D4", fontSize: 17, fontWeight: 800, margin: 0, flexShrink: 0 }}>${parseFloat(form.current_price).toFixed(0)}</p>
+                  )}
                 </div>
-                <p style={{ color: "#334155", fontSize: 11, margin: "6px 0 0" }}>
-                  Once enough people join, BuyRight AI generates your bulk discount negotiation script
-                </p>
-              </div>
 
-              {createError && (
-                <div style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 8, padding: "10px 14px", color: "#F87171", fontSize: 13 }}>
-                  {createError}
+                {/* Price (shown only for manual entry) */}
+                {!form.current_price && (
+                  <div>
+                    <label style={S.label}>Current price ($)</label>
+                    <input
+                      autoFocus
+                      type="number"
+                      style={S.formInput}
+                      value={form.current_price}
+                      onChange={e => setForm(f => ({ ...f, current_price: e.target.value }))}
+                      placeholder="What's the current price?"
+                      min="1" max="10000" step="1"
+                    />
+                  </div>
+                )}
+
+                {/* Discount goal */}
+                <div>
+                  <label style={S.label}>Discount goal</label>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {[10, 15, 20, 25].map(pct => (
+                      <button
+                        key={pct}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, discount_pct: pct }))}
+                        style={{
+                          flex: 1, padding: "10px 4px", borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: "pointer",
+                          background: form.discount_pct === pct ? "rgba(129,140,248,0.2)" : "rgba(255,255,255,0.04)",
+                          border: form.discount_pct === pct ? "1px solid rgba(129,140,248,0.5)" : "1px solid rgba(255,255,255,0.08)",
+                          color: form.discount_pct === pct ? "#818CF8" : "#64748B",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        {pct}% off
+                      </button>
+                    ))}
+                  </div>
+                  {form.current_price && !isNaN(parseFloat(form.current_price)) && (
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10, padding: "10px 14px", background: "rgba(0,245,212,0.05)", border: "1px solid rgba(0,245,212,0.15)", borderRadius: 9 }}>
+                      <span style={{ color: "#64748B", fontSize: 13 }}>Group target price</span>
+                      <span>
+                        <span style={{ color: "#00F5D4", fontSize: 17, fontWeight: 800 }}>${(parseFloat(form.current_price) * (1 - form.discount_pct / 100)).toFixed(0)}</span>
+                        <span style={{ color: "#475569", fontSize: 12 }}> (save ${(parseFloat(form.current_price) * form.discount_pct / 100).toFixed(0)})</span>
+                      </span>
+                    </div>
+                  )}
                 </div>
-              )}
 
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", paddingTop: 4 }}>
-                <button type="button" onClick={() => setShowCreate(false)} style={S.cancelBtn}>Cancel</button>
-                <button type="submit" disabled={creating} style={S.submitBtn}>
-                  {creating ? "Creating..." : "Start Deal →"}
-                </button>
-              </div>
-            </form>
+                {/* Group size stepper */}
+                <div>
+                  <label style={S.label}>Buyers needed to unlock deal</label>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <button type="button" onClick={() => setForm(f => ({ ...f, target_members: Math.max(2, f.target_members - 1) }))}
+                      style={{ width: 42, height: 46, borderRadius: "9px 0 0 9px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: "#94A3B8", fontSize: 22, cursor: "pointer" }}>−</button>
+                    <div style={{ flex: 1, height: 46, border: "1px solid rgba(255,255,255,0.1)", borderLeft: "none", borderRight: "none", background: "rgba(255,255,255,0.02)", display: "flex", alignItems: "center", justifyContent: "center", color: "#F1F5F9", fontSize: 16, fontWeight: 700 }}>
+                      {form.target_members} buyers
+                    </div>
+                    <button type="button" onClick={() => setForm(f => ({ ...f, target_members: Math.min(100, f.target_members + 1) }))}
+                      style={{ width: 42, height: 46, borderRadius: "0 9px 9px 0", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: "#94A3B8", fontSize: 22, cursor: "pointer" }}>+</button>
+                  </div>
+                  <p style={{ color: "#334155", fontSize: 11, margin: "6px 0 0" }}>
+                    We generate a bulk negotiation script automatically once the group forms
+                  </p>
+                </div>
+
+                {createError && (
+                  <div style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 8, padding: "10px 14px", color: "#F87171", fontSize: 13 }}>
+                    {createError}
+                  </div>
+                )}
+
+                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", paddingTop: 4 }}>
+                  <button type="button" onClick={() => setShowCreate(false)} style={S.cancelBtn}>Cancel</button>
+                  <button type="submit" disabled={creating} style={S.submitBtn}>
+                    {creating ? "Creating…" : "Start Group Deal →"}
+                  </button>
+                </div>
+              </form>
+            )}
+
           </div>
         </div>
       )}
