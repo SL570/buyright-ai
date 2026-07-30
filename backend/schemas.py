@@ -142,10 +142,10 @@ class WishlistItemOut(BaseModel):
 # ── Group Deals ────────────────────────────────────────────────────────
 class GroupDealCreate(BaseModel):
     product_name:   str
-    product_url:    HttpUrl
+    product_url:    Optional[str] = None  # auto-generated if not provided
     current_price:  float
     target_price:   float
-    target_members: int = 5
+    target_members: int = 10
 
     @field_validator("product_name")
     @classmethod
@@ -170,17 +170,6 @@ class GroupDealCreate(BaseModel):
             raise ValueError("Need at least 2 members for a group deal")
         if v > 100:
             raise ValueError("Target members cannot exceed 100")
-        return v
-
-    @field_validator("product_url")
-    @classmethod
-    def url_trusted(cls, v: HttpUrl) -> HttpUrl:
-        host   = v.host or ""
-        domain = host.removeprefix("www.")
-        if domain not in TRUSTED_DOMAINS:
-            raise ValueError(
-                f"URL must be from a trusted retailer: {', '.join(sorted(TRUSTED_DOMAINS))}"
-            )
         return v
 
 

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Literal, List
+from urllib.parse import quote_plus
 import os
 import json
 import anthropic
@@ -81,9 +82,12 @@ def create_deal(
     db:               Session = Depends(get_db),
     user:             User    = Depends(get_current_user),
 ):
+    product_url = payload.product_url or (
+        f"https://www.google.com/search?q={quote_plus(payload.product_name)}+buy"
+    )
     deal = GroupDeal(
         product_name=payload.product_name,
-        product_url=str(payload.product_url),
+        product_url=product_url,
         current_price=payload.current_price,
         target_price=payload.target_price,
         target_members=payload.target_members,

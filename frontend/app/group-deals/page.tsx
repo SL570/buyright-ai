@@ -26,7 +26,6 @@ interface Message {
 }
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
-const RETAILERS = ["amazon.com", "walmart.com", "bestbuy.com", "target.com"];
 const CHAT_STARTERS = [
   "How does collective bargaining work?",
   "What products are best for group buying?",
@@ -48,10 +47,9 @@ export default function GroupDealsPage() {
 
   const [form, setForm] = useState({
     product_name: "",
-    product_url: "",
     current_price: "",
-    target_price: "",
-    target_members: "10",
+    discount_pct: 15,
+    target_members: 10,
   });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
@@ -130,27 +128,11 @@ export default function GroupDealsPage() {
     e.preventDefault();
     setCreateError("");
     const currentP = parseFloat(form.current_price);
-    const targetP = parseFloat(form.target_price);
-    const targetM = parseInt(form.target_members);
 
-    if (!form.product_name.trim()) { setCreateError("Product name is required"); return; }
-    if (!form.product_url.trim()) { setCreateError("Product URL is required"); return; }
-    if (isNaN(currentP) || currentP <= 0) { setCreateError("Enter a valid current price"); return; }
-    if (isNaN(targetP) || targetP <= 0) { setCreateError("Enter a valid target price"); return; }
-    if (targetP >= currentP) { setCreateError("Target price must be lower than current price"); return; }
-    if (isNaN(targetM) || targetM < 2) { setCreateError("Need at least 2 members"); return; }
+    if (!form.product_name.trim()) { setCreateError("Enter a product name"); return; }
+    if (isNaN(currentP) || currentP <= 0) { setCreateError("Enter a valid price"); return; }
 
-    try {
-      const url = new URL(form.product_url);
-      const domain = url.hostname.replace("www.", "");
-      if (!RETAILERS.includes(domain)) {
-        setCreateError(`URL must be from a supported retailer: ${RETAILERS.join(", ")}`);
-        return;
-      }
-    } catch {
-      setCreateError("Enter a valid product URL (e.g. https://www.amazon.com/dp/...)");
-      return;
-    }
+    const targetP = parseFloat((currentP * (1 - form.discount_pct / 100)).toFixed(2));
 
     setCreating(true);
     try {
@@ -159,15 +141,14 @@ export default function GroupDealsPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           product_name: form.product_name.trim(),
-          product_url: form.product_url.trim(),
           current_price: currentP,
           target_price: targetP,
-          target_members: targetM,
+          target_members: form.target_members,
         }),
       });
       if (res.ok) {
         setShowCreate(false);
-        setForm({ product_name: "", product_url: "", current_price: "", target_price: "", target_members: "10" });
+        setForm({ product_name: "", current_price: "", discount_pct: 15, target_members: 10 });
         await fetchDeals(token);
       } else {
         const data = await res.json();
@@ -411,85 +392,106 @@ export default function GroupDealsPage() {
       {showCreate && (
         <div style={S.overlay} onClick={() => setShowCreate(false)}>
           <div style={S.modal} onClick={e => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <h2 style={{ color: "#F1F5F9", fontSize: 18, fontWeight: 700, margin: 0 }}>Start a Group Deal</h2>
               <button onClick={() => setShowCreate(false)} style={S.closeBtn}>✕</button>
             </div>
-            <form onSubmit={handleCreateDeal} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <p style={{ color: "#475569", fontSize: 13, margin: "0 0 24px", lineHeight: 1.5 }}>
+              Name your product, set the price, and pick your discount goal. We'll recruit buyers and generate the negotiation script automatically.
+            </p>
+            <form onSubmit={handleCreateDeal} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
+              {/* Product name */}
               <div>
-                <label style={S.label}>Product Name</label>
+                <label style={S.label}>What do you want to buy?</label>
                 <input
-                  style={S.formInput}
+                  autoFocus
+                  style={{ ...S.formInput, fontSize: 15 }}
                   value={form.product_name}
                   onChange={e => setForm(f => ({ ...f, product_name: e.target.value }))}
-                  placeholder="e.g. PlayStation 5 Console"
+                  placeholder="e.g. Sony WH-1000XM5 Headphones"
                 />
               </div>
+
+              {/* Current price */}
               <div>
-                <label style={S.label}>
-                  Product URL{" "}
-                  <span style={{ color: "#475569", fontSize: 11, fontWeight: 400 }}>
-                    Amazon, Walmart, Best Buy, or Target only
-                  </span>
-                </label>
-                <input
-                  style={S.formInput}
-                  value={form.product_url}
-                  onChange={e => setForm(f => ({ ...f, product_url: e.target.value }))}
-                  placeholder="https://www.amazon.com/dp/..."
-                />
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={S.label}>Current Price ($)</label>
-                  <input
-                    type="number"
-                    style={S.formInput}
-                    value={form.current_price}
-                    onChange={e => setForm(f => ({ ...f, current_price: e.target.value }))}
-                    placeholder="499"
-                    min="0.01"
-                    max="10000"
-                    step="0.01"
-                  />
-                </div>
-                <div>
-                  <label style={S.label}>Target Price ($)</label>
-                  <input
-                    type="number"
-                    style={S.formInput}
-                    value={form.target_price}
-                    onChange={e => setForm(f => ({ ...f, target_price: e.target.value }))}
-                    placeholder="449"
-                    min="0.01"
-                    max="10000"
-                    step="0.01"
-                  />
-                </div>
-              </div>
-              <div>
-                <label style={S.label}>Members Needed</label>
+                <label style={S.label}>Current price ($)</label>
                 <input
                   type="number"
                   style={S.formInput}
-                  value={form.target_members}
-                  onChange={e => setForm(f => ({ ...f, target_members: e.target.value }))}
-                  min="2"
-                  max="100"
+                  value={form.current_price}
+                  onChange={e => setForm(f => ({ ...f, current_price: e.target.value }))}
+                  placeholder="349"
+                  min="1"
+                  max="10000"
+                  step="1"
                 />
-                <p style={{ color: "#475569", fontSize: 11, margin: "6px 0 0" }}>
-                  Committed buyers needed before we generate your bulk discount script (min 2, max 100)
+              </div>
+
+              {/* Discount target */}
+              <div>
+                <label style={S.label}>Discount goal</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[10, 15, 20, 25].map(pct => (
+                    <button
+                      key={pct}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, discount_pct: pct }))}
+                      style={{
+                        flex: 1, padding: "10px 4px", borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: "pointer",
+                        background: form.discount_pct === pct ? "rgba(129,140,248,0.2)" : "rgba(255,255,255,0.04)",
+                        border: form.discount_pct === pct ? "1px solid rgba(129,140,248,0.5)" : "1px solid rgba(255,255,255,0.08)",
+                        color: form.discount_pct === pct ? "#818CF8" : "#64748B",
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      {pct}% off
+                    </button>
+                  ))}
+                </div>
+                {form.current_price && !isNaN(parseFloat(form.current_price)) && (
+                  <p style={{ color: "#00F5D4", fontSize: 13, margin: "10px 0 0", fontWeight: 600 }}>
+                    Target: ${(parseFloat(form.current_price) * (1 - form.discount_pct / 100)).toFixed(0)}
+                    <span style={{ color: "#475569", fontWeight: 400 }}>
+                      {" "}(save ${(parseFloat(form.current_price) * form.discount_pct / 100).toFixed(0)})
+                    </span>
+                  </p>
+                )}
+              </div>
+
+              {/* Group size stepper */}
+              <div>
+                <label style={S.label}>Group size needed</label>
+                <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, target_members: Math.max(2, f.target_members - 1) }))}
+                    style={{ width: 40, height: 44, borderRadius: "9px 0 0 9px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: "#94A3B8", fontSize: 20, cursor: "pointer" }}
+                  >−</button>
+                  <div style={{ flex: 1, height: 44, border: "1px solid rgba(255,255,255,0.1)", borderLeft: "none", borderRight: "none", background: "rgba(255,255,255,0.02)", display: "flex", alignItems: "center", justifyContent: "center", color: "#F1F5F9", fontSize: 16, fontWeight: 700 }}>
+                    {form.target_members} buyers
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, target_members: Math.min(100, f.target_members + 1) }))}
+                    style={{ width: 40, height: 44, borderRadius: "0 9px 9px 0", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: "#94A3B8", fontSize: 20, cursor: "pointer" }}
+                  >+</button>
+                </div>
+                <p style={{ color: "#334155", fontSize: 11, margin: "6px 0 0" }}>
+                  Once enough people join, BuyRight AI generates your bulk discount negotiation script
                 </p>
               </div>
+
               {createError && (
                 <div style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 8, padding: "10px 14px", color: "#F87171", fontSize: 13 }}>
                   {createError}
                 </div>
               )}
+
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", paddingTop: 4 }}>
                 <button type="button" onClick={() => setShowCreate(false)} style={S.cancelBtn}>Cancel</button>
                 <button type="submit" disabled={creating} style={S.submitBtn}>
-                  {creating ? "Creating..." : "Create Deal →"}
+                  {creating ? "Creating..." : "Start Deal →"}
                 </button>
               </div>
             </form>
