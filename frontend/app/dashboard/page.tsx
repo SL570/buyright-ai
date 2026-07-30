@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { getQuota, consumeQuery, FREE_LIMIT, type Quota } from "@/lib/queryQuota";
 
 const BASE   = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 const ACCENT = "#00F5D4";
@@ -83,6 +84,7 @@ export default function DashboardPage() {
   const [sessions, setSessions] = useState<HistorySession[]>([]);
   const [loadingH, setLoadingH] = useState(true);
   const [query,    setQuery]    = useState("");
+  const [quota,    setQuota]    = useState<Quota>({ used: 0, limit: FREE_LIMIT, remaining: FREE_LIMIT, isLimited: false });
   const inputRef   = useRef<HTMLInputElement>(null);
   const fetchedRef = useRef(false);
 
@@ -90,6 +92,8 @@ export default function DashboardPage() {
     if (status === "unauthenticated") { router.push("/sign-in"); return; }
     if (status === "authenticated" && !fetchedRef.current) {
       fetchedRef.current = true;
+      const email = session?.user?.email ?? "";
+      if (email) setQuota(getQuota(email));
       fetch("/api/token")
         .then(r => r.json())
         .then(d => {
@@ -103,9 +107,17 @@ export default function DashboardPage() {
         })
         .catch(() => router.push("/sign-in"));
     }
-  }, [status, router]);
+  }, [status, router, session]);
 
   function ask(q: string) {
+    const email = session?.user?.email ?? "";
+    const allowed = consumeQuery(email);
+    if (!allowed) {
+      // Refresh quota state so UI updates immediately to the locked paywall
+      setQuota(getQuota(email));
+      return;
+    }
+    setQuota(getQuota(email));
     router.push(`/procurement?q=${encodeURIComponent(q)}`);
   }
 
@@ -156,34 +168,77 @@ export default function DashboardPage() {
           <p style={S.greetLine}>{greeting()}, {firstName}.</p>
           <h1 style={S.h1}>What are you shopping for today?</h1>
 
-          <form onSubmit={handleSearch} style={S.searchWrap}>
-            <div style={S.searchBox}>
-              <span style={S.searchIcon}>⌕</span>
-              <input
-                ref={inputRef}
-                style={S.searchInput}
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder='Try "Gaming laptop under $1,200 by August"...'
-                autoFocus
-              />
-              <button type="submit" disabled={!query.trim()} style={{
-                ...S.searchBtn,
-                opacity: query.trim() ? 1 : 0.4,
-                cursor: query.trim() ? "pointer" : "default",
-              }}>
-                Ask AI →
-              </button>
+          {quota.isLimited ? (
+            /* ── Paywall card ───────────────────────────────────────── */
+            <div style={S.paywallCard}>
+              <div style={S.paywallIcon}>⊘</div>
+              <h2 style={S.paywallTitle}>You&apos;ve used your {FREE_LIMIT} free queries</h2>
+              <p style={S.paywallSub}>
+                Upgrade to Pro to keep shopping smarter — unlimited AI verdicts,
+                automated negotiation, group deals, and post-purchase monitoring.
+              </p>
+              <Link href="/pricing" style={S.upgradeBtn}>Upgrade to Pro — $9/month →</Link>
+              <p style={S.paywallMeta}>
+                No commitment · cancel anytime · results in seconds
+              </p>
             </div>
-          </form>
+          ) : (
+            /* ── Normal search UI ───────────────────────────────────── */
+            <>
+              <form onSubmit={handleSearch} style={S.searchWrap}>
+                <div style={S.searchBox}>
+                  <span style={S.searchIcon}>⌕</span>
+                  <input
+                    ref={inputRef}
+                    style={S.searchInput}
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                    placeholder='Try "Gaming laptop under $1,200 by August"...'
+                    autoFocus
+                  />
+                  <button type="submit" disabled={!query.trim()} style={{
+                    ...S.searchBtn,
+                    opacity: query.trim() ? 1 : 0.4,
+                    cursor: query.trim() ? "pointer" : "default",
+                  }}>
+                    Ask AI →
+                  </button>
+                </div>
+              </form>
 
-          <div style={S.chips}>
-            {QUICK_CHIPS.map(c => (
-              <button key={c.label} onClick={() => ask(c.q)} style={S.chip}>
-                {c.label}
-              </button>
-            ))}
-          </div>
+              {/* Quota meter */}
+              <div style={S.quotaRow}>
+                <div style={S.quotaMeter}>
+                  {Array.from({ length: FREE_LIMIT }).map((_, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        ...S.quotaDot,
+                        background: i < quota.used ? "rgba(255,255,255,0.15)" : ACCENT,
+                      }}
+                    />
+                  ))}
+                </div>
+                <span style={{
+                  ...S.quotaLabel,
+                  color: quota.remaining <= 1 ? "#FB923C" : "#64748B",
+                }}>
+                  {quota.remaining} of {FREE_LIMIT} free {quota.remaining === 1 ? "query" : "queries"} remaining
+                  {quota.remaining <= 2 && (
+                    <Link href="/pricing" style={S.quotaUpgradeLink}> · Upgrade</Link>
+                  )}
+                </span>
+              </div>
+
+              <div style={S.chips}>
+                {QUICK_CHIPS.map(c => (
+                  <button key={c.label} onClick={() => ask(c.q)} style={S.chip}>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </section>
 
         {/* Recent Research */}
@@ -304,6 +359,21 @@ const S: Record<string, React.CSSProperties> = {
   searchBtn:        { background: ACCENT, color: "#0B0F19", border: "none", borderRadius: 10, padding: "10px 22px", fontWeight: 700, fontSize: 14, fontFamily: "inherit", flexShrink: 0, whiteSpace: "nowrap" as const },
   chips:            { display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" as const },
   chip:             { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)", color: "#94A3B8", borderRadius: 99, padding: "7px 16px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" },
+
+  // Quota meter
+  quotaRow:         { display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 20, marginTop: -8 },
+  quotaMeter:       { display: "flex", gap: 4 },
+  quotaDot:         { width: 8, height: 8, borderRadius: "50%", transition: "background 0.3s" },
+  quotaLabel:       { fontSize: 12, fontFamily: "inherit" },
+  quotaUpgradeLink: { color: "#FB923C", textDecoration: "none", fontWeight: 600 },
+
+  // Paywall card
+  paywallCard:      { maxWidth: 560, margin: "0 auto 32px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 18, padding: "40px 36px", textAlign: "center" as const },
+  paywallIcon:      { fontSize: 32, color: "#475569", marginBottom: 16 },
+  paywallTitle:     { color: "#F1F5F9", fontSize: 22, fontWeight: 800, margin: "0 0 12px", letterSpacing: "-0.3px" },
+  paywallSub:       { color: "#64748B", fontSize: 15, lineHeight: 1.6, margin: "0 0 28px" },
+  upgradeBtn:       { display: "inline-block", background: ACCENT, color: "#0B0F19", borderRadius: 10, padding: "13px 28px", fontWeight: 800, fontSize: 15, textDecoration: "none", fontFamily: "inherit" },
+  paywallMeta:      { color: "#334155", fontSize: 12, margin: "16px 0 0" },
   section:          { paddingBottom: 56 },
   sectionHeader:    { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
   sectionTitle:     { color: "#F1F5F9", fontSize: 18, fontWeight: 700, margin: 0 },
