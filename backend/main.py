@@ -9,7 +9,6 @@ from fastapi.responses import JSONResponse, HTMLResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
@@ -25,14 +24,13 @@ from routers import chat as chat_router
 from routers import procurement as procurement_router
 from routers import billing as billing_router
 from routers import history as history_router
-from tasks.price_monitor import check_prices
 
 load_dotenv()
 
 sentry_sdk.init(
     dsn=os.getenv("SENTRY_DSN", ""),
     integrations=[FastApiIntegration(), SqlalchemyIntegration()],
-    traces_sample_rate=1.0,
+    traces_sample_rate=float(os.getenv("SENTRY_SAMPLE_RATE", "0.1")),
     send_default_pii=False,
 )
 
@@ -160,16 +158,17 @@ def root():
     return {"status": "ok"}
 
 
-@app.get("/api/price-check")
-@limiter.limit("20/minute")
-def price_check(request: Request):
-    return {"item": "Sample Laptop", "current_price": 799, "recommendation": "Wait 7 days"}
-
-
-# ── Background price monitor ──────────────────────────────────────────
-scheduler = BackgroundScheduler()
-scheduler.add_job(check_prices, "interval", hours=1, id="price_monitor")
-scheduler.start()
+@app.on_event("startup")
+def run_db_migrations():
+    """Add columns that may not exist in databases created before schema changes."""
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN free_queries_used INTEGER NOT NULL DEFAULT 0"))
+            conn.commit()
+            print("[DB] Migration: added free_queries_used column")
+        except Exception:
+            pass  # Column already exists
 
 
 @app.on_event("startup")
@@ -187,6 +186,3 @@ def seed_pinecone():
         print(f"[PINECONE] Startup seed skipped: {e}")
 
 
-@app.on_event("shutdown")
-def shutdown_scheduler():
-    scheduler.shutdown()

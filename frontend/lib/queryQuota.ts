@@ -30,6 +30,26 @@ export function getQuota(email: string): Quota {
   }
 }
 
+/**
+ * Sync quota from backend (source of truth) into localStorage.
+ * Call once on dashboard load; the server value wins over localStorage.
+ */
+export async function syncWithServer(apiToken: string, apiBase: string): Promise<void> {
+  try {
+    const res = await fetch(`${apiBase}/billing/status`, {
+      headers: { Authorization: `Bearer ${apiToken}` },
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const email: string = data.email ?? "";
+    if (!email || typeof window === "undefined") return;
+    const serverUsed = typeof data.free_queries_used === "number" ? data.free_queries_used : 0;
+    localStorage.setItem(key(email), JSON.stringify({ used: serverUsed }));
+  } catch {
+    // Network failure — keep localStorage value
+  }
+}
+
 // Returns true if the query is allowed (and records it), false if quota exhausted.
 export function consumeQuery(email: string): boolean {
   if (typeof window === "undefined" || !email) return true; // SSR: fail open

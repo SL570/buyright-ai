@@ -228,9 +228,10 @@ function ProcurementPageInner() {
             });
             clearTimeout(timer);
             const data = await res.json();
-            setSubscribed(data.subscribed ?? true);
+            setSubscribed(data.subscribed === true);
           } catch {
-            setSubscribed(true);
+            // Backend unreachable — fail closed; backend enforces 403 on each request anyway
+            setSubscribed(false);
           }
         })
         .catch(() => router.push("/sign-in"));

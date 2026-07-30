@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getQuota, consumeQuery, FREE_LIMIT, type Quota } from "@/lib/queryQuota";
+import { getQuota, consumeQuery, syncWithServer, FREE_LIMIT, type Quota } from "@/lib/queryQuota";
 import { timeAgo } from "@/lib/utils";
 
 const BASE   = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
@@ -85,8 +85,11 @@ export default function DashboardPage() {
       if (email) setQuota(getQuota(email));
       fetch("/api/token")
         .then(r => r.json())
-        .then(d => {
+        .then(async d => {
           if (!d.token) { router.push("/sign-in"); return; }
+          // Sync quota from backend (server is source of truth)
+          await syncWithServer(d.token, BASE);
+          if (email) setQuota(getQuota(email));
           fetch(`${BASE}/history`, { headers: { Authorization: `Bearer ${d.token}` } })
             .then(r => r.ok ? r.json() : [])
             .then(data => setSessions(Array.isArray(data) ? data.slice(0, 4) : []))

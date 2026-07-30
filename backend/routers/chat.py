@@ -5,10 +5,14 @@ from typing import Literal, List
 import os
 import json
 import anthropic
+from sqlalchemy.orm import Session
 
+from database import get_db
 from auth import get_current_user
 from services.vector import search_knowledge
 from services.ratelimit import check_user_rate_limit
+
+FREE_LIMIT = 5
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -51,11 +55,22 @@ class ChatRequest(BaseModel):
 
 
 @router.post("")
-def chat(req: ChatRequest, user=Depends(get_current_user)):
+def chat(req: ChatRequest, user=Depends(get_current_user), db: Session = Depends(get_db)):
     if not req.messages:
         raise HTTPException(status_code=400, detail="No messages provided")
     if not check_user_rate_limit(user.email):
         raise HTTPException(status_code=429, detail="Too many requests. Please wait before sending another message.")
+
+    # Free tier quota enforcement (server-side source of truth)
+    if not user.is_subscribed:
+        used = user.free_queries_used or 0
+        if used >= FREE_LIMIT:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Free tier limit reached ({FREE_LIMIT} queries). Upgrade to Pro for unlimited access.",
+            )
+        user.free_queries_used = used + 1
+        db.commit()
 
     history = req.messages[-20:]
     latest_query = req.messages[-1].content if req.messages else ""

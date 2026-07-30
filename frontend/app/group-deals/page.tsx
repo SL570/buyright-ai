@@ -214,9 +214,37 @@ export default function GroupDealsPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ messages: next, context: buildDealContext() }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Error");
-      setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: "Error" }));
+        throw new Error(err.detail || "Error");
+      }
+      if (!res.body) throw new Error("No response received");
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
+      let buffer = "";
+      outer: while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6).trim();
+          if (payload === "[DONE]") break outer;
+          try {
+            const parsed = JSON.parse(payload);
+            if (parsed.error) throw new Error(parsed.error);
+            if (parsed.text) {
+              fullText += parsed.text;
+              setMessages([...next, { role: "assistant", content: fullText }]);
+            }
+          } catch (parseErr) {
+            if (!(parseErr instanceof SyntaxError)) throw parseErr;
+          }
+        }
+      }
     } catch (e: any) {
       setMessages(prev => [...prev, { role: "assistant", content: `Error: ${e.message}` }]);
     } finally {

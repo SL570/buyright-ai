@@ -15,7 +15,7 @@ router = APIRouter(prefix="/billing", tags=["billing"])
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
 PRICE_ID       = os.getenv("STRIPE_PRICE_ID", "")
 WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
-FRONTEND_URL   = "https://buyright-ai-ten.vercel.app"
+FRONTEND_URL   = os.getenv("FRONTEND_URL", "https://buyright-ai-ten.vercel.app")
 
 
 @router.get("/status")
@@ -28,7 +28,12 @@ def billing_status(user: User = Depends(get_current_user), db: Session = Depends
                 db.commit()
         except Exception:
             pass
-    return {"subscribed": user.is_subscribed, "email": user.email}
+    return {
+        "subscribed":         user.is_subscribed,
+        "email":              user.email,
+        "free_queries_used":  user.free_queries_used or 0,
+        "free_queries_limit": 5,
+    }
 
 
 @router.post("/create-checkout-session")

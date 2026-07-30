@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Literal, List
 import os
+import json
 import anthropic
 from pydantic import BaseModel, Field
 
@@ -210,15 +212,25 @@ def group_chat(req: GroupChatRequest, user: User = Depends(get_current_user)):
     system = GROUP_DEAL_PROMPT
     if req.context:
         system = f"{GROUP_DEAL_PROMPT}\n\nLive deal board context (use this to give specific advice about real deals):\n{req.context}"
-    try:
-        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-        response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=800,
-            system=system,
-            messages=[{"role": m.role, "content": m.content} for m in history],
-        )
-        return {"reply": response.content[0].text}
-    except Exception as e:
-        print(f"[GROUP CHAT ERROR] {type(e).__name__}: {e}")
-        raise HTTPException(status_code=500, detail="AI service unavailable. Please try again.")
+    messages_data = [{"role": m.role, "content": m.content} for m in history]
+
+    def _gen():
+        try:
+            client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+            with client.messages.stream(
+                model="claude-sonnet-4-6",
+                max_tokens=800,
+                system=system,
+                messages=messages_data,
+            ) as stream:
+                for text in stream.text_stream:
+                    yield f"data: {json.dumps({'text': text})}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            print(f"[GROUP CHAT ERROR] {type(e).__name__}: {e}")
+            yield f"data: {json.dumps({'error': 'AI service unavailable. Please try again.'})}\n\n"
+
+    return StreamingResponse(_gen(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    })
