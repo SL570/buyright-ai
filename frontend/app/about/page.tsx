@@ -156,7 +156,7 @@ export default function AboutPage() {
               <p style={S.planLabel}>Free</p>
               <p style={S.planPrice}>$0<span style={S.planPer}>/month</span></p>
               <ul style={S.planFeats}>
-                {["AI price advisor — unlimited queries", "Buy / wait / negotiate verdicts", "Live price comparison across retailers", "Conversation history"].map(f => (
+                {["AI price advisor — 5 free queries", "Buy / wait / negotiate verdicts", "Live price comparison across retailers", "Conversation history"].map(f => (
                   <li key={f} style={S.planFeat}><span style={{ color: "#00F5D4", marginRight: 8 }}>✓</span>{f}</li>
                 ))}
                 {["Consumer Procurement agent", "Automated negotiation", "Post-purchase fulfillment", "Group & collective deals"].map(f => (

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useRef, useState } from "react";
+import { Fragment, Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
@@ -163,7 +163,6 @@ function ProcurementPageInner() {
   const bottomRef                       = useRef<HTMLDivElement>(null);
   const recogRef                        = useRef<any>(null);
   const autoSendRef                     = useRef("");
-  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
   useEffect(() => {
     if (!loading) { setLoadingMsg(activeMsgsRef.current[0]); return; }
@@ -203,7 +202,7 @@ function ProcurementPageInner() {
           const sid = searchParams.get("session");
           if (sid) {
             try {
-              const sr = await fetch(`${BASE_URL}/history/${sid}`, {
+              const sr = await fetch(`${BASE}/history/${sid}`, {
                 headers: { Authorization: `Bearer ${d.token}` },
               });
               if (sr.ok) {
@@ -223,7 +222,7 @@ function ProcurementPageInner() {
           try {
             const ctrl = new AbortController();
             const timer = setTimeout(() => ctrl.abort(), 8000);
-            const res = await fetch(`${BASE_URL}/billing/status`, {
+            const res = await fetch(`${BASE}/billing/status`, {
               headers: { Authorization: `Bearer ${d.token}` },
               signal: ctrl.signal,
             });
@@ -236,7 +235,7 @@ function ProcurementPageInner() {
         })
         .catch(() => router.push("/sign-in"));
     }
-  }, [status, router]);
+  }, [status, router, searchParams]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -318,7 +317,7 @@ function ProcurementPageInner() {
         const finalMsgs = [...next, { role: "assistant" as const, content: fullText }];
         const prod = getFirstProduct(finalMsgs);
         if (prod?.name && token) {
-          fetch(`${BASE_URL}/prices`, {
+          fetch(`${BASE}/prices`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
             body: JSON.stringify({ query: prod.name }),
@@ -329,13 +328,13 @@ function ProcurementPageInner() {
         const title = next[0]?.content.slice(0, 60) ?? "Research";
         try {
           if (sessionId) {
-            await fetch(`${BASE_URL}/history/${sessionId}`, {
+            await fetch(`${BASE}/history/${sessionId}`, {
               method: "PUT",
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
               body: JSON.stringify({ messages: finalMsgs, title, product: prod?.name, category: prod?.category }),
             });
           } else {
-            const hr = await fetch(`${BASE_URL}/history`, {
+            const hr = await fetch(`${BASE}/history`, {
               method: "POST",
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
               body: JSON.stringify({ messages: finalMsgs, title, product: prod?.name, category: prod?.category }),
@@ -355,10 +354,7 @@ function ProcurementPageInner() {
     }
 
     if (errMsg) {
-      setMessages(prev => [...prev, {
-        role: "assistant",
-        content: "Couldn't load this recommendation.\n\nPlease try again, or choose another question below.",
-      }]);
+      setMessages(prev => [...prev, { role: "assistant", content: errMsg }]);
     }
     setLoading(false);
   }
@@ -496,7 +492,7 @@ function ProcurementPageInner() {
               const next   = i === journeyStep + 1 || (journeyStep === 0 && i === 1);
               const canClick = i > 0 && i <= journeyStep + 1;
               return (
-                <React.Fragment key={step.label}>
+                <Fragment key={step.label}>
                   {i > 0 && (
                     <div style={{ flex: 1, height: 1, minWidth: 10, maxWidth: 48, background: done ? ACCENT : "rgba(255,255,255,0.06)", transition: "background 0.3s" }} />
                   )}
@@ -529,7 +525,7 @@ function ProcurementPageInner() {
                       {step.label}
                     </span>
                   </button>
-                </React.Fragment>
+                </Fragment>
               );
             })}
           </div>

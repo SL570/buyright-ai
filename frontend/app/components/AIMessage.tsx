@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -746,60 +746,6 @@ function MeterGauge({ pct, color }: { pct: number; color: string }) {
       <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={5} strokeDasharray={`${fillLen} ${circ}`} strokeLinecap="round" transform={`rotate(135 ${cx} ${cy})`} />
       <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="middle" fill={color} fontSize={13} fontWeight={800} fontFamily="monospace">{Math.round(pct * 100)}</text>
     </svg>
-  );
-}
-
-function DecisionMeter({ data, score }: { data: DecisionSummaryData; score?: number }) {
-  const raw   = score ?? 80;
-  const pct   = raw / 100;
-  const color = data.wait ? "#F5A83A" : raw >= 85 ? "#00CF72" : "#5DDBA8";
-  const verdict = data.verdict ?? (data.wait ? "WAIT" : "BUY");
-  const stars = Math.round(raw / 20);
-
-  return (
-    <div style={{
-      background: `linear-gradient(135deg, rgba(0,0,0,0.22) 0%, ${color}09 100%)`,
-      border: `1px solid ${color}30`, borderRadius: 14,
-      padding: "20px 20px 16px", marginBottom: 14,
-    }}>
-      {/* Verdict row */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <div style={{ fontSize: 34, fontWeight: 900, color, lineHeight: 1, letterSpacing: "-0.01em" }}>{verdict}</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 7 }}>
-            <span style={{ fontSize: 15, letterSpacing: 3, color: "#F5A83A" }}>
-              {"★".repeat(stars)}{"☆".repeat(5 - stars)}
-            </span>
-            <span style={{ fontSize: 11, color: "#3D5571", fontFamily: "monospace" }}>{raw}/100</span>
-          </div>
-        </div>
-        <MeterGauge pct={pct} color={color} />
-      </div>
-
-      {/* Emotional reason — the main sell */}
-      {data.reason && (
-        <div style={{
-          fontSize: 14, color: "#C4D4E8", lineHeight: 1.7, marginTop: 14,
-          borderTop: `0.5px solid ${color}20`, paddingTop: 12,
-        }}>
-          {data.reason}
-        </div>
-      )}
-
-      {/* Price status */}
-      {data.priceStatus && (
-        <div style={{ marginTop: 10 }}>
-          <span style={{
-            display: "inline-flex", alignItems: "center", gap: 5,
-            background: "rgba(0,207,114,0.08)", border: "0.5px solid rgba(0,207,114,0.2)",
-            borderRadius: 99, padding: "3px 10px",
-          }}>
-            <span style={{ fontSize: 8 }}>🟢</span>
-            <span style={{ fontSize: 11, color: "#5DDBA8" }}>{data.priceStatus}</span>
-          </span>
-        </div>
-      )}
-    </div>
   );
 }
 

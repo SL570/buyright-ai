@@ -37,7 +37,7 @@ export const authOptions: NextAuthOptions = {
         session.user.name = token.name as string;
         session.user.image = token.picture as string;
       }
-      (session as any).accessToken = await encode({
+      session.accessToken = await encode({
         token,
         secret: process.env.NEXTAUTH_SECRET!,
       });

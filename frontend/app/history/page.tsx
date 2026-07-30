@@ -1,9 +1,9 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-
-const BASE   = process.env.NEXT_PUBLIC_API_URL ?? "https://buyright-ai.onrender.com";
+import { API_BASE as BASE } from "@/lib/config";
+import { timeAgo } from "@/lib/utils";
 const ACCENT = "#00F5D4";
 
 interface Session {
@@ -16,17 +16,6 @@ interface Session {
   updated_at: string;
 }
 
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1)  return "just now";
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  if (d < 7)  return `${d}d ago`;
-  return new Date(iso).toLocaleDateString();
-}
 
 function categoryEmoji(cat: string | null): string {
   const c = (cat ?? "").toLowerCase();
@@ -66,7 +55,7 @@ export default function HistoryPage() {
   const [deleting, setDeleting] = useState<number | null>(null);
   const fetchedRef = useRef(false);
 
-  const token = (session as any)?.accessToken as string | undefined;
+  const token = session?.accessToken;
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/sign-in"); return; }
@@ -74,7 +63,7 @@ export default function HistoryPage() {
       fetchedRef.current = true;
       load(token);
     }
-  }, [status, token]);
+  }, [status, token, router]);
 
   async function load(t: string) {
     try {

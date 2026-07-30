@@ -5,6 +5,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getQuota, consumeQuery, FREE_LIMIT, type Quota } from "@/lib/queryQuota";
+import { timeAgo } from "@/lib/utils";
 
 const BASE   = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 const ACCENT = "#00F5D4";
@@ -19,17 +20,6 @@ interface HistorySession {
   updated_at: string;
 }
 
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1)  return "just now";
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  if (d < 7)  return `${d}d ago`;
-  return new Date(iso).toLocaleDateString();
-}
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -80,7 +70,6 @@ export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const [token,    setToken]    = useState("");
   const [sessions, setSessions] = useState<HistorySession[]>([]);
   const [loadingH, setLoadingH] = useState(true);
   const [query,    setQuery]    = useState("");
@@ -98,7 +87,6 @@ export default function DashboardPage() {
         .then(r => r.json())
         .then(d => {
           if (!d.token) { router.push("/sign-in"); return; }
-          setToken(d.token);
           fetch(`${BASE}/history`, { headers: { Authorization: `Bearer ${d.token}` } })
             .then(r => r.ok ? r.json() : [])
             .then(data => setSessions(Array.isArray(data) ? data.slice(0, 4) : []))
@@ -390,12 +378,10 @@ const S: Record<string, React.CSSProperties> = {
   trendingGrid:     { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12 },
   trendCard:        { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "18px 16px", display: "flex", flexDirection: "column", gap: 10, cursor: "pointer", textAlign: "left" as const, fontFamily: "inherit" },
   trendTop:         { display: "flex", justifyContent: "space-between", alignItems: "flex-start" },
-  trendIcon:        { fontSize: 28 },
   trendBadge:       { background: "rgba(255,255,255,0.06)", color: "#94A3B8", fontSize: 10, borderRadius: 99, padding: "2px 8px", fontWeight: 600, whiteSpace: "nowrap" as const },
   trendLabel:       { color: "#E2E8F0", fontSize: 13, fontWeight: 600, margin: 0, lineHeight: 1.4 },
   collGrid:         { display: "flex", flexDirection: "column", gap: 10 },
   collCard:         { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "16px 20px", display: "flex", alignItems: "center", gap: 16, cursor: "pointer", textAlign: "left" as const, fontFamily: "inherit" },
-  collIcon:         { fontSize: 28, flexShrink: 0 },
   collLabel:        { color: "#E2E8F0", fontSize: 14, fontWeight: 700, margin: "0 0 3px" },
   collDesc:         { color: "#475569", fontSize: 12, margin: 0 },
   collArrow:        { color: "#475569", fontSize: 18, marginLeft: "auto", flexShrink: 0 },
