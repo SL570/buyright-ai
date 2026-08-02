@@ -15,13 +15,19 @@ const FAQS = [
   { q: "Can I cancel Pro anytime?", a: "Yes. No contracts, no cancellation fees. Cancel from your account settings and you keep Pro access until the end of your billing period." },
 ];
 
+const IC = (path: string, vb = "0 0 24 24") => (
+  <svg width="22" height="22" viewBox={vb} fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    {path.split("|").map((d, i) => <path key={i} d={d} />)}
+  </svg>
+);
+
 const FEATURES = [
-  { icon: "📊", title: "Price History & Trends",       desc: "See the full price history across retailers. Know if today's price is a real deal or just marketing." },
-  { icon: "⏱",  title: "Timing Intelligence",          desc: "We know when sales cycles hit. Back-to-school, Prime Day, Black Friday — we tell you whether to buy now or wait for the drop." },
-  { icon: "🤝", title: "Retailer Negotiation",         desc: "AI drafts and sends negotiation emails citing competitor prices, timing leverage, and loyalty status. Discounts humans rarely get." },
-  { icon: "⚠️", title: "Hidden Catches Flagged",       desc: "Poor build quality, misleading specs, review manipulation, bundled junk warranties — we read between the lines so you don't have to." },
-  { icon: "📦", title: "Post-Purchase Protection",     desc: "Price dropped after you bought? We file the price adjustment claim for you. Track deliveries, dispute delays, initiate returns." },
-  { icon: "👥", title: "Group & Collective Deals",     desc: "Pool buying power with others to hit wholesale minimums. Get prices that no individual consumer can access alone." },
+  { icon: IC("M3 18v-6M7 18V9M11 18v-4M15 18V6M19 18v-9"),                                                                                 title: "Price History & Trends",       desc: "See the full price history across retailers. Know if today's price is a real deal or just marketing." },
+  { icon: IC("M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20|M12 6v6l4 2"),                                                                       title: "Timing Intelligence",          desc: "We know when sales cycles hit. Back-to-school, Prime Day, Black Friday — we tell you whether to buy now or wait for the drop." },
+  { icon: IC("M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"),                                                            title: "Retailer Negotiation",         desc: "AI drafts and sends negotiation emails citing competitor prices, timing leverage, and loyalty status. Discounts humans rarely get." },
+  { icon: IC("M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0|M12 9v4|M12 17h.01"),             title: "Hidden Catches Flagged",       desc: "Poor build quality, misleading specs, review manipulation, bundled junk warranties — we read between the lines so you don't have to." },
+  { icon: IC("M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10|M9 12l2 2 4-4"),                                                                 title: "Post-Purchase Protection",     desc: "Price dropped after you bought? We file the price adjustment claim for you. Track deliveries, dispute delays, initiate returns." },
+  { icon: IC("M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2|M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8|M23 21v-2a4 4 0 0 0-3-3.87|M16 3.13a4 4 0 0 1 0 7.75"), title: "Group & Collective Deals",     desc: "Pool buying power with others to hit wholesale minimums. Get prices that no individual consumer can access alone." },
 ];
 
 const STEPS = [
@@ -81,7 +87,9 @@ export default function LandingPage() {
           <div style={S.demoCard}>
             <div style={S.demoHeader}>
               <div style={S.demoAvatarWrap}>
-                <span style={{ fontSize: 16 }}>🛒</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+                </svg>
               </div>
               <span style={S.demoTitle}>BuyRight AI</span>
               <span style={S.demoLive}>● Live</span>
@@ -210,7 +218,7 @@ export default function LandingPage() {
               <p style={S.planPrice}>$0<span style={S.planPer}>/month</span></p>
               <p style={S.planDesc}>Everything you need to research smarter.</p>
               <ul style={S.planFeatures}>
-                {["AI shopping advisor — unlimited", "Buy / wait / negotiate verdicts", "Live price comparison (80+ retailers)", "Conversation history", "Mobile friendly"].map(f => (
+                {["AI shopping advisor — 5 free queries", "Buy / wait / negotiate verdicts", "Live price comparison (80+ retailers)", "Conversation history", "Mobile friendly"].map(f => (
                   <li key={f} style={S.planFeature}><span style={{ color: ACCENT }}>✓</span> {f}</li>
                 ))}
                 {["Consumer Procurement agent", "Automated negotiation", "Post-purchase fulfillment", "Group & collective deals"].map(f => (
@@ -379,7 +387,7 @@ const S: Record<string, React.CSSProperties> = {
   /* Features */
   featureGrid:    { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(290px,1fr))", gap: 20 },
   featureCard:    { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 18, padding: "28px 24px" },
-  featureIcon:    { fontSize: 28, marginBottom: 14, display: "block" },
+  featureIcon:    { marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "flex-start" },
   featureTitle:   { color: "#F1F5F9", fontSize: 15, fontWeight: 700, margin: "0 0 8px" },
   featureDesc:    { color: "#64748B", fontSize: 14, lineHeight: 1.65, margin: 0 },
 
