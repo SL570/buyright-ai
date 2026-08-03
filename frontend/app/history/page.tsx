@@ -95,7 +95,7 @@ export default function HistoryPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0B0F19", color: "#E2E8F0", fontFamily: "system-ui, sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "#0C1525", color: "#E2E8F0", fontFamily: "system-ui, sans-serif" }}>
       <style>{`
         @keyframes shimmer {
           0%, 100% { opacity: 0.5; }
@@ -111,7 +111,7 @@ export default function HistoryPage() {
         </div>
         <button
           onClick={() => router.push("/procurement")}
-          style={{ background: ACCENT, color: "#0B0F19", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+          style={{ background: ACCENT, color: "#0C1525", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
         >
           + New Research
         </button>
@@ -157,7 +157,7 @@ export default function HistoryPage() {
             </div>
             <button
               onClick={() => router.push("/procurement")}
-              style={{ background: ACCENT, color: "#0B0F19", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+              style={{ background: ACCENT, color: "#0C1525", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
             >
               Start Researching
             </button>

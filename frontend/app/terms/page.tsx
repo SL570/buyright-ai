@@ -215,7 +215,7 @@ export default function TermsPage() {
 }
 
 const S: Record<string, React.CSSProperties> = {
-  page:         { minHeight: "100vh", background: "#0B0F19", fontFamily: "system-ui, -apple-system, sans-serif", display: "flex", flexDirection: "column", alignItems: "center" },
+  page:         { minHeight: "100vh", background: "#0C1525", fontFamily: "system-ui, -apple-system, sans-serif", display: "flex", flexDirection: "column", alignItems: "center" },
   nav:          { width: "100%", maxWidth: 1100, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 40px", boxSizing: "border-box" },
   brand:        { color: "#F1F5F9", fontSize: 18, fontWeight: 700, textDecoration: "none" },
   navRight:     { display: "flex", gap: 20, alignItems: "center" },

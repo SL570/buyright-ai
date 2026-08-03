@@ -309,7 +309,7 @@ function BundleCard({ data, accent }: { data: BundleData; accent: string }) {
           <button
             onClick={() => data.items.forEach(item => window.open(storeSearchUrl(item.store, item.name), "_blank"))}
             style={{
-              background: accent, color: "#0B0F19", border: "none",
+              background: accent, color: "#0C1525", border: "none",
               borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700,
               cursor: "pointer", fontFamily: "inherit",
             }}
@@ -569,7 +569,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                   <a
                     href={storeSearchUrl(winner.store, winner.name)}
                     target="_blank" rel="noopener noreferrer"
-                    style={{ fontSize: 12, fontWeight: 700, color: "#0B0F19", background: "#00CF72", borderRadius: 8, padding: "9px 16px", textDecoration: "none", flexShrink: 0, whiteSpace: "nowrap" }}
+                    style={{ fontSize: 12, fontWeight: 700, color: "#0C1525", background: "#00CF72", borderRadius: 8, padding: "9px 16px", textDecoration: "none", flexShrink: 0, whiteSpace: "nowrap" }}
                   >
                     Find Lowest Price →
                   </a>

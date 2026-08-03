@@ -215,7 +215,7 @@ export default function ChatPage() {
 }
 
 const S: Record<string, React.CSSProperties> = {
-  page:       { height: "100vh", background: "#0B0F19", display: "flex", flexDirection: "column", fontFamily: "system-ui", overflow: "hidden" },
+  page:       { height: "100vh", background: "#0C1525", display: "flex", flexDirection: "column", fontFamily: "system-ui", overflow: "hidden" },
   header:     { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 24px", borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 },
   brand:      { color: "#F1F5F9", fontSize: 16, fontWeight: 700 },
   navLink:    { color: "#94A3B8", fontSize: 13, textDecoration: "none" },

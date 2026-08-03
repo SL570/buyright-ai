@@ -99,7 +99,7 @@ export default function LoadingScreen({ message = "Connecting to AI engine..." }
   }, []);
 
   return (
-    <main style={{ height: "100vh", background: "#0B0F19", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "system-ui", overflow: "hidden", position: "relative" }}>
+    <main style={{ height: "100vh", background: "#0C1525", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "system-ui", overflow: "hidden", position: "relative" }}>
       <canvas ref={bgRef} style={{ position: "absolute", inset: 0, opacity: 0.7 }} />
       <div style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center", gap: 32 }}>
         <div style={{ position: "relative", width: 120, height: 120 }}>

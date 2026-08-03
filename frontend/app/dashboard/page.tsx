@@ -329,7 +329,7 @@ export default function DashboardPage() {
 }
 
 const S: Record<string, React.CSSProperties> = {
-  page:             { minHeight: "100vh", background: "#0B0F19", fontFamily: "system-ui,-apple-system,sans-serif", display: "flex", flexDirection: "column" },
+  page:             { minHeight: "100vh", background: "#0C1525", fontFamily: "system-ui,-apple-system,sans-serif", display: "flex", flexDirection: "column" },
   nav:              { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 40px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 },
   navLeft:          { display: "flex", alignItems: "center", gap: 32 },
   navLinks:         { display: "flex", gap: 24 },
@@ -347,7 +347,7 @@ const S: Record<string, React.CSSProperties> = {
   searchBox:        { display: "flex", alignItems: "center", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 14, padding: "4px 4px 4px 18px", gap: 10 },
   searchIcon:       { fontSize: 16, flexShrink: 0, opacity: 0.5 },
   searchInput:      { flex: 1, background: "none", border: "none", outline: "none", color: "#F1F5F9", fontSize: 16, padding: "10px 0", fontFamily: "inherit" },
-  searchBtn:        { background: ACCENT, color: "#0B0F19", border: "none", borderRadius: 10, padding: "10px 22px", fontWeight: 700, fontSize: 14, fontFamily: "inherit", flexShrink: 0, whiteSpace: "nowrap" as const },
+  searchBtn:        { background: ACCENT, color: "#0C1525", border: "none", borderRadius: 10, padding: "10px 22px", fontWeight: 700, fontSize: 14, fontFamily: "inherit", flexShrink: 0, whiteSpace: "nowrap" as const },
   chips:            { display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" as const },
   chip:             { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)", color: "#94A3B8", borderRadius: 99, padding: "7px 16px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" },
 
@@ -363,7 +363,7 @@ const S: Record<string, React.CSSProperties> = {
   paywallIcon:      { fontSize: 32, color: "#475569", marginBottom: 16 },
   paywallTitle:     { color: "#F1F5F9", fontSize: 22, fontWeight: 800, margin: "0 0 12px", letterSpacing: "-0.3px" },
   paywallSub:       { color: "#64748B", fontSize: 15, lineHeight: 1.6, margin: "0 0 28px" },
-  upgradeBtn:       { display: "inline-block", background: ACCENT, color: "#0B0F19", borderRadius: 10, padding: "13px 28px", fontWeight: 800, fontSize: 15, textDecoration: "none", fontFamily: "inherit" },
+  upgradeBtn:       { display: "inline-block", background: ACCENT, color: "#0C1525", borderRadius: 10, padding: "13px 28px", fontWeight: 800, fontSize: 15, textDecoration: "none", fontFamily: "inherit" },
   paywallMeta:      { color: "#334155", fontSize: 12, margin: "16px 0 0" },
   section:          { paddingBottom: 56 },
   sectionHeader:    { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },

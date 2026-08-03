@@ -114,7 +114,7 @@ export default function PricingPage() {
 }
 
 const S: Record<string, React.CSSProperties> = {
-  page:       { minHeight: "100vh", background: "#0B0F19", fontFamily: "system-ui", display: "flex", flexDirection: "column", alignItems: "center" },
+  page:       { minHeight: "100vh", background: "#0C1525", fontFamily: "system-ui", display: "flex", flexDirection: "column", alignItems: "center" },
   header:     { width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 40px", borderBottom: "1px solid rgba(255,255,255,0.05)" },
   brand:      { color: "#F1F5F9", fontSize: 18, fontWeight: 700, textDecoration: "none" },
   ghostBtn:   { background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#94A3B8", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 13 },
@@ -124,13 +124,13 @@ const S: Record<string, React.CSSProperties> = {
   sub:        { color: "#94A3B8", fontSize: 15, lineHeight: 1.6, margin: 0 },
   cards:      { display: "flex", gap: 20, padding: "0 24px 60px", flexWrap: "wrap", justifyContent: "center" },
   card:       { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "32px 28px", width: 280, display: "flex", flexDirection: "column", gap: 20 },
-  badge:      { position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: "#0A84FF", color: "#0B0F19", fontSize: 11, fontWeight: 800, padding: "3px 12px", borderRadius: 99, whiteSpace: "nowrap" },
+  badge:      { position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: "#0A84FF", color: "#0C1525", fontSize: 11, fontWeight: 800, padding: "3px 12px", borderRadius: 99, whiteSpace: "nowrap" },
   planName:   { color: "#94A3B8", fontSize: 13, fontWeight: 600, margin: 0, textTransform: "uppercase", letterSpacing: "0.8px" },
   planPrice:  { color: "#F1F5F9", fontSize: 42, fontWeight: 800, margin: 0 },
   per:        { fontSize: 16, fontWeight: 400, color: "#94A3B8" },
   features:   { listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10, flex: 1 },
   feature:    { color: "#E2E8F0", fontSize: 14 },
   featureDim: { color: "#475569", fontSize: 14 },
-  planBtn:    { background: "#0A84FF", color: "#0B0F19", border: "none", borderRadius: 10, padding: "13px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer", textAlign: "center" },
+  planBtn:    { background: "#0A84FF", color: "#0C1525", border: "none", borderRadius: 10, padding: "13px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer", textAlign: "center" },
   footer:     { color: "#475569", fontSize: 12, paddingBottom: 40 },
 };

@@ -400,7 +400,7 @@ function ProcurementPageInner() {
           <p style={{ color: "#94A3B8", fontSize: 14, maxWidth: 360, lineHeight: 1.6, margin: 0 }}>
             Consumer Procurement is available on the Pro plan. Upgrade to get full AI-powered purchasing, fulfillment, and collective bargaining.
           </p>
-          <Link href="/pricing" style={{ background: ACCENT, color: "#0B0F19", textDecoration: "none", borderRadius: 10, padding: "13px 28px", fontWeight: 800, fontSize: 15, marginTop: 8 }}>
+          <Link href="/pricing" style={{ background: ACCENT, color: "#0C1525", textDecoration: "none", borderRadius: 10, padding: "13px 28px", fontWeight: 800, fontSize: 15, marginTop: 8 }}>
             View pricing →
           </Link>
         </div>
@@ -512,7 +512,7 @@ function ProcurementPageInner() {
                       fontSize: done ? 9 : 12,
                       background: done ? ACCENT : active ? `${ACCENT}18` : next ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)",
                       border: active ? `1.5px solid ${ACCENT}` : next ? "1px solid rgba(255,255,255,0.12)" : "none",
-                      color: done ? "#0B0F19" : active ? ACCENT : next ? "#4A6080" : "#1E3050",
+                      color: done ? "#0C1525" : active ? ACCENT : next ? "#4A6080" : "#1E3050",
                       boxShadow: active ? `0 0 8px ${ACCENT}40` : "none",
                       transition: "all 0.25s",
                     }}>
@@ -558,7 +558,7 @@ function ProcurementPageInner() {
 }
 
 const S: Record<string, React.CSSProperties> = {
-  page:       { height: "100vh", background: "#0B0F19", display: "flex", flexDirection: "column", fontFamily: "system-ui", overflow: "hidden" },
+  page:       { height: "100vh", background: "#0C1525", display: "flex", flexDirection: "column", fontFamily: "system-ui", overflow: "hidden" },
   header:     { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 24px", borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 },
   brand:      { color: "#F1F5F9", fontSize: 16, fontWeight: 700 },
   navLink:    { color: "#94A3B8", fontSize: 13, textDecoration: "none" },
@@ -582,7 +582,7 @@ const S: Record<string, React.CSSProperties> = {
   inputRow:   { maxWidth: 760, margin: "0 auto", display: "flex", gap: 10 },
   input:      { flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "12px 16px", color: "#F1F5F9", fontSize: 14, outline: "none" },
   micBtn:     { border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "0 14px", fontSize: 18, cursor: "pointer", flexShrink: 0 },
-  sendBtn:    { background: "#0A84FF", color: "#0B0F19", border: "none", borderRadius: 10, padding: "12px 22px", fontWeight: 700, fontSize: 14, cursor: "pointer" },
+  sendBtn:    { background: "#0A84FF", color: "#0C1525", border: "none", borderRadius: 10, padding: "12px 22px", fontWeight: 700, fontSize: 14, cursor: "pointer" },
   hint:       { color: "#334155", fontSize: 11, textAlign: "center", margin: "6px 0 0" },
   journeyBar: { flexShrink: 0, borderTop: "0.5px solid rgba(255,255,255,0.05)", padding: "10px 16px 8px" },
   journeyRow: { maxWidth: 500, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center" },

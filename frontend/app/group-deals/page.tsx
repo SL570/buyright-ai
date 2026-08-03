@@ -761,7 +761,7 @@ function DealCard({
 }
 
 const S: Record<string, React.CSSProperties> = {
-  page:         { minHeight: "100vh", background: "#0B0F19", display: "flex", flexDirection: "column", fontFamily: "system-ui,-apple-system,sans-serif" },
+  page:         { minHeight: "100vh", background: "#0C1525", display: "flex", flexDirection: "column", fontFamily: "system-ui,-apple-system,sans-serif" },
   header:       { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 40px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 },
   brand:        { color: "#F1F5F9", fontSize: 18, fontWeight: 700, textDecoration: "none" },
   navLink:      { color: "#94A3B8", fontSize: 14, textDecoration: "none" },

@@ -207,7 +207,7 @@ export default function AboutPage() {
 }
 
 const S: Record<string, React.CSSProperties> = {
-  page:           { minHeight: "100vh", background: "#0B0F19", fontFamily: "system-ui, -apple-system, sans-serif", display: "flex", flexDirection: "column", alignItems: "center" },
+  page:           { minHeight: "100vh", background: "#0C1525", fontFamily: "system-ui, -apple-system, sans-serif", display: "flex", flexDirection: "column", alignItems: "center" },
   nav:            { width: "100%", maxWidth: 1100, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 40px", boxSizing: "border-box" },
   brand:          { color: "#F1F5F9", fontSize: 18, fontWeight: 700, textDecoration: "none" },
   cta:            { background: "rgba(10,132,255,0.08)", color: "#0A84FF", border: "1px solid rgba(10,132,255,0.2)", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 600, textDecoration: "none" },
@@ -217,7 +217,7 @@ const S: Record<string, React.CSSProperties> = {
   h1:             { color: "#F1F5F9", fontSize: 48, fontWeight: 800, margin: "0 0 20px", letterSpacing: "-1px", lineHeight: 1.15 },
   heroSub:        { color: "#94A3B8", fontSize: 17, lineHeight: 1.7, margin: "0 auto 32px", maxWidth: 560 },
   heroCtas:       { display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" },
-  primaryBtn:     { background: "#0A84FF", color: "#0B0F19", borderRadius: 10, padding: "13px 28px", fontWeight: 700, fontSize: 15, textDecoration: "none", display: "inline-block" },
+  primaryBtn:     { background: "#0A84FF", color: "#0C1525", borderRadius: 10, padding: "13px 28px", fontWeight: 700, fontSize: 15, textDecoration: "none", display: "inline-block" },
   ghostBtn:       { background: "transparent", color: "#94A3B8", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "13px 28px", fontWeight: 600, fontSize: 15, textDecoration: "none", display: "inline-block" },
 
   statsBar:       { display: "flex", gap: 0, borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)", width: "100%", justifyContent: "center" },
@@ -250,14 +250,14 @@ const S: Record<string, React.CSSProperties> = {
 
   pricingCards:   { display: "flex", gap: 20, marginTop: 48, flexWrap: "wrap", justifyContent: "center" },
   pricingCard:    { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "36px 32px", width: 300, display: "flex", flexDirection: "column", gap: 20, boxSizing: "border-box" },
-  pricingBadge:   { position: "absolute", top: -13, left: "50%", transform: "translateX(-50%)", background: "#0A84FF", color: "#0B0F19", fontSize: 11, fontWeight: 800, padding: "4px 14px", borderRadius: 99, whiteSpace: "nowrap" },
+  pricingBadge:   { position: "absolute", top: -13, left: "50%", transform: "translateX(-50%)", background: "#0A84FF", color: "#0C1525", fontSize: 11, fontWeight: 800, padding: "4px 14px", borderRadius: 99, whiteSpace: "nowrap" },
   planLabel:      { color: "#94A3B8", fontSize: 12, fontWeight: 700, margin: 0, textTransform: "uppercase", letterSpacing: "0.8px" },
   planPrice:      { color: "#F1F5F9", fontSize: 44, fontWeight: 800, margin: 0 },
   planPer:        { fontSize: 16, fontWeight: 400, color: "#94A3B8" },
   planFeats:      { listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10, flex: 1 },
   planFeat:       { color: "#E2E8F0", fontSize: 14, display: "flex", alignItems: "flex-start" },
   planFeatOff:    { color: "#475569", fontSize: 14, display: "flex", alignItems: "flex-start" },
-  planBtnTeal:    { background: "#0A84FF", color: "#0B0F19", borderRadius: 10, padding: "13px 20px", fontWeight: 700, fontSize: 14, textDecoration: "none", textAlign: "center", display: "block" },
+  planBtnTeal:    { background: "#0A84FF", color: "#0C1525", borderRadius: 10, padding: "13px 20px", fontWeight: 700, fontSize: 14, textDecoration: "none", textAlign: "center", display: "block" },
   planBtnGhost:   { background: "rgba(255,255,255,0.05)", color: "#94A3B8", borderRadius: 10, padding: "13px 20px", fontWeight: 600, fontSize: 14, textDecoration: "none", textAlign: "center", display: "block" },
 
   footer:         { width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 40px", borderTop: "1px solid rgba(255,255,255,0.06)", boxSizing: "border-box", flexWrap: "wrap", gap: 12 },

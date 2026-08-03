@@ -75,6 +75,6 @@ export default function SuccessPage() {
 }
 
 const S: Record<string, React.CSSProperties> = {
-  page: { minHeight: "100vh", background: "#0B0F19", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui", padding: 24 },
-  btn:  { background: "#0A84FF", color: "#0B0F19", textDecoration: "none", borderRadius: 10, padding: "14px 28px", fontWeight: 800, fontSize: 15, display: "inline-block" },
+  page: { minHeight: "100vh", background: "#0C1525", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui", padding: 24 },
+  btn:  { background: "#0A84FF", color: "#0C1525", textDecoration: "none", borderRadius: 10, padding: "14px 28px", fontWeight: 800, fontSize: 15, display: "inline-block" },
 };

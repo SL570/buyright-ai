@@ -378,7 +378,7 @@ export default function LandingPage() {
 }
 
 const S: Record<string, React.CSSProperties> = {
-  page:           { minHeight: "100vh", background: "radial-gradient(ellipse 80% 45% at 50% -10%, rgba(10,132,255,0.09) 0%, transparent 60%), radial-gradient(ellipse 55% 45% at 85% 105%, rgba(10,132,255,0.05) 0%, transparent 50%), #080C14", fontFamily: "system-ui,-apple-system,sans-serif", display: "flex", flexDirection: "column", color: "#F1F5F9" },
+  page:           { minHeight: "100vh", background: "radial-gradient(ellipse 80% 45% at 50% -10%, rgba(10,132,255,0.09) 0%, transparent 60%), radial-gradient(ellipse 55% 45% at 85% 105%, rgba(10,132,255,0.05) 0%, transparent 50%), #0C1525", fontFamily: "system-ui,-apple-system,sans-serif", display: "flex", flexDirection: "column", color: "#F1F5F9" },
 
   /* Nav */
   nav:            { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 48px", height: 64, borderBottom: "1px solid rgba(255,255,255,0.06)", position: "sticky", top: 0, background: "rgba(8,12,20,0.65)", backdropFilter: "blur(32px) saturate(180%)", zIndex: 100 },
@@ -386,7 +386,7 @@ const S: Record<string, React.CSSProperties> = {
   navCenter:      { display: "flex", gap: 32 },
   navLink:        { color: "#64748B", fontSize: 14, textDecoration: "none" },
   navRight:       { display: "flex", gap: 16, alignItems: "center" },
-  ctaBtn:         { background: ACCENT, color: "#080C14", borderRadius: 9, padding: "8px 18px", fontSize: 14, fontWeight: 700, textDecoration: "none" },
+  ctaBtn:         { background: ACCENT, color: "#0C1525", borderRadius: 9, padding: "8px 18px", fontSize: 14, fontWeight: 700, textDecoration: "none" },
 
   /* Hero */
   hero:           { display: "flex", alignItems: "center", gap: 64, padding: "80px 48px 96px", maxWidth: 1200, margin: "0 auto", width: "100%", boxSizing: "border-box" as const },
@@ -395,7 +395,7 @@ const S: Record<string, React.CSSProperties> = {
   h1:             { fontSize: 56, fontWeight: 800, lineHeight: 1.1, margin: "0 0 24px", letterSpacing: "-1.5px" },
   heroSub:        { color: "#94A3B8", fontSize: 17, lineHeight: 1.75, margin: "0 0 36px" },
   heroCtas:       { display: "flex", gap: 14, flexWrap: "wrap" as const },
-  primaryBtn:     { background: ACCENT, color: "#080C14", borderRadius: 11, padding: "14px 28px", fontWeight: 800, fontSize: 15, textDecoration: "none", display: "inline-block" },
+  primaryBtn:     { background: ACCENT, color: "#0C1525", borderRadius: 11, padding: "14px 28px", fontWeight: 800, fontSize: 15, textDecoration: "none", display: "inline-block" },
   secondaryBtn:   { background: "rgba(255,255,255,0.04)", color: "#94A3B8", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 11, padding: "14px 28px", fontWeight: 600, fontSize: 15, textDecoration: "none", display: "inline-block" },
   heroFine:       { color: "#334155", fontSize: 13, marginTop: 16 },
   heroRight:      { flex: "0 0 400px" },
@@ -406,7 +406,7 @@ const S: Record<string, React.CSSProperties> = {
   demoAvatarWrap: { width: 32, height: 32, borderRadius: "50%", background: "rgba(10,132,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   demoTitle:      { color: "#94A3B8", fontSize: 13, fontWeight: 600 },
   demoLive:       { color: ACCENT, fontSize: 11, marginLeft: "auto", fontWeight: 600 },
-  demoQuery:      { background: "#0F1622", borderRadius: 10, padding: "10px 14px", color: "#94A3B8", fontSize: 13, lineHeight: 1.5, fontStyle: "italic" },
+  demoQuery:      { background: "#111C30", borderRadius: 10, padding: "10px 14px", color: "#94A3B8", fontSize: 13, lineHeight: 1.5, fontStyle: "italic" },
   verdictRow:     { display: "flex", alignItems: "center", gap: 10 },
   verdictBadge:   { background: "rgba(10,132,255,0.12)", color: ACCENT, border: "1px solid rgba(10,132,255,0.25)", borderRadius: 8, padding: "4px 12px", fontSize: 12, fontWeight: 800 },
   verdictConf:    { color: "#475569", fontSize: 12 },
@@ -421,7 +421,7 @@ const S: Record<string, React.CSSProperties> = {
   demoPointWarn:  { display: "flex", alignItems: "flex-start", color: "#94A3B8", fontSize: 13, lineHeight: 1.5 },
   demoReason:     { background: "rgba(10,132,255,0.04)", border: "1px solid rgba(10,132,255,0.1)", borderRadius: 10, padding: "11px 14px", color: "#94A3B8", fontSize: 12, lineHeight: 1.65 },
   demoBtns:       { display: "flex", gap: 8 },
-  demoBtnPrimary: { flex: 1, background: ACCENT, color: "#080C14", border: "none", borderRadius: 9, padding: "11px 0", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" },
+  demoBtnPrimary: { flex: 1, background: ACCENT, color: "#0C1525", border: "none", borderRadius: 9, padding: "11px 0", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" },
   demoBtnSecondary:{ flex: 1, background: "rgba(255,255,255,0.05)", color: "#94A3B8", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 9, padding: "11px 0", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" },
 
   /* Trust bar */
@@ -461,14 +461,14 @@ const S: Record<string, React.CSSProperties> = {
   /* Pricing */
   pricingGrid:    { display: "flex", gap: 24, flexWrap: "wrap" as const, justifyContent: "center" },
   pricingCard:    { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 22, padding: "36px 32px", flex: "1 1 280px", maxWidth: 340, display: "flex", flexDirection: "column", gap: 0 },
-  popularBadge:   { position: "absolute", top: -13, left: "50%", transform: "translateX(-50%)", background: ACCENT, color: "#080C14", fontSize: 11, fontWeight: 800, padding: "4px 14px", borderRadius: 99, whiteSpace: "nowrap" as const },
+  popularBadge:   { position: "absolute", top: -13, left: "50%", transform: "translateX(-50%)", background: ACCENT, color: "#0C1525", fontSize: 11, fontWeight: 800, padding: "4px 14px", borderRadius: 99, whiteSpace: "nowrap" as const },
   planName:       { color: "#94A3B8", fontSize: 12, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.8px", margin: "0 0 12px" },
   planPrice:      { color: "#F1F5F9", fontSize: 48, fontWeight: 800, margin: "0 0 8px", letterSpacing: "-1px" },
   planPer:        { fontSize: 16, fontWeight: 400, color: "#475569" },
   planDesc:       { color: "#475569", fontSize: 14, margin: "0 0 24px", lineHeight: 1.5 },
   planFeatures:   { listStyle: "none", padding: 0, margin: "0 0 28px", display: "flex", flexDirection: "column", gap: 10, flex: 1 },
   planFeature:    { color: "#94A3B8", fontSize: 14, display: "flex", alignItems: "flex-start", gap: 8, lineHeight: 1.4 },
-  planBtnPro:     { background: ACCENT, color: "#080C14", borderRadius: 11, padding: "14px 0", fontWeight: 800, fontSize: 15, textDecoration: "none", textAlign: "center" as const, display: "block" },
+  planBtnPro:     { background: ACCENT, color: "#0C1525", borderRadius: 11, padding: "14px 0", fontWeight: 800, fontSize: 15, textDecoration: "none", textAlign: "center" as const, display: "block" },
   planBtnFree:    { background: "rgba(255,255,255,0.06)", color: "#94A3B8", borderRadius: 11, padding: "14px 0", fontWeight: 700, fontSize: 15, textDecoration: "none", textAlign: "center" as const, display: "block", border: "1px solid rgba(255,255,255,0.09)" },
 
   /* FAQ */
