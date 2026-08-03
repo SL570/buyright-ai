@@ -608,22 +608,8 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
           <div style={{ marginBottom: 14 }}>
             {/* Hero winner */}
             {(() => {
-              // 1. AI-provided URL (from PRODUCT_GRID) — highest confidence, use directly
-              const aiLink: PriceLink | null = winner.url
-                ? { store: winner.store.split(/[/,]/)[0].trim(), price: winner.price, url: winner.url, title: winner.name, direct: true }
-                : null;
-              // 2. Serper exact-product results filtered to this product
-              const serperLinks = matchLinks(winner.name, priceLinks);
-              // 3. Merge: AI link first, then Serper results for OTHER stores
-              const seenStores = new Set<string>();
-              const buyLinks: PriceLink[] = [];
-              if (aiLink) { buyLinks.push(aiLink); seenStores.add(aiLink.store.toLowerCase()); }
-              for (const l of serperLinks) {
-                if (!seenStores.has(l.store.toLowerCase())) {
-                  buyLinks.push(l);
-                  seenStores.add(l.store.toLowerCase());
-                }
-              }
+              // Only use resolver-verified PDP URLs — never trust AI-generated URLs (hallucinated ASINs cause 404s)
+              const buyLinks = matchLinks(winner.name, priceLinks);
               const cheapestLink = buyLinks.length ? [...buyLinks].sort((a,b) => parsePrice(a.price)-parsePrice(b.price))[0] : null;
               const displayPrice = cheapestLink ? cheapestLink.price : winner.price;
               const isLive = cheapestLink && cheapestLink.price !== winner.price;
@@ -651,7 +637,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                 </div>
               </div>
 
-              {/* Buy buttons — AI URL first, Serper fills other retailers */}
+              {/* Buy buttons — resolver-verified PDPs only */}
               <BuyButtons
                 links={buyLinks}
                 fallbackStore={winner.store}
