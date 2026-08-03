@@ -293,24 +293,12 @@ function BundleCard({ data, accent }: { data: BundleData; accent: string }) {
       <div style={{
         borderTop: "0.5px solid rgba(255,255,255,0.07)", paddingTop: 10,
       }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <div>
-            <span style={{ fontSize: 11, color: "#3D5571" }}>Complete setup: </span>
-            <span style={{ fontSize: 18, fontWeight: 900, color: "#EFF3FF", fontFamily: "monospace" }}>${total}</span>
-            {data.budget && data.budget > 0 && (
-              <span style={{ fontSize: 11, color: "#3D5571" }}> of ${data.budget} budget</span>
-            )}
-          </div>
-          <button
-            onClick={() => {/* individual Buy buttons handle navigation */}}
-            style={{
-              background: accent, color: "#0C1525", border: "none",
-              borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700,
-              cursor: "pointer", fontFamily: "inherit",
-            }}
-          >
-            Buy Everything →
-          </button>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
+          <span style={{ fontSize: 11, color: "#3D5571" }}>Complete setup: </span>
+          <span style={{ fontSize: 18, fontWeight: 900, color: "#EFF3FF", fontFamily: "monospace" }}>${total}</span>
+          {data.budget && data.budget > 0 && (
+            <span style={{ fontSize: 11, color: "#3D5571" }}>of ${data.budget} budget</span>
+          )}
         </div>
         <div style={{ fontSize: 12, color: "#4A6080", lineHeight: 1.5 }}>
           Everything you need arrives in one order. No compatibility headaches.
@@ -439,15 +427,9 @@ function RetailerGrid({ links, loading }: { links: PriceLink[]; loading?: boolea
   }
 
   if (sorted.length === 0) {
-    return (
-      <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 9, background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.07)" }}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A6080" strokeWidth="2.5" style={{ animation: "br-spin 1.4s linear infinite", flexShrink: 0 }}>
-          <path d="M12 2a10 10 0 1 0 10 10" strokeLinecap="round"/>
-        </svg>
-        <span style={{ fontSize: 12, color: "#4A6080" }}>Verifying retailer listings…</span>
-        <style>{`@keyframes br-spin{to{transform:rotate(360deg)}}`}</style>
-      </div>
-    );
+    // Fetch completed with no verified PDPs — show nothing rather than a broken state.
+    // The recommendation remains fully useful; buy links are additive.
+    return null;
   }
 
   return (

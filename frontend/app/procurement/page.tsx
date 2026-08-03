@@ -217,11 +217,10 @@ function ProcurementPageInner() {
               }
             } catch { /* ignore — start fresh */ }
           }
-          // 8-second timeout — if backend is cold-starting, default to subscribed=true
-          // (the backend enforces subscription with 403 anyway, so this is safe)
+          // 3-second timeout — default open on slow/cold backend; backend enforces 403 anyway
           try {
             const ctrl = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), 8000);
+            const timer = setTimeout(() => ctrl.abort(), 3000);
             const res = await fetch(`${BASE}/billing/status`, {
               headers: { Authorization: `Bearer ${d.token}` },
               signal: ctrl.signal,
@@ -230,8 +229,7 @@ function ProcurementPageInner() {
             const data = await res.json();
             setSubscribed(data.subscribed === true);
           } catch {
-            // Backend unreachable — fail closed; backend enforces 403 on each request anyway
-            setSubscribed(false);
+            setSubscribed(true);
           }
         })
         .catch(() => router.push("/sign-in"));

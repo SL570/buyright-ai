@@ -90,7 +90,9 @@ export default function DashboardPage() {
           // Sync quota from backend (server is source of truth)
           await syncWithServer(d.token, BASE);
           if (email) setQuota(getQuota(email));
-          fetch(`${BASE}/history`, { headers: { Authorization: `Bearer ${d.token}` } })
+          const histCtrl = new AbortController();
+          setTimeout(() => histCtrl.abort(), 5000); // never hang skeletons longer than 5s
+          fetch(`${BASE}/history`, { headers: { Authorization: `Bearer ${d.token}` }, signal: histCtrl.signal })
             .then(r => r.ok ? r.json() : [])
             .then(data => setSessions(Array.isArray(data) ? data.slice(0, 4) : []))
             .catch(() => {})

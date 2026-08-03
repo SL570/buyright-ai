@@ -150,7 +150,9 @@ export default function HistoryPage() {
         {/* Empty state */}
         {!loading && sessions.length === 0 && (
           <div style={{ textAlign: "center", padding: "60px 20px" }}>
-            <div style={{ fontSize: 40, marginBottom: 16 }}>🔍</div>
+            <div style={{ marginBottom: 16 }}>
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#3D5571" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </div>
             <div style={{ fontSize: 16, fontWeight: 700, color: "#EFF3FF", marginBottom: 8 }}>No research yet</div>
             <div style={{ fontSize: 13, color: "#3D5571", marginBottom: 24 }}>
               Every product you research is saved here so you can pick up exactly where you left off.
@@ -165,7 +167,7 @@ export default function HistoryPage() {
         )}
 
         {/* Session list */}
-        {!loading && (
+        {!loading && sessions.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {sessions.map(s => (
               <div

@@ -332,6 +332,12 @@ export default function GroupDealsPage() {
             </div>
           ) : (
             <div style={S.dealSections}>
+              {formingDeals.length === 0 && activeDeals.length === 0 && (
+                <div style={{ textAlign: "center", padding: "40px 0", color: "#4A6080", fontSize: 14 }}>
+                  No active deals right now. Be the first to start one.
+                  <br /><button onClick={openCreate} style={{ marginTop: 16, ...S.createBtn }}>+ Start a deal</button>
+                </div>
+              )}
               {formingDeals.length > 0 && (
                 <div>
                   <p style={S.sectionLabel}>Forming — needs more members</p>
@@ -729,7 +735,7 @@ function DealCard({
             {actionLoading ? "Joining..." : "Join Deal →"}
           </button>
         )}
-        <a
+        {deal.product_url && <a
           href={deal.product_url}
           target="_blank"
           rel="noopener noreferrer"
@@ -737,7 +743,7 @@ function DealCard({
           title="View product"
         >
           ↗
-        </a>
+        </a>}
       </div>
 
       {scriptOpen && deal.negotiation_script && (
