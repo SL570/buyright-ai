@@ -60,10 +60,10 @@ export default function AboutPage() {
           </p>
           <div style={S.problemGrid}>
             {[
-              { icon: "📈", title: "Dynamic pricing", desc: "Prices change dozens of times a day. The same product can cost 40% more depending on when — and who — is looking." },
-              { icon: "⏱", title: "Artificial urgency", desc: "\"Only 2 left\" and countdown timers are engineered to override your judgment and force an emotional purchase." },
-              { icon: "🔀", title: "Comparison overload", desc: "Dozens of SKUs, bundled warranties, hidden fees, and review manipulation make it nearly impossible to compare honestly." },
-              { icon: "📉", title: "Price drop regret", desc: "You buy today and the price drops 20% next week. Retailers bank on this. Price protection is buried in fine print." },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>, title: "Dynamic pricing", desc: "Prices change dozens of times a day. The same product can cost 40% more depending on when — and who — is looking." },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, title: "Artificial urgency", desc: "\"Only 2 left\" and countdown timers are engineered to override your judgment and force an emotional purchase." },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>, title: "Comparison overload", desc: "Dozens of SKUs, bundled warranties, hidden fees, and review manipulation make it nearly impossible to compare honestly." },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>, title: "Price drop regret", desc: "You buy today and the price drops 20% next week. Retailers bank on this. Price protection is buried in fine print." },
             ].map(p => (
               <div key={p.title} style={S.problemCard}>
                 <span style={S.problemIcon}>{p.icon}</span>
@@ -103,12 +103,12 @@ export default function AboutPage() {
           <h2 style={S.h2}>Every buying scenario, covered.</h2>
           <div style={S.featGrid}>
             {[
-              { icon: "🧠", title: "Price Intelligence", desc: "Real-time price tracking across Amazon, Best Buy, Walmart, Target, and 80+ retailers. Identifies the historical low, upcoming sale probability, and the exact right moment to buy." },
-              { icon: "🤝", title: "Automated Negotiation", desc: "BuyRight AI drafts and sends negotiation requests to retailers on your behalf — citing competitor pricing, timing leverage, and loyalty status to unlock discounts humans rarely get." },
-              { icon: "📦", title: "Consumer Procurement", desc: "You describe what you need and your budget. BuyRight researches, shortlists, negotiates, and executes — end-to-end, with a full audit trail of every decision." },
-              { icon: "💰", title: "Group Deals", desc: "Invite friends or join anonymous buying groups to unlock wholesale pricing that isn't available to individual consumers." },
-              { icon: "🔁", title: "Post-Purchase Fulfillment", desc: "Monitors price drops after you buy and automatically files for price adjustments. Tracks deliveries, flags delays, and initiates returns if items don't arrive as described." },
-              { icon: "📅", title: "Life Event Planning", desc: "Planning a move, a baby, or a home renovation? BuyRight AI builds a prioritized purchase calendar — mapping what to buy now vs. what to wait on based on your timeline." },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>, title: "Price Intelligence", desc: "Real-time price tracking across Amazon, Best Buy, Walmart, Target, and 80+ retailers. Identifies the historical low, upcoming sale probability, and the exact right moment to buy." },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, title: "Automated Negotiation", desc: "BuyRight AI drafts and sends negotiation requests to retailers on your behalf — citing competitor pricing, timing leverage, and loyalty status to unlock discounts humans rarely get." },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>, title: "Consumer Procurement", desc: "You describe what you need and your budget. BuyRight researches, shortlists, negotiates, and executes — end-to-end, with a full audit trail of every decision." },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, title: "Group Deals", desc: "Invite friends or join anonymous buying groups to unlock wholesale pricing that isn't available to individual consumers." },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>, title: "Post-Purchase Fulfillment", desc: "Monitors price drops after you buy and automatically files for price adjustments. Tracks deliveries, flags delays, and initiates returns if items don't arrive as described." },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg>, title: "Life Event Planning", desc: "Planning a move, a baby, or a home renovation? BuyRight AI builds a prioritized purchase calendar — mapping what to buy now vs. what to wait on based on your timeline." },
             ].map(f => (
               <div key={f.title} style={S.featCard}>
                 <span style={S.featIcon}>{f.icon}</span>
@@ -232,7 +232,7 @@ const S: Record<string, React.CSSProperties> = {
 
   problemGrid:    { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20, marginTop: 48 },
   problemCard:    { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: "28px 24px" },
-  problemIcon:    { fontSize: 24, marginBottom: 12, display: "block" },
+  problemIcon:    { marginBottom: 14, display: "flex" },
   problemTitle:   { color: "#F1F5F9", fontSize: 15, fontWeight: 700, margin: "0 0 8px" },
   problemDesc:    { color: "#94A3B8", fontSize: 14, lineHeight: 1.6, margin: 0 },
 
@@ -244,7 +244,7 @@ const S: Record<string, React.CSSProperties> = {
 
   featGrid:       { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20, marginTop: 48 },
   featCard:       { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: "28px 24px" },
-  featIcon:       { fontSize: 28, marginBottom: 14, display: "block" },
+  featIcon:       { marginBottom: 16, display: "flex" },
   featTitle:      { color: "#F1F5F9", fontSize: 15, fontWeight: 700, margin: "0 0 8px" },
   featDesc:       { color: "#94A3B8", fontSize: 14, lineHeight: 1.65, margin: 0 },
 
