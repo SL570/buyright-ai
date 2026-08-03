@@ -158,7 +158,8 @@ function ProcurementPageInner() {
   const [listening, setListening]       = useState(false);
   const [journeyStep, setJourneyStep]   = useState(0);
   const [sessionId, setSessionId]       = useState<number | null>(null);
-  const [priceLinks, setPriceLinks]     = useState<{store:string;price:string;url:string;title:string}[]>([]);
+  const [priceLinks, setPriceLinks]         = useState<{store:string;price:string;url:string;title:string;direct?:boolean}[]>([]);
+  const [priceLinksLoading, setPriceLinksLoading] = useState(false);
   const bottomRef                       = useRef<HTMLDivElement>(null);
   const recogRef                        = useRef<any>(null);
   const autoSendRef                     = useRef("");
@@ -286,6 +287,22 @@ function ProcurementPageInner() {
         let fullText = "";
         let buffer = "";
         let firstChunk = true;
+        let priceFetchFired = false;
+
+        const fetchPrices = (prodName: string) => {
+          if (!prodName || !token) return;
+          setPriceLinksLoading(true);
+          fetch(`${BASE}/prices`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ query: prodName }),
+          })
+            .then(r => r.ok ? r.json() : [])
+            .then(links => { if (Array.isArray(links) && links.length) setPriceLinks(links); })
+            .catch(() => {})
+            .finally(() => setPriceLinksLoading(false));
+        };
+
         outer: while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -304,26 +321,26 @@ function ProcurementPageInner() {
                 if (firstChunk) { setLoading(false); firstChunk = false; }
                 fullText += parsed.text;
                 setMessages([...next, { role: "assistant", content: fullText }]);
+                // Fire /prices the moment PRODUCT_GRID is fully received — don't wait for stream end
+                if (!priceFetchFired && fullText.includes("END_PRODUCT_GRID")) {
+                  priceFetchFired = true;
+                  setJourneyStep(prev => Math.max(prev, 1));
+                  const partialMsgs = [...next, { role: "assistant" as const, content: fullText }];
+                  const earlyProd = getFirstProduct(partialMsgs);
+                  if (earlyProd?.name) fetchPrices(earlyProd.name);
+                }
               }
             } catch (parseErr: any) {
               if (!(parseErr instanceof SyntaxError)) throw parseErr;
             }
           }
         }
-        if (fullText.includes("END_PRODUCT_GRID")) {
-          setJourneyStep(prev => Math.max(prev, 1));
-        }
-        // After AI responds, search Serper for the EXACT recommended product to get direct retailer URLs
         const finalMsgs = [...next, { role: "assistant" as const, content: fullText }];
         const prod = getFirstProduct(finalMsgs);
-        if (prod?.name && token) {
-          fetch(`${BASE}/prices`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ query: prod.name }),
-          }).then(r => r.ok ? r.json() : []).then(links => {
-            if (Array.isArray(links) && links.length) setPriceLinks(links);
-          }).catch(() => {});
+        // Fallback: if END_PRODUCT_GRID never appeared mid-stream, fire /prices now
+        if (!priceFetchFired && prod?.name) {
+          setJourneyStep(prev => Math.max(prev, 1));
+          fetchPrices(prod.name);
         }
         const title = next[0]?.content.slice(0, 60) ?? "Research";
         try {
@@ -466,6 +483,7 @@ function ProcurementPageInner() {
                     followups={loading ? [] : getFollowups(messages, i)}
                     accent={ACCENT}
                     priceLinks={priceLinks}
+                    priceLinksLoading={priceLinksLoading}
                   />
                 </div>
               )}

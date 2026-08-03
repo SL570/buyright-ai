@@ -192,6 +192,7 @@ export interface JourneyStage {
 export interface PriceLink { store: string; price: string; url: string; title: string; direct?: boolean; }
 
 interface Props {
+  priceLinksLoading?: boolean;
   content: string;
   onFollowUp?: (q: string) => void;
   followups?: string[];
@@ -414,16 +415,38 @@ function matchLinks(name: string, priceLinks: PriceLink[]): PriceLink[] {
     .map(s => s.item);
 }
 
-function BuyButtons({ links, fallbackStore, fallbackName, accent }: {
+function BuyButtons({ links, fallbackStore, fallbackName, accent, loading }: {
   links: PriceLink[];
   fallbackStore: string;
   fallbackName: string;
   accent: string;
+  loading?: boolean;
 }) {
   const sorted = [...links].sort((a, b) => parsePrice(a.price) - parsePrice(b.price));
-  const cheapest = sorted[0];
 
   if (sorted.length === 0) {
+    if (loading) {
+      return (
+        <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 6 }}>
+          {[1, 2, 3].map(i => (
+            <div key={i} style={{
+              height: 44, borderRadius: 10,
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.06)",
+              position: "relative", overflow: "hidden",
+            }}>
+              <div style={{
+                position: "absolute", inset: 0,
+                background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%)",
+                animation: "shimmer 1.4s infinite",
+              }} />
+            </div>
+          ))}
+          <style>{`@keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }`}</style>
+          <div style={{ fontSize: 11, color: "#3D5571", marginTop: 2 }}>Finding best prices across retailers…</div>
+        </div>
+      );
+    }
     return (
       <a
         href={storeSearchUrl(fallbackStore, fallbackName)}
@@ -496,7 +519,7 @@ function BuyButtons({ links, fallbackStore, fallbackName, accent }: {
   );
 }
 
-export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9EFF", journeyStages, priceLinks = [] }: Props) {
+export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9EFF", journeyStages, priceLinks = [], priceLinksLoading = false }: Props) {
   const { products, verdict, body, decisionSummary, whyPicked, bundleData } = parseContent(content);
   const vs = verdict ? V_STYLE[verdict.type] : null;
 
@@ -615,6 +638,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                 fallbackStore={winner.store}
                 fallbackName={winner.name}
                 accent={accent}
+                loading={priceLinksLoading && winnerLinks.length === 0}
               />
 
               {/* Pros / Cons */}

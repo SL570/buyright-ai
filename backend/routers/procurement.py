@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Literal, List
 import os
+import re
 import json
 import anthropic
 import httpx
@@ -25,6 +26,32 @@ def _url_quality(url: str) -> int:
     if any(p in u for p in _PRODUCT_PATTERNS):
         return 2
     return 1
+
+
+def _canonicalize_url(url: str) -> str:
+    """
+    Return the cleanest possible direct product page URL.
+    Extracts ASINs for Amazon, item IDs for Walmart, strips trackers.
+    """
+    u = url.lower()
+    # Amazon: extract ASIN → clean dp URL
+    if "amazon.com" in u or "amazon." in u:
+        m = re.search(r'/(?:dp|gp/product)/([A-Z0-9]{10})', url, re.IGNORECASE)
+        if m:
+            return f"https://www.amazon.com/dp/{m.group(1)}"
+    # Walmart: extract numeric item ID → clean ip URL
+    if "walmart.com" in u:
+        m = re.search(r'/ip/(?:[^/?#]*/)?(\d{6,})', url)
+        if m:
+            return f"https://www.walmart.com/ip/{m.group(1)}"
+    # Best Buy: strip query params from product pages
+    if "bestbuy.com" in u and "/site/" in u and "/p/" in u:
+        return url.split("?")[0]
+    # Target: strip query params from product pages
+    if "target.com" in u and "/p/" in u:
+        return url.split("?")[0]
+    # Generic: strip common tracking params
+    return url.split("?")[0] if any(p in u for p in _PRODUCT_PATTERNS) else url
 
 
 def _fetch_live_prices(messages: list) -> tuple[str, list]:
@@ -65,12 +92,13 @@ def _fetch_live_prices(messages: list) -> tuple[str, list]:
             rating_str = f" · {rating}★" if rating else ""
             lines.append(f"- **{title}**: {price} at {source}{rating_str}")
             if source and price and link and "google.com" not in link:
+                clean = _canonicalize_url(link)
                 retailer_links.append({
                     "store": source,
                     "price": price,
-                    "url":   link,
+                    "url":   clean,
                     "title": title,
-                    "direct": _url_quality(link) >= 1,
+                    "direct": _url_quality(clean) >= 1,
                 })
         lines.append("---\n")
         return "\n".join(lines), retailer_links
@@ -447,8 +475,9 @@ def product_prices(req: PricesRequest, user: User = Depends(get_current_user)):
                 continue
             if "google.com" in link:
                 continue
-            quality = _url_quality(link)
-            candidates.append({"store": store, "price": price, "url": link, "title": title, "direct": quality >= 1, "_quality": quality})
+            clean = _canonicalize_url(link)
+            quality = _url_quality(clean)
+            candidates.append({"store": store, "price": price, "url": clean, "title": title, "direct": quality >= 1, "_quality": quality})
         # For each store, prefer direct product page URLs over search URLs
         candidates.sort(key=lambda x: -x["_quality"])
         results = []
