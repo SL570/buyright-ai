@@ -11,6 +11,7 @@ import httpx
 from auth import get_current_user
 from models import User
 from services.ratelimit import check_user_rate_limit
+from services.product_resolver import resolve as resolve_product
 
 SERPER_KEY = os.getenv("SERPER_API_KEY", "")
 
@@ -453,42 +454,9 @@ class PricesRequest(BaseModel):
 
 @router.post("/prices")
 def product_prices(req: PricesRequest, user: User = Depends(get_current_user)):
-    """Look up direct retailer URLs for an exact recommended product."""
-    if not SERPER_KEY:
-        return []
-    try:
-        resp = httpx.post(
-            "https://google.serper.dev/shopping",
-            headers={"X-API-KEY": SERPER_KEY, "Content-Type": "application/json"},
-            json={"q": req.query, "num": 10, "gl": "us"},
-            timeout=5.0,
-        )
-        if resp.status_code != 200:
-            return []
-        items = resp.json().get("shopping", [])
-        seen_stores: set = set()
-        candidates = []
-        for item in items:
-            store = item.get("source", "")
-            price = item.get("price", "")
-            link  = item.get("link", "")
-            title = item.get("title", "")
-            if not store or not price or not link:
-                continue
-            if "google.com" in link:
-                continue
-            clean = _canonicalize_url(link)
-            quality = _url_quality(clean)
-            candidates.append({"store": store, "price": price, "url": clean, "title": title, "direct": quality >= 1, "_quality": quality})
-        # For each store, prefer direct product page URLs over search URLs
-        candidates.sort(key=lambda x: -x["_quality"])
-        results = []
-        for c in candidates:
-            if c["store"] in seen_stores:
-                continue
-            seen_stores.add(c["store"])
-            results.append({"store": c["store"], "price": c["price"], "url": c["url"], "title": c["title"], "direct": c["direct"]})
-        return results
-    except Exception as e:
-        print(f"[PRICES] Error: {e}")
+    """
+    Resolve exact product name to verified retailer PDP URLs.
+    Returns only direct product pages — never search results or homepages.
+    """
+    return resolve_product(req.query)
         return []

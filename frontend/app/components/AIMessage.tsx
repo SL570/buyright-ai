@@ -415,108 +415,112 @@ function matchLinks(name: string, priceLinks: PriceLink[]): PriceLink[] {
     .map(s => s.item);
 }
 
-function BuyButtons({ links, fallbackStore, fallbackName, accent, loading }: {
-  links: PriceLink[];
-  fallbackStore: string;
-  fallbackName: string;
-  accent: string;
-  loading?: boolean;
-}) {
+const RETAILER_COLOR: Record<string, string> = {
+  amazon: "#FF9900", walmart: "#0071CE", "best buy": "#0046BE",
+  target: "#CC0000", costco: "#005DAA", "macy's": "#E21F42", macys: "#E21F42",
+  nordstrom: "#8B7355", "nordstrom rack": "#555", sephora: "#333",
+  ulta: "#8B2346", "home depot": "#F96302", "lowe's": "#004990",
+  newegg: "#E21F2A", "b&h": "#444",
+};
+
+function retailerColor(store: string): string {
+  const s = store.toLowerCase();
+  for (const [key, color] of Object.entries(RETAILER_COLOR)) {
+    if (s.includes(key)) return color;
+  }
+  return "#5577AA";
+}
+
+function RetailerGrid({ links, loading }: { links: PriceLink[]; loading?: boolean }) {
   const sorted = [...links].sort((a, b) => parsePrice(a.price) - parsePrice(b.price));
 
-  if (sorted.length === 0) {
-    if (loading) {
-      return (
-        <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 6 }}>
-          {[1, 2, 3].map(i => (
-            <div key={i} style={{
-              height: 44, borderRadius: 10,
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.06)",
-              position: "relative", overflow: "hidden",
-            }}>
-              <div style={{
-                position: "absolute", inset: 0,
-                background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%)",
-                animation: "shimmer 1.4s infinite",
-              }} />
+  if (loading && sorted.length === 0) {
+    return (
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#3D5571", letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 8 }}>
+          Available at
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+          {[80, 65, 55].map((w, i) => (
+            <div key={i} style={{ height: 42, borderRadius: 9, background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.06)", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.05),transparent)", animation: "br-shimmer 1.4s infinite" }} />
             </div>
           ))}
-          <style>{`@keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }`}</style>
-          <div style={{ fontSize: 11, color: "#3D5571", marginTop: 2 }}>Finding best prices across retailers…</div>
         </div>
-      );
-    }
+        <div style={{ fontSize: 11, color: "#3D5571", marginTop: 7 }}>Finding exact product pages…</div>
+        <style>{`@keyframes br-shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}`}</style>
+      </div>
+    );
+  }
+
+  if (sorted.length === 0) {
     return (
-      <a
-        href={storeSearchUrl(fallbackStore, fallbackName)}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          display: "inline-flex", alignItems: "center", gap: 6,
-          marginTop: 14, fontSize: 12, fontWeight: 600,
-          color: "#4A6080", background: "rgba(255,255,255,0.04)",
-          border: "0.5px solid rgba(255,255,255,0.08)",
-          borderRadius: 8, padding: "8px 14px", textDecoration: "none",
-        }}
-      >
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+      <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 9, background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.07)" }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4A6080" strokeWidth="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
         </svg>
-        Search on {fallbackStore || "Amazon"}
-      </a>
+        <span style={{ fontSize: 12, color: "#4A6080" }}>Exact purchase link unavailable</span>
+      </div>
     );
   }
 
   return (
-    <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 6 }}>
-      {sorted.map((item, i) => {
-        const isBest = i === 0;
-        return (
-          <a
-            key={i}
-            href={item.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              textDecoration: "none", padding: "10px 14px", borderRadius: 10,
-              background: isBest ? `${accent}14` : "rgba(255,255,255,0.025)",
-              border: `1px solid ${isBest ? accent + "40" : "rgba(255,255,255,0.07)"}`,
-              transition: "border-color 0.15s, background 0.15s",
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = isBest ? `${accent}22` : "rgba(255,255,255,0.05)";
-              e.currentTarget.style.borderColor = isBest ? accent + "70" : "rgba(255,255,255,0.18)";
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = isBest ? `${accent}14` : "rgba(255,255,255,0.025)";
-              e.currentTarget.style.borderColor = isBest ? accent + "40" : "rgba(255,255,255,0.07)";
-            }}
-          >
-            <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {isBest && (
-                <span style={{ fontSize: 9, fontWeight: 800, color: accent, background: `${accent}20`, borderRadius: 4, padding: "2px 7px", letterSpacing: "0.07em", flexShrink: 0 }}>
-                  LOWEST
+    <div style={{ marginTop: 16 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: "#3D5571", letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 8 }}>
+        Available at
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        {sorted.map((item, i) => {
+          const color = retailerColor(item.store);
+          const isBest = i === 0;
+          return (
+            <a
+              key={i}
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                textDecoration: "none", padding: "10px 14px", borderRadius: 9,
+                background: isBest ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.02)",
+                border: `0.5px solid ${isBest ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.06)"}`,
+                transition: "background 0.12s, border-color 0.12s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = isBest ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.02)"; e.currentTarget.style.borderColor = isBest ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.06)"; }}
+            >
+              <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0, boxShadow: `0 0 6px ${color}60` }} />
+                <span style={{ fontSize: 13, fontWeight: isBest ? 600 : 400, color: isBest ? "#D0DDEF" : "#7B98B8" }}>
+                  {item.store}
                 </span>
-              )}
-              <span style={{ fontSize: 14, fontWeight: isBest ? 700 : 500, color: isBest ? "#EFF3FF" : "#7B98B8" }}>
-                {item.store}
+                {isBest && (
+                  <span style={{ fontSize: 9, fontWeight: 700, color: "#00CF72", background: "rgba(0,207,114,0.12)", borderRadius: 4, padding: "1px 6px", letterSpacing: "0.06em" }}>
+                    LOWEST
+                  </span>
+                )}
               </span>
-            </span>
-            <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 16, fontWeight: 800, fontFamily: "monospace", color: isBest ? "#EFF3FF" : "#7B98B8", letterSpacing: "-0.01em" }}>
-                {item.price}
+              <span style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <span style={{ fontSize: 15, fontWeight: 700, fontFamily: "monospace", color: isBest ? "#EFF3FF" : "#7B98B8", letterSpacing: "-0.01em" }}>
+                  {item.price}
+                </span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: color }}>
+                  Buy →
+                </span>
               </span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: isBest ? accent : "#3D5571" }}>
-                Buy →
-              </span>
-            </span>
-          </a>
-        );
-      })}
+            </a>
+          );
+        })}
+      </div>
     </div>
   );
+}
+
+// Keep BuyButtons as a thin alias so call sites don't need changing
+function BuyButtons({ links, fallbackStore, fallbackName, accent, loading }: {
+  links: PriceLink[]; fallbackStore: string; fallbackName: string; accent: string; loading?: boolean;
+}) {
+  return <RetailerGrid links={links} loading={loading} />;
 }
 
 export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9EFF", journeyStages, priceLinks = [], priceLinksLoading = false }: Props) {
