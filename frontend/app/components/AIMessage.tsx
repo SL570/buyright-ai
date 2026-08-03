@@ -3,6 +3,10 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+// Strip all pictographic emoji from AI-generated text at render time
+const stripEmoji = (s: string) =>
+  s.replace(/\p{Emoji_Presentation}[️‍]?\s*/gu, "").trim();
+
 export interface Product {
   name: string;
   price: string;
@@ -280,10 +284,10 @@ function BundleCard({ data, accent }: { data: BundleData; accent: string }) {
           <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
               <span style={{ fontSize: 10, color: "#3D5571", textTransform: "uppercase", letterSpacing: "0.06em", flexShrink: 0 }}>
-                {item.category}
+                {stripEmoji(item.category)}
               </span>
               <span style={{ fontSize: 12, color: "#8BA3C4", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {item.name}
+                {stripEmoji(item.name)}
               </span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0, marginLeft: 12 }}>
@@ -371,7 +375,7 @@ function ConfidenceBox({ data, score }: { data: DecisionSummaryData; score?: num
           fontSize: 13, color: "#C4D4E8", lineHeight: 1.7,
           borderTop: `0.5px solid ${color}20`, paddingTop: 12,
         }}>
-          {data.reason}
+          {stripEmoji(data.reason)}
         </div>
       )}
     </div>
@@ -567,7 +571,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                     );
                   })()}
                   {winner.scoreLabel && (
-                    <div style={{ marginTop: 6, fontSize: 11, color: "#3A6050" }}>{winner.scoreLabel}</div>
+                    <div style={{ marginTop: 6, fontSize: 11, color: "#3A6050" }}>{stripEmoji(winner.scoreLabel!)}</div>
                   )}
                 </div>
                 {!priceLinks.length && (
@@ -585,7 +589,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                   <div style={{ fontSize: 10, fontWeight: 700, color: "#00CF72", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 7 }}>Perfect for</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
                     {winner.pros.map((t, j) => (
-                      <span key={j} style={{ background: "rgba(0,207,114,0.08)", border: "0.5px solid rgba(0,207,114,0.25)", borderRadius: 99, padding: "4px 11px", fontSize: 12, color: "#5DDBA8" }}>{t}</span>
+                      <span key={j} style={{ background: "rgba(0,207,114,0.08)", border: "0.5px solid rgba(0,207,114,0.25)", borderRadius: 99, padding: "4px 11px", fontSize: 12, color: "#5DDBA8" }}>{stripEmoji(t)}</span>
                     ))}
                   </div>
                 </div>
@@ -595,7 +599,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                   <div style={{ fontSize: 10, fontWeight: 700, color: "#4A6080", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 7 }}>Not ideal for</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
                     {winner.cons.map((t, j) => (
-                      <span key={j} style={{ background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.07)", borderRadius: 99, padding: "4px 11px", fontSize: 11, color: "#4A6080" }}>{t}</span>
+                      <span key={j} style={{ background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.07)", borderRadius: 99, padding: "4px 11px", fontSize: 11, color: "#4A6080" }}>{stripEmoji(t)}</span>
                     ))}
                   </div>
                 </div>
@@ -627,7 +631,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                           <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "monospace", color: "#4A6080" }}>{p.price}</div>
                           {p.score != null && <div style={{ fontSize: 10, color: "#2D4060" }}>{p.score}/100</div>}
                         </div>
-                        {reason && <div style={{ fontSize: 11, color: "#3D5571", marginTop: 6, lineHeight: 1.55 }}>{reason}</div>}
+                        {reason && <div style={{ fontSize: 11, color: "#3D5571", marginTop: 6, lineHeight: 1.55 }}>{stripEmoji(reason)}</div>}
                         <a
                           href={matchLinks(p.name, priceLinks)[0]?.url || storeSearchUrl(p.store, p.name)}
                           target="_blank" rel="noopener noreferrer"
@@ -656,12 +660,12 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
           section.collapsible ? (
             <CollapsibleSection key={i} header={section.header} accent={accent}>
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdC as any}>
-                {section.content}
+                {stripEmoji(section.content)}
               </ReactMarkdown>
             </CollapsibleSection>
           ) : (
             <ReactMarkdown key={i} remarkPlugins={[remarkGfm]} components={mdC as any}>
-              {section.content}
+              {stripEmoji(section.content)}
             </ReactMarkdown>
           )
         )}
@@ -789,7 +793,7 @@ function WhyPickedCard({ data, accent }: { data: WhyPickedData; accent: string }
             {data.checked.map((c, i) => (
               <div key={i} style={{ display: "flex", gap: 7, fontSize: 12, color: "#7B98B8" }}>
                 <span style={{ color: "#00CF72", flexShrink: 0, fontSize: 10 }}>✓</span>
-                <span>{c}</span>
+                <span>{stripEmoji(c)}</span>
               </div>
             ))}
           </div>
@@ -842,13 +846,13 @@ function RegretPanel({ data }: { data: DecisionSummaryData }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {factors.pro.map((f, i) => (
           <div key={i} style={{ display: "flex", gap: 8, fontSize: 12, color: "#5DDBA8" }}>
-            <span style={{ flexShrink: 0 }}>✓</span><span>{f}</span>
+            <span style={{ flexShrink: 0 }}>✓</span><span>{stripEmoji(f)}</span>
           </div>
         ))}
         {factors.con.length > 0 && (
           <div style={{ display: "flex", gap: 8, fontSize: 12, color: "#F5A83A", marginTop: 2 }}>
             <span style={{ flexShrink: 0 }}>⚠</span>
-            <span>Main risk: {factors.con[0]}</span>
+            <span>Main risk: {stripEmoji(factors.con[0])}</span>
           </div>
         )}
       </div>
@@ -893,7 +897,7 @@ function DecisionSummaryCard({ data, accent, onFindPrice }: { data: DecisionSumm
             borderTop: i > 0 ? "0.5px solid rgba(255,255,255,0.05)" : undefined,
           }}>
             <span style={{ fontSize: 11, color: "#3D5571" }}>{r.label}</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: r.color ?? (r.accent ? "#EFF3FF" : "#8BA3C4"), textAlign: "right", maxWidth: "60%" }}>{r.value}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: r.color ?? (r.accent ? "#EFF3FF" : "#8BA3C4"), textAlign: "right", maxWidth: "60%" }}>{stripEmoji(r.value)}</span>
           </div>
         ))}
       </div>
