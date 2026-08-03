@@ -78,7 +78,9 @@ const BADGE_STYLE: Record<string, { bg: string; color: string }> = {
   neutral: { bg: "rgba(255,255,255,0.06)",color: "#7B8FAF" },
 };
 
-// No search URL helpers — BuyRight never sends users to search pages or homepages.
+function googleShoppingUrl(productName: string): string {
+  return `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(productName)}`;
+}
 
 function parseContent(raw: string) {
   let body = raw;
@@ -404,7 +406,7 @@ function retailerColor(store: string): string {
   return "#5577AA";
 }
 
-function RetailerGrid({ links, loading }: { links: PriceLink[]; loading?: boolean }) {
+function RetailerGrid({ links, loading, productName }: { links: PriceLink[]; loading?: boolean; productName?: string }) {
   const sorted = [...links].sort((a, b) => parsePrice(a.price) - parsePrice(b.price));
 
   if (loading && sorted.length === 0) {
@@ -427,21 +429,31 @@ function RetailerGrid({ links, loading }: { links: PriceLink[]; loading?: boolea
   }
 
   if (sorted.length === 0) {
+    const fallbackUrl = productName ? googleShoppingUrl(productName) : "https://www.google.com/search?tbm=shop";
     return (
-      <div style={{
-        marginTop: 16, padding: "14px 16px", borderRadius: 10,
-        background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.08)",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 6 }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3D5571" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-          </svg>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#4A6080" }}>Exact product page unavailable</span>
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#3D5571", letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 8 }}>
+          Available at
         </div>
-        <p style={{ fontSize: 12, color: "#3D5571", lineHeight: 1.6, margin: 0 }}>
-          We couldn't verify an exact retailer listing for this product.
-          We only show Buy buttons when we can confirm the exact page.
-        </p>
+        <a
+          href={fallbackUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            textDecoration: "none", padding: "10px 14px", borderRadius: 9,
+            background: "rgba(255,255,255,0.04)", border: "0.5px solid rgba(255,255,255,0.14)",
+            transition: "background 0.12s, border-color 0.12s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.14)"; }}
+        >
+          <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#4285F4", flexShrink: 0, boxShadow: "0 0 6px #4285F460" }} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#D0DDEF" }}>Continue to Retailer</span>
+          </span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: "#4285F4" }}>Shop →</span>
+        </a>
       </div>
     );
   }
@@ -502,7 +514,7 @@ function RetailerGrid({ links, loading }: { links: PriceLink[]; loading?: boolea
 function BuyButtons({ links, fallbackStore, fallbackName, accent, loading }: {
   links: PriceLink[]; fallbackStore: string; fallbackName: string; accent: string; loading?: boolean;
 }) {
-  return <RetailerGrid links={links} loading={loading} />;
+  return <RetailerGrid links={links} loading={loading} productName={fallbackName} />;
 }
 
 export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9EFF", journeyStages, priceLinks = [], priceLinksLoading = false }: Props) {
