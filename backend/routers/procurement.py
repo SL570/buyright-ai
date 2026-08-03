@@ -330,9 +330,9 @@ Use emoji + label in pros. End with NEXT_ACTIONS that suggest the NEXT accessory
 
 ## Negotiation script
 Output ONLY:
-\`\`\`script
+```script
 "[exact script text]"
-\`\`\`
+```
 Then NEXT_ACTIONS.
 
 ## Rules
@@ -367,7 +367,7 @@ You help users with everything AFTER they buy: price match claims, returns, late
 
 **When providing a script or email template**, wrap it in a fenced code block with language "script":
 
-\`\`\`script
+```script
 Subject: Price Match Request — [Product] — Order #XXXXX
 
 Hi [Retailer] team,
@@ -378,7 +378,7 @@ Please let me know how to proceed.
 
 Thank you,
 [Name]
-\`\`\`
+```
 
 ## Rules
 - Be specific about exact retailer policies (timeframes, conditions)
@@ -459,4 +459,3 @@ def product_prices(req: PricesRequest, user: User = Depends(get_current_user)):
     Returns only direct product pages — never search results or homepages.
     """
     return resolve_product(req.query)
-        return []
