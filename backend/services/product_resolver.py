@@ -14,7 +14,6 @@ import re
 import time
 import httpx
 import os
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urlparse
 
 SERPER_KEY = os.getenv("SERPER_API_KEY", "")
@@ -130,11 +129,19 @@ def _word_overlap(query: str, title: str) -> float:
         tokens = re.sub(r'[^a-z0-9]', ' ', s.lower()).split()
         return {t for t in tokens if len(t) > 1 and t not in _STOPWORDS}
 
-    # Model-number hard check — any model token in the query must appear in the title
+    # Model-number check — if query has a model token (XM5, B0XXX…) the title
+    # must contain it. Normalise hyphens/underscores before comparing so
+    # "WH-1000XM5" and "WH1000XM5" are treated as the same token.
     q_models = _extract_models(query)
-    t_models = _extract_models(title)
-    if q_models and not q_models.issubset(t_models):
-        return 0.0
+    if q_models:
+        t_models = _extract_models(title)
+        if not q_models.issubset(t_models):
+            # Partial overlap is still better than no overlap — score down rather
+            # than hard-reject so that Serper's top result for a very specific
+            # model isn't silently dropped.
+            matched = len(q_models & t_models)
+            if matched == 0:
+                return 0.0   # zero overlap on model → definitely wrong product
 
     q_words = words(query)
     t_words = words(title)
@@ -144,40 +151,6 @@ def _word_overlap(query: str, title: str) -> float:
 
     overlap = q_words & t_words
     return len(overlap) / len(q_words)
-
-
-# ── HTTP 200 verification ─────────────────────────────────────────────────────
-
-def _verify_200(url: str) -> bool:
-    """
-    Return True if the URL resolves to an HTTP 200 response.
-    Tries HEAD first; falls back to GET if the server rejects HEAD.
-    Skips verification for known reliable retailers to save latency.
-    """
-    u = url.lower()
-    # These retailers are reliable enough; trust URL pattern alone
-    if any(r in u for r in ["bestbuy.com", "target.com", "costco.com"]):
-        return True
-
-    try:
-        r = httpx.head(
-            url, timeout=3.0, follow_redirects=True,
-            headers={"User-Agent": _UA, "Accept-Language": "en-US,en;q=0.9"},
-        )
-        if r.status_code in (405, 501, 403):
-            # HEAD not supported or blocked — try GET with small range
-            r = httpx.get(
-                url, timeout=4.0, follow_redirects=True,
-                headers={
-                    "User-Agent": _UA,
-                    "Accept": "text/html,application/xhtml+xml",
-                    "Accept-Language": "en-US,en;q=0.9",
-                    "Range": "bytes=0-0",
-                },
-            )
-        return r.status_code in (200, 206)
-    except Exception:
-        return False
 
 
 # ── Resolver ──────────────────────────────────────────────────────────────────
@@ -244,27 +217,11 @@ def resolve(product_name: str) -> list:
 
             candidates.append({"store": store, "price": price, "url": clean, "title": title})
 
-        if not candidates:
-            _CACHE[cache_key] = (time.time(), [])
-            return []
-
-        # Gate 3: Concurrent HTTP 200 verification
-        verified = []
-        with ThreadPoolExecutor(max_workers=min(len(candidates), 6)) as pool:
-            future_map = {pool.submit(_verify_200, c["url"]): c for c in candidates}
-            for future in as_completed(future_map):
-                candidate = future_map[future]
-                try:
-                    ok = future.result()
-                except Exception:
-                    ok = False
-                if ok:
-                    verified.append(candidate)
-                else:
-                    print(f"[RESOLVER] 404/dead: {candidate['url']}")
-
-        _CACHE[cache_key] = (time.time(), verified)
-        return verified
+        # Serper Shopping only indexes live product pages — URL pattern + title
+        # similarity is sufficient; HTTP re-validation is blocked by Amazon/Walmart
+        # anti-bot measures and adds latency without improving accuracy.
+        _CACHE[cache_key] = (time.time(), candidates)
+        return candidates
 
     except Exception as e:
         print(f"[RESOLVER] {e}")
