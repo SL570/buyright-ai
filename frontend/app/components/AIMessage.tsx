@@ -363,20 +363,30 @@ function parsePrice(p: string): number {
   return parseFloat(p.replace(/[^0-9.]/g, "")) || 999999;
 }
 
+// Patterns that indicate a search or category page — reject these as buy links
+const _REJECT_URL = [
+  "/s?k=", "/search?", "/searchpage.jsp", "/catalogsearch",
+  "?q=", "?keyword=", "?searchTerm=", "/search?q=",
+  "/category/", "/brand/", "/collection/", "/browse/", "/c/",
+];
+
+function isRealPdp(url: string): boolean {
+  const u = url.toLowerCase();
+  return !_REJECT_URL.some(p => u.includes(p));
+}
+
 function matchLinks(name: string, priceLinks: PriceLink[]): PriceLink[] {
   if (!name || !priceLinks?.length) return [];
   const target = norm(name);
   const words = target.split(" ").filter(w => w.length > 2);
-  // Score each link: exact match = 3, high-overlap = 2, any-overlap = 1
   const scored = priceLinks
-    .filter(item => item.url)
+    .filter(item => item.url && isRealPdp(item.url))
     .map(item => {
       const t = norm(item.title);
       if (t === target) return { item, score: 3 };
       const matched = words.filter(w => t.includes(w)).length;
       const ratio = words.length ? matched / words.length : 0;
       if (ratio >= 0.30) return { item, score: 2 };
-      // Brand+model fallback: if first 2 significant words appear anywhere in title
       const keyWords = words.slice(0, 2);
       if (keyWords.length >= 2 && keyWords.every(w => t.includes(w))) return { item, score: 1 };
       return null;
@@ -385,6 +395,13 @@ function matchLinks(name: string, priceLinks: PriceLink[]): PriceLink[] {
   return scored
     .sort((a, b) => b.score - a.score || parsePrice(a.item.price) - parsePrice(b.item.price))
     .map(s => s.item);
+}
+
+function cleanStoreName(store: string): string {
+  return store
+    .replace(/\.(com|net|org|co\.uk|ca|us)$/i, "")
+    .replace(/\s*\|.*$/, "")
+    .trim();
 }
 
 const RETAILER_COLOR: Record<string, string> = {
@@ -432,12 +449,13 @@ function RetailerGrid({ links, loading, productName }: { links: PriceLink[]; loa
   return (
     <div style={{ marginTop: 16 }}>
       <div style={{ fontSize: 10, fontWeight: 700, color: "#3D5571", letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 8 }}>
-        Available at
+        Buy now
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {sorted.map((item, i) => {
           const color = retailerColor(item.store);
           const isBest = i === 0;
+          const store = cleanStoreName(item.store);
           return (
             <a
               key={i}
@@ -446,32 +464,37 @@ function RetailerGrid({ links, loading, productName }: { links: PriceLink[]; loa
               rel="noopener noreferrer"
               style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
-                textDecoration: "none", padding: "10px 14px", borderRadius: 9,
-                background: isBest ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.02)",
-                border: `0.5px solid ${isBest ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.06)"}`,
-                transition: "background 0.12s, border-color 0.12s",
+                textDecoration: "none", padding: "12px 16px", borderRadius: 10,
+                background: isBest ? `${color}14` : "rgba(255,255,255,0.03)",
+                border: `1px solid ${isBest ? `${color}35` : "rgba(255,255,255,0.07)"}`,
+                transition: "background 0.12s, border-color 0.12s, transform 0.1s",
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = isBest ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.02)"; e.currentTarget.style.borderColor = isBest ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.06)"; }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = isBest ? `${color}22` : "rgba(255,255,255,0.06)";
+                e.currentTarget.style.borderColor = isBest ? `${color}55` : "rgba(255,255,255,0.15)";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = isBest ? `${color}14` : "rgba(255,255,255,0.03)";
+                e.currentTarget.style.borderColor = isBest ? `${color}35` : "rgba(255,255,255,0.07)";
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
             >
-              <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0, boxShadow: `0 0 6px ${color}60` }} />
-                <span style={{ fontSize: 13, fontWeight: isBest ? 600 : 400, color: isBest ? "#D0DDEF" : "#7B98B8" }}>
-                  {item.store}
+              {/* Left: price + badge */}
+              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: color, flexShrink: 0 }} />
+                <span style={{ fontSize: 16, fontWeight: 800, fontFamily: "monospace", color: "#EFF3FF", letterSpacing: "-0.02em" }}>
+                  {item.price}
                 </span>
                 {isBest && (
-                  <span style={{ fontSize: 9, fontWeight: 700, color: "#00CF72", background: "rgba(0,207,114,0.12)", borderRadius: 4, padding: "1px 6px", letterSpacing: "0.06em" }}>
-                    LOWEST
+                  <span style={{ fontSize: 9, fontWeight: 700, color: "#00CF72", background: "rgba(0,207,114,0.15)", border: "0.5px solid rgba(0,207,114,0.3)", borderRadius: 4, padding: "2px 6px", letterSpacing: "0.06em" }}>
+                    BEST PRICE
                   </span>
                 )}
               </span>
-              <span style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                <span style={{ fontSize: 15, fontWeight: 700, fontFamily: "monospace", color: isBest ? "#EFF3FF" : "#7B98B8", letterSpacing: "-0.01em" }}>
-                  {item.price}
-                </span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: color }}>
-                  Buy →
-                </span>
+              {/* Right: CTA */}
+              <span style={{ fontSize: 13, fontWeight: 700, color: isBest ? color : "#7B98B8", letterSpacing: "0.01em" }}>
+                Buy from {store} →
               </span>
             </a>
           );

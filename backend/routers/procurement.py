@@ -16,17 +16,25 @@ from services.product_resolver import resolve as resolve_product
 SERPER_KEY = os.getenv("SERPER_API_KEY", "")
 
 
-_SEARCH_PATTERNS = ["/s?k=", "/search?", "/searchpage.jsp", "/catalogsearch", "?q=", "?keyword=", "?searchTerm=", "/s?searchTerm=", "/search?q="]
+_REJECT_URL = [
+    "/s?k=", "/search?", "/searchpage.jsp", "/catalogsearch",
+    "?q=", "?keyword=", "?searchTerm=", "/search?q=",
+    "/category/", "/brand/", "/collection/", "/browse/",
+    "/c/", "/wishlist", "/cart",
+]
+
 _PRODUCT_PATTERNS = ["/dp/", "/gp/product/", "/ip/", "/p/", "/pd/", "/product/", "/site/", "/itm/"]
 
-def _url_quality(url: str) -> int:
-    """Return 2 for direct product page, 1 for unknown, 0 for search results."""
+
+def _is_pdp_url(url: str) -> bool:
+    """True when the URL looks like a product detail page, not a search or category page."""
     u = url.lower()
-    if any(p in u for p in _SEARCH_PATTERNS):
-        return 0
-    if any(p in u for p in _PRODUCT_PATTERNS):
-        return 2
-    return 1
+    if any(p in u for p in _REJECT_URL):
+        return False
+    # Require at least 2 meaningful path segments (rules out homepages / brand root pages)
+    from urllib.parse import urlparse
+    segments = [s for s in urlparse(url).path.split("/") if s and len(s) > 2]
+    return len(segments) >= 1
 
 
 def _canonicalize_url(url: str) -> str:
@@ -94,12 +102,13 @@ def _fetch_live_prices(messages: list) -> tuple[str, list]:
             lines.append(f"- **{title}**: {price} at {source}{rating_str}")
             if source and price and link and "google.com" not in link:
                 clean = _canonicalize_url(link)
+                if not _is_pdp_url(clean):
+                    continue  # reject search results, category pages, homepages
                 retailer_links.append({
                     "store": source,
                     "price": price,
                     "url":   clean,
                     "title": title,
-                    "direct": _url_quality(clean) >= 1,
                 })
         lines.append("---\n")
         return "\n".join(lines), retailer_links
