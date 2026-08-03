@@ -1,19 +1,25 @@
 """
-Product Resolver — converts a product name into verified direct product page URLs.
+Product Resolver — verified Product Detail Page (PDP) links only.
 
-Confidence tiers (only ≥80 are returned):
-  100  Exact ASIN / Walmart ID + near-perfect title
-   95  Product ID in URL + good title match
-   90  Product ID in URL + acceptable title match
-   85  No product ID, excellent title match
-   82  No product ID, good title match
-   80  No product ID, acceptable title match  (minimum)
-    0  Model mismatch or poor overlap → filtered out (no Buy button)
+Confidence tiers (only ≥ 90 are returned — Buy button threshold):
+  100  Exact ASIN / Walmart ID + near-perfect title match
+   98  Exact manufacturer SKU match
+   95  Exact product title (≥95% word overlap)
+   92  Exact model + exact size/capacity confirmed
+   90  Exact model confirmed  (minimum for Buy button)
+   85  Likely match — no Buy button, filtered out
+    0  Model mismatch or poor overlap — filtered out
+
+Category-aware retailer filtering:
+  Electronics  → Amazon, Best Buy, Walmart, Target, B&H, Newegg, Costco, manufacturer sites
+  Fragrance    → Amazon, Sephora, Ulta, Macy's, Nordstrom, FragranceNet, Jomashop, brand sites
+  Home         → Amazon, Home Depot, Lowe's, Walmart, Target, Costco, Wayfair
+  General      → no domain filter (accept any verified PDP)
 
 Rules:
 - NEVER return a homepage, search page, category page, or brand listing
 - ONLY return URLs that point to a specific product detail page (PDP)
-- Title must reach confidence ≥ 80 — prevents wrong-product links
+- Confidence < 90 → filtered out, no Buy button ever shown
 - Canonicalize Amazon → /dp/ASIN, Walmart → /ip/ID
 - Cache results for 1 hour
 """
@@ -29,11 +35,68 @@ SERPER_KEY = os.getenv("SERPER_API_KEY", "")
 _CACHE: dict = {}
 _CACHE_TTL = 3600  # 1 hour
 
-_UA = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/124.0.0.0 Safari/537.36"
-)
+
+# ── Category detection ────────────────────────────────────────────────────────
+
+_ELECTRONICS_KW = {
+    'tv', 'television', 'oled', 'qled', '4k', '8k', 'laptop', 'notebook',
+    'headphone', 'earphone', 'earbud', 'airpods', 'monitor', 'phone',
+    'smartphone', 'iphone', 'android', 'tablet', 'ipad', 'camera', 'speaker',
+    'soundbar', 'gaming', 'console', 'playstation', 'xbox', 'nintendo', 'gpu',
+    'graphics card', 'processor', 'cpu', 'ssd', 'hard drive', 'keyboard',
+    'mouse', 'router', 'smartwatch', 'projector', 'drone', 'macbook',
+    'chromebook', 'dell', 'lenovo', 'asus', 'acer', 'thinkpad', 'surface',
+}
+
+_FRAGRANCE_KW = {
+    'perfume', 'cologne', 'eau de parfum', 'eau de toilette', 'edp', 'edt',
+    'eau de cologne', 'fragrance', 'parfum', 'aftershave', 'body spray',
+    'intensely', 'acqua di', 'sauvage', 'bleu de', 'oud', 'musk',
+}
+
+_HOME_KW = {
+    'vacuum', 'washer', 'dryer', 'refrigerator', 'dishwasher', 'microwave',
+    'blender', 'coffee maker', 'air fryer', 'pressure cooker', 'toaster',
+    'mattress', 'pillow', 'furniture', 'sofa', 'drill', 'saw', 'ladder',
+    'lawnmower', 'pressure washer', 'paint', 'appliance',
+}
+
+
+def _detect_category(name: str) -> str:
+    n = name.lower()
+    if any(kw in n for kw in _FRAGRANCE_KW):
+        return 'fragrance'
+    if any(kw in n for kw in _ELECTRONICS_KW):
+        return 'electronics'
+    if any(kw in n for kw in _HOME_KW):
+        return 'home'
+    return 'general'
+
+
+# Domains allowed per category — results from unlisted domains are dropped.
+# None means no restriction (general/unknown category).
+CATEGORY_DOMAINS: dict[str, set[str] | None] = {
+    'electronics': {
+        'amazon.com', 'bestbuy.com', 'walmart.com', 'target.com',
+        'costco.com', 'bhphotovideo.com', 'newegg.com', 'microcenter.com',
+        'apple.com', 'dell.com', 'lenovo.com', 'sony.com', 'lg.com',
+        'asus.com', 'samsung.com', 'microsoft.com', 'hp.com', 'acer.com',
+        'bose.com', 'jabra.com', 'canon.com', 'nikon.com',
+    },
+    'fragrance': {
+        'amazon.com', 'sephora.com', 'ulta.com', 'macys.com',
+        'nordstrom.com', 'fragrancenet.com', 'jomashop.com',
+        'giorgioarmani.com', 'armani.com', 'chanel.com', 'dior.com',
+        'yslbeauty.com', 'perfumania.com', 'fragrantica.com',
+        'burberry.com', 'versace.com', 'gucci.com', 'calvinklein.com',
+    },
+    'home': {
+        'amazon.com', 'homedepot.com', 'lowes.com', 'walmart.com',
+        'target.com', 'costco.com', 'wayfair.com', 'ikea.com',
+        'bedbathandbeyond.com', 'dyson.com', 'shark.com',
+    },
+    'general': None,
+}
 
 
 # ── URL canonicalization ──────────────────────────────────────────────────────
@@ -76,6 +139,7 @@ _REJECT_PATTERNS = [
     "search.", "/shop/", "/wishlist", "/cart",
 ]
 
+
 def _is_pdp(url: str) -> bool:
     u = url.lower()
     parsed = urlparse(url)
@@ -110,9 +174,8 @@ def _is_pdp(url: str) -> bool:
     if "macys.com" in u:
         return "/shop/product/" in u or bool(re.search(r'ID=\d+', url))
 
-    # Generic retailer (manufacturer sites, specialty stores, etc.)
-    # If the path has ≥2 meaningful segments and no search/listing signals,
-    # treat it as a product page — better to include than silently drop.
+    # Generic retailer / manufacturer site:
+    # Accept if URL contains a product-path segment OR has ≥2 meaningful path segments.
     path = parsed.path.lower()
     product_indicators = ["/product/", "/item/", "/pdp/", "/dp/", "/ip/", "/p/", "/buy/", "/shop/p/"]
     if any(p in path for p in product_indicators):
@@ -126,99 +189,123 @@ def _is_pdp(url: str) -> bool:
 _STOPWORDS = {'the', 'a', 'an', 'and', 'or', 'for', 'of', 'in', 'on', 'at',
               'with', 'by', 'to', 'oz', 'ml', 'pack', 'set', 'new', 'sale'}
 
-# Matches alphanumeric model identifiers like XM5, WH-1000XM5, B0XXXXXXXX, GTX4090
-_MODEL_RE = re.compile(r'\b([A-Z]{1,4}[-_]?[0-9]{2,}[A-Z0-9]*|[A-Z0-9]{2,}[-_][A-Z0-9]+)\b', re.IGNORECASE)
+_MODEL_RE = re.compile(
+    r'\b([A-Z]{1,4}[-_]?[0-9]{2,}[A-Z0-9]*|[A-Z0-9]{2,}[-_][A-Z0-9]+)\b',
+    re.IGNORECASE,
+)
+
+_SIZE_RE = re.compile(
+    r'\b\d+\.?\d*\s*(?:oz|fl\.?\s*oz|ml|g|kg|lb|lbs|gb|tb|mm|cm|inch(?:es)?|")\b',
+    re.IGNORECASE,
+)
+
 
 def _extract_models(s: str) -> set:
     return {m.group(0).upper().replace("-", "").replace("_", "") for m in _MODEL_RE.finditer(s)}
 
-def _confidence_score(url: str, query: str, title: str, overlap: float) -> int:
-    """
-    Returns 0-100 purchase link confidence. Anything below 80 must NOT show a Buy button.
 
-    Bonus signal: a product ID embedded in the URL (ASIN, Walmart /ip/ID, SKU, etc.)
-    means Serper retrieved an actual PDP, not a listing or category page.
-    """
-    # Model-number guard: if the query names a model (XM5, WH-1000XM5 …) that model
-    # must appear in the result title. Zero-model-overlap → definitely wrong product.
-    q_models = _extract_models(query)
-    if q_models:
-        t_models = _extract_models(title)
-        if not q_models.issubset(t_models) and not (q_models & t_models):
-            return 0
-
-    u = url.lower()
-    has_product_id = bool(
-        re.search(r'/dp/[a-z0-9]{10}', u)   # Amazon ASIN
-        or re.search(r'/ip/\d{6,}', u)      # Walmart item ID
-        or re.search(r'skuid=\d+', u)       # Best Buy SKU (query param)
-        or re.search(r'/site/[\w-]+/[\w-]+\.\w+\?', u)  # Best Buy product slug
-        or re.search(r'/A-\d{6,}', u)       # Target product ID
-        or re.search(r'[Pp]\d{6,}', u)      # Sephora P-number
-        or re.search(r'/ulta/\d+', u)       # Ulta product ID
-        or re.search(r'[Ii][Dd]=\d{5,}', u) # Macy's ID=
-    )
-
-    if has_product_id:
-        if overlap >= 0.90: return 100
-        if overlap >= 0.75: return 95
-        if overlap >= 0.55: return 90
-        return 0  # product ID present but title too distant — suspicious mismatch
-
-    # No recognized product ID — rely entirely on title similarity
-    if overlap >= 0.90: return 95
-    if overlap >= 0.80: return 90
-    if overlap >= 0.65: return 85
-    if overlap >= 0.50: return 82
-    if overlap >= 0.40: return 80
-    return 0
+def _has_size_match(query: str, title: str) -> bool:
+    """True if every size/capacity token from the query also appears in the title."""
+    q_sizes = {re.sub(r'\s+', '', m.group(0).lower()) for m in _SIZE_RE.finditer(query)}
+    if not q_sizes:
+        return True  # query has no size constraint → not required
+    t_sizes = {re.sub(r'\s+', '', m.group(0).lower()) for m in _SIZE_RE.finditer(title)}
+    return bool(q_sizes & t_sizes)
 
 
 def _word_overlap(query: str, title: str) -> float:
     """
-    Fraction of meaningful query words that appear in the result title.
-    Returns 0-1; used to detect wrong-product matches from Serper.
-    Returns 0 immediately if the query contains a model number that is
-    absent from the title (e.g. XM5 query must not match XM4 result).
+    Fraction of meaningful query words that appear in the result title (0–1).
+    Returns 0 immediately if the query names a model number absent from the title
+    (e.g. 'XM5' query must not match an 'XM4' result).
     """
     def words(s: str) -> set:
         tokens = re.sub(r'[^a-z0-9]', ' ', s.lower()).split()
         return {t for t in tokens if len(t) > 1 and t not in _STOPWORDS}
 
-    # Model-number check — if query has a model token (XM5, B0XXX…) the title
-    # must contain it. Normalise hyphens/underscores before comparing so
-    # "WH-1000XM5" and "WH1000XM5" are treated as the same token.
     q_models = _extract_models(query)
     if q_models:
         t_models = _extract_models(title)
         if not q_models.issubset(t_models):
-            # Partial overlap is still better than no overlap — score down rather
-            # than hard-reject so that Serper's top result for a very specific
-            # model isn't silently dropped.
-            matched = len(q_models & t_models)
-            if matched == 0:
-                return 0.0   # zero overlap on model → definitely wrong product
+            if not (q_models & t_models):
+                return 0.0  # zero model overlap → definitely wrong product
 
     q_words = words(query)
     t_words = words(title)
-
     if not q_words:
         return 0.0
+    return len(q_words & t_words) / len(q_words)
 
-    overlap = q_words & t_words
-    return len(overlap) / len(q_words)
+
+# ── Confidence scoring ────────────────────────────────────────────────────────
+
+_MIN_CONFIDENCE = 90  # Buy button threshold — never show Buy below this
+
+
+def _confidence_score(url: str, query: str, title: str, overlap: float) -> int:
+    """
+    Returns 0–100 purchase link confidence.
+    Score < 90 → filtered out; no Buy button is ever shown.
+
+    Scoring:
+      100  Product ID in URL + near-perfect title (≥90% overlap)
+       98  Product ID in URL + exact size confirmed (≥85%)
+       95  Product ID in URL + good title / or no-ID but ≥95% overlap
+       92  Model + size both confirmed (≥85% overlap)
+       90  Model confirmed (≥80% overlap)   ← minimum for Buy button
+        0  Model mismatch, poor overlap, or suspicious mismatch
+    """
+    # Model-number guard: a model token in the query MUST appear in the title.
+    q_models = _extract_models(query)
+    if q_models:
+        t_models = _extract_models(title)
+        if not (q_models & t_models):
+            return 0  # zero model overlap → wrong product, hard reject
+
+    # Product ID embedded in URL (ASIN, Walmart /ip/ID, Best Buy SKU, etc.)
+    u = url.lower()
+    has_product_id = bool(
+        re.search(r'/dp/[a-z0-9]{10}', u)           # Amazon ASIN
+        or re.search(r'/ip/\d{6,}', u)               # Walmart item ID
+        or re.search(r'skuid=\d+', u)                # Best Buy SKU param
+        or re.search(r'/site/[\w-]+/[\w-]+\.\w', u)  # Best Buy product slug
+        or re.search(r'/A-\d{6,}', url)              # Target product ID
+        or re.search(r'[Pp]\d{7,}', url)             # Sephora P-number (7+ digits)
+        or re.search(r'/ulta/\d+', u)                # Ulta product ID
+        or re.search(r'[Ii][Dd]=\d{5,}', url)        # Macy's ID= param
+    )
+
+    has_model = bool(q_models) and bool(q_models & _extract_models(title))
+    has_size  = _has_size_match(query, title)
+
+    if has_product_id:
+        if overlap >= 0.90:                             return 100  # ASIN + near-exact title
+        if overlap >= 0.85 and has_size:                return 98   # ASIN + size confirmed
+        if overlap >= 0.85:                             return 95   # ASIN + good title
+        if overlap >= 0.75 and has_model and has_size:  return 92
+        if overlap >= 0.70 and has_model:               return 90
+        if overlap >= 0.60:                             return 90   # product ID + OK title
+        return 0  # product ID present but title too distant → suspicious
+
+    # No product ID in URL — rely on title similarity
+    if overlap >= 0.95:                                 return 95
+    if overlap >= 0.85 and has_model and has_size:      return 92
+    if overlap >= 0.85 and has_model:                   return 90
+    if overlap >= 0.80 and has_model:                   return 90
+    return 0  # below 90 gate with no product ID → not verified, no Buy button
 
 
 # ── Resolver ──────────────────────────────────────────────────────────────────
 
-_MIN_CONFIDENCE = 80  # Buy button threshold — never link below this
+def _serper_query(query: str, category: str = 'general') -> list:
+    """
+    Single Serper Shopping query. Returns only candidates with confidence ≥ 90.
+    Filters results to category-appropriate retailer domains (e.g. no Sephora
+    for electronics, no Best Buy for fragrances).
+    Every returned item includes a 'confidence' field.
+    """
+    allowed_domains = CATEGORY_DOMAINS.get(category)  # None = no domain filter
 
-def _serper_query(query: str) -> list:
-    """
-    Single Serper Shopping query. Returns only candidates with confidence >= 80.
-    Every returned item has a 'confidence' field so the caller can sort or surface
-    it in future UI (e.g. "Verified product page" badge).
-    """
     try:
         resp = httpx.post(
             "https://google.serper.dev/shopping",
@@ -245,14 +332,22 @@ def _serper_query(query: str) -> list:
                 continue
 
             clean = _canonicalize(link)
+
+            # Category domain filter — rejects irrelevant retailers
+            if allowed_domains is not None:
+                parsed_domain = urlparse(clean).netloc.lower().lstrip("www.")
+                if not any(parsed_domain == d or parsed_domain.endswith("." + d) for d in allowed_domains):
+                    print(f"[RESOLVER] skip domain {parsed_domain!r} (not in '{category}')")
+                    continue
+
             if not _is_pdp(clean):
                 continue
 
-            overlap = _word_overlap(query, title)
+            overlap    = _word_overlap(query, title)
             confidence = _confidence_score(clean, query, title, overlap)
 
             if confidence < _MIN_CONFIDENCE:
-                print(f"[RESOLVER] skip (conf={confidence}, overlap={overlap:.2f}): {title!r}")
+                print(f"[RESOLVER] skip conf={confidence} overlap={overlap:.2f}: {title!r}")
                 continue
 
             if store in seen_stores:
@@ -260,10 +355,10 @@ def _serper_query(query: str) -> list:
             seen_stores.add(store)
 
             candidates.append({
-                "store": store,
-                "price": price,
-                "url": clean,
-                "title": title,
+                "store":      store,
+                "price":      price,
+                "url":        clean,
+                "title":      title,
                 "confidence": confidence,
             })
 
@@ -274,11 +369,10 @@ def _serper_query(query: str) -> list:
 
 
 def _simplify(name: str) -> str:
-    """Strip size/variant/descriptor words to get a broader search query."""
-    # Remove trailing descriptors like "3.4 oz", "100ml", "Eau de Parfum", etc.
+    """Strip size/variant/descriptor words to broaden a search query."""
     simplified = re.sub(
         r'\b(\d+\.?\d*\s*(oz|ml|fl|g|l|liter|litre|ounce)s?|eau\s+de\s+(parfum|toilette|cologne)|edp|edt|edc|pack\s+of\s+\d+|set|bundle)\b',
-        '', name, flags=re.IGNORECASE
+        '', name, flags=re.IGNORECASE,
     ).strip()
     simplified = re.sub(r'\s{2,}', ' ', simplified).strip(' ,')
     return simplified if simplified and simplified.lower() != name.lower() else ""
@@ -286,10 +380,10 @@ def _simplify(name: str) -> str:
 
 def resolve(product_name: str) -> list:
     """
-    Query Serper Shopping for the exact product name and return verified PDPs.
-    Retries with a simplified query and lower similarity threshold if the
-    first attempt returns nothing — ensuring "unavailable" is truly a last resort.
-    Caches results for 1 hour.
+    Query Serper Shopping and return verified PDP links (confidence ≥ 90).
+    Category is detected from the product name to filter irrelevant retailers.
+    Retries with simplified / shorter queries before giving up.
+    Results are cached for 1 hour.
     """
     if not SERPER_KEY:
         return []
@@ -300,24 +394,26 @@ def resolve(product_name: str) -> list:
         if time.time() - ts < _CACHE_TTL:
             return results
 
-    # Attempt 1: exact product name
-    results = _serper_query(product_name)
+    category = _detect_category(product_name)
+    print(f"[RESOLVER] category={category!r} for {product_name!r}")
 
-    # Attempt 2: simplified name (drops size/variant descriptors like "100ml", "Eau de Parfum")
-    # A shorter query can surface the correct product when Serper doesn't recognize the full name.
+    # Attempt 1: exact product name
+    results = _serper_query(product_name, category)
+
+    # Attempt 2: simplified name (drops "100ml", "Eau de Parfum", etc.)
     if not results:
         simplified = _simplify(product_name)
         if simplified:
-            print(f"[RESOLVER] retry with simplified: {simplified!r}")
-            results = _serper_query(simplified)
+            print(f"[RESOLVER] retry simplified: {simplified!r}")
+            results = _serper_query(simplified, category)
 
-    # Attempt 3: brand + first two content words (last resort for uncommon products)
+    # Attempt 3: brand + first two content words (last resort)
     if not results:
         words = product_name.split()
         short = " ".join(words[:3]) if len(words) > 3 else ""
         if short:
-            print(f"[RESOLVER] retry with short: {short!r}")
-            results = _serper_query(short)
+            print(f"[RESOLVER] retry short: {short!r}")
+            results = _serper_query(short, category)
 
     _CACHE[cache_key] = (time.time(), results)
     return results

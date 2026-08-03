@@ -82,10 +82,41 @@ function searchUrl(store: string, productName: string): string {
   const q = encodeURIComponent(productName);
   if (store === "amazon")   return `https://www.amazon.com/s?k=${q}`;
   if (store === "walmart")  return `https://www.walmart.com/search?q=${q}`;
+  if (store === "bestbuy")  return `https://www.bestbuy.com/site/searchpage.jsp?st=${q}`;
   if (store === "sephora")  return `https://www.sephora.com/search?keyword=${q}`;
+  if (store === "ulta")     return `https://www.ulta.com/search?search=${q}`;
   if (store === "google")   return `https://www.google.com/search?tbm=shop&q=${q}`;
   return "";
 }
+
+function detectCategory(name: string): 'electronics' | 'fragrance' | 'home' | 'general' {
+  const n = name.toLowerCase();
+  const frag = ['perfume','cologne','eau de parfum','eau de toilette','edp','edt','fragrance','parfum','intensely','acqua di','sauvage','oud'];
+  const elec = ['tv','television','laptop','headphone','earphone','earbud','airpods','monitor','phone','iphone','tablet','ipad','camera','speaker','soundbar','gaming','console','keyboard','mouse','smartwatch','projector','macbook','chromebook'];
+  if (frag.some(kw => n.includes(kw))) return 'fragrance';
+  if (elec.some(kw => n.includes(kw))) return 'electronics';
+  return 'general';
+}
+
+type SearchOption = { label: string; store: string; color: string };
+const CATEGORY_SEARCHES: Record<string, SearchOption[]> = {
+  electronics: [
+    { label: "Search Amazon",          store: "amazon",  color: "#FF9900" },
+    { label: "Search Best Buy",        store: "bestbuy", color: "#0046BE" },
+    { label: "Search Google Shopping", store: "google",  color: "#4285F4" },
+  ],
+  fragrance: [
+    { label: "Search Amazon",          store: "amazon",  color: "#FF9900" },
+    { label: "Search Sephora",         store: "sephora", color: "#555555" },
+    { label: "Search Ulta",            store: "ulta",    color: "#8B2346" },
+    { label: "Search Google Shopping", store: "google",  color: "#4285F4" },
+  ],
+  general: [
+    { label: "Search Amazon",          store: "amazon",  color: "#FF9900" },
+    { label: "Search Walmart",         store: "walmart", color: "#0071CE" },
+    { label: "Search Google Shopping", store: "google",  color: "#4285F4" },
+  ],
+};
 
 function parseContent(raw: string) {
   let body = raw;
@@ -427,7 +458,7 @@ function RetailerGrid({ links, loading, productName }: { links: PriceLink[]; loa
             </div>
           ))}
         </div>
-        <div style={{ fontSize: 11, color: "#3D5571", marginTop: 7 }}>Finding exact product pages…</div>
+        <div style={{ fontSize: 11, color: "#3D5571", marginTop: 7 }}>Finding verified retailers…</div>
         <style>{`@keyframes br-shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}`}</style>
       </div>
     );
@@ -435,14 +466,11 @@ function RetailerGrid({ links, loading, productName }: { links: PriceLink[]; loa
 
   if (sorted.length === 0) {
     const name = productName || "";
-    const searches = name
-      ? [
-          { label: "Search Amazon",          url: searchUrl("amazon",  name), color: "#FF9900" },
-          { label: "Search Walmart",          url: searchUrl("walmart", name), color: "#0071CE" },
-          { label: "Search Sephora",          url: searchUrl("sephora", name), color: "#333333" },
-          { label: "Search Google Shopping",  url: searchUrl("google",  name), color: "#4285F4" },
-        ]
-      : [];
+    const cat = detectCategory(name);
+    const searchOptions = (CATEGORY_SEARCHES[cat] ?? CATEGORY_SEARCHES.general)
+      .map(s => ({ ...s, url: searchUrl(s.store, name) }))
+      .filter(s => s.url);
+
     return (
       <div style={{
         marginTop: 16, padding: "14px 16px", borderRadius: 10,
@@ -453,42 +481,37 @@ function RetailerGrid({ links, loading, productName }: { links: PriceLink[]; loa
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4D9EFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#7BA8CC" }}>Verifying product page</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#7BA8CC" }}>Exact purchase page still being verified</span>
         </div>
         <p style={{ fontSize: 12, color: "#4A6080", lineHeight: 1.6, margin: "0 0 12px" }}>
-          We're still verifying retailer inventory for this exact product.
-          We only link directly to verified product pages to prevent sending you to the wrong item.
+          We only display Buy buttons that open the exact product page.
+          Rather than risk sending you to the wrong product, we're verifying retailer listings.
         </p>
-        {searches.length > 0 && (
-          <>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#2D4060", letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 7 }}>
-              Find manually
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              {searches.map((s, i) => (
-                <a
-                  key={i}
-                  href={s.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    textDecoration: "none", padding: "7px 11px", borderRadius: 7,
-                    background: "transparent", border: "0.5px solid rgba(255,255,255,0.06)",
-                    transition: "background 0.1s",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
-                >
-                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.color, flexShrink: 0, opacity: 0.7 }} />
-                    <span style={{ fontSize: 12, color: "#5577AA" }}>{s.label}</span>
-                  </span>
-                  <span style={{ fontSize: 11, color: "#3D5571" }}>→</span>
-                </a>
-              ))}
-            </div>
-          </>
+        {name && searchOptions.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {searchOptions.map((s, i) => (
+              <a
+                key={i}
+                href={s.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  textDecoration: "none", padding: "7px 11px", borderRadius: 7,
+                  background: "transparent", border: "0.5px solid rgba(255,255,255,0.06)",
+                  transition: "background 0.1s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+              >
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.color, flexShrink: 0, opacity: 0.7 }} />
+                  <span style={{ fontSize: 12, color: "#5577AA" }}>{s.label}</span>
+                </span>
+                <span style={{ fontSize: 11, color: "#3D5571" }}>→</span>
+              </a>
+            ))}
+          </div>
         )}
       </div>
     );
