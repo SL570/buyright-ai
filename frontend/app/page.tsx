@@ -192,8 +192,6 @@ export default function LandingPage() {
 
       {/* ── Trust bar ── */}
       <div style={S.trustBar}>
-        <span style={S.trustItem}>Powered by Claude AI</span>
-        <span style={S.trustDot}>·</span>
         <span style={S.trustItem}>Live prices across 80+ retailers</span>
         <span style={S.trustDot}>·</span>
         <span style={S.trustItem}>5,000+ recommendations generated</span>
@@ -426,8 +424,8 @@ const S: Record<string, React.CSSProperties> = {
 
   /* Trust bar */
   trustBar:       { display: "flex", alignItems: "center", justifyContent: "center", gap: 16, padding: "14px 48px", borderTop: "1px solid rgba(255,255,255,0.05)", borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.01)", flexWrap: "wrap" as const },
-  trustItem:      { color: "#334155", fontSize: 13 },
-  trustDot:       { color: "#1E2D40" },
+  trustItem:      { color: "#94A3B8", fontSize: 13 },
+  trustDot:       { color: "#475569" },
 
   /* Sections */
   section:        { width: "100%" },
