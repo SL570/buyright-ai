@@ -14,10 +14,23 @@ from services.ratelimit import check_user_rate_limit
 SERPER_KEY = os.getenv("SERPER_API_KEY", "")
 
 
+_SEARCH_PATTERNS = ["/s?k=", "/search?", "/searchpage.jsp", "/catalogsearch", "?q=", "?keyword=", "?searchTerm=", "/s?searchTerm=", "/search?q="]
+_PRODUCT_PATTERNS = ["/dp/", "/gp/product/", "/ip/", "/p/", "/pd/", "/product/", "/site/", "/itm/"]
+
+def _url_quality(url: str) -> int:
+    """Return 2 for direct product page, 1 for unknown, 0 for search results."""
+    u = url.lower()
+    if any(p in u for p in _SEARCH_PATTERNS):
+        return 0
+    if any(p in u for p in _PRODUCT_PATTERNS):
+        return 2
+    return 1
+
+
 def _fetch_live_prices(messages: list) -> tuple[str, list]:
     """
     Search Google Shopping for real-time prices.
-    Returns (system_prompt_injection, [{store, price, url, title}]).
+    Returns (system_prompt_injection, [{store, price, url, title, direct}]).
     """
     if not SERPER_KEY:
         return "", []
@@ -57,6 +70,7 @@ def _fetch_live_prices(messages: list) -> tuple[str, list]:
                     "price": price,
                     "url":   link,
                     "title": title,
+                    "direct": _url_quality(link) >= 1,
                 })
         lines.append("---\n")
         return "\n".join(lines), retailer_links
@@ -423,7 +437,7 @@ def product_prices(req: PricesRequest, user: User = Depends(get_current_user)):
             return []
         items = resp.json().get("shopping", [])
         seen_stores: set = set()
-        results = []
+        candidates = []
         for item in items:
             store = item.get("source", "")
             price = item.get("price", "")
@@ -433,11 +447,16 @@ def product_prices(req: PricesRequest, user: User = Depends(get_current_user)):
                 continue
             if "google.com" in link:
                 continue
-            # One result per store — keep the first (cheapest after Serper sorts by relevance)
-            if store in seen_stores:
+            quality = _url_quality(link)
+            candidates.append({"store": store, "price": price, "url": link, "title": title, "direct": quality >= 1, "_quality": quality})
+        # For each store, prefer direct product page URLs over search URLs
+        candidates.sort(key=lambda x: -x["_quality"])
+        results = []
+        for c in candidates:
+            if c["store"] in seen_stores:
                 continue
-            seen_stores.add(store)
-            results.append({"store": store, "price": price, "url": link, "title": title})
+            seen_stores.add(c["store"])
+            results.append({"store": c["store"], "price": c["price"], "url": c["url"], "title": c["title"], "direct": c["direct"]})
         return results
     except Exception as e:
         print(f"[PRICES] Error: {e}")
