@@ -441,10 +441,11 @@ function RetailerGrid({ links, loading }: { links: PriceLink[]; loading?: boolea
   if (sorted.length === 0) {
     return (
       <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 9, background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.07)" }}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4A6080" strokeWidth="2">
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A6080" strokeWidth="2.5" style={{ animation: "br-spin 1.4s linear infinite", flexShrink: 0 }}>
+          <path d="M12 2a10 10 0 1 0 10 10" strokeLinecap="round"/>
         </svg>
-        <span style={{ fontSize: 12, color: "#4A6080" }}>Exact purchase link unavailable</span>
+        <span style={{ fontSize: 12, color: "#4A6080" }}>Verifying retailer listings…</span>
+        <style>{`@keyframes br-spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     );
   }

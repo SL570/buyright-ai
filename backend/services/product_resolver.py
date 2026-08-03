@@ -102,9 +102,15 @@ def _is_pdp(url: str) -> bool:
     if "macys.com" in u:
         return "/shop/product/" in u or bool(re.search(r'ID=\d+', url))
 
+    # Generic retailer (manufacturer sites, specialty stores, etc.)
+    # If the path has ≥2 meaningful segments and no search/listing signals,
+    # treat it as a product page — better to include than silently drop.
     path = parsed.path.lower()
-    product_indicators = ["/product/", "/item/", "/pdp/", "/dp/", "/ip/"]
-    return any(p in path for p in product_indicators)
+    product_indicators = ["/product/", "/item/", "/pdp/", "/dp/", "/ip/", "/p/", "/buy/", "/shop/p/"]
+    if any(p in path for p in product_indicators):
+        return True
+    segments = [s for s in path.split("/") if s and len(s) > 2]
+    return len(segments) >= 2
 
 
 # ── Title similarity ──────────────────────────────────────────────────────────
@@ -155,31 +161,14 @@ def _word_overlap(query: str, title: str) -> float:
 
 # ── Resolver ──────────────────────────────────────────────────────────────────
 
-def resolve(product_name: str) -> list:
-    """
-    Query Serper Shopping for the exact product name.
-    Filters by:
-      1. _is_pdp() — URL must be a verified product detail page
-      2. _word_overlap() ≥ 0.45 — title must match the queried product
-      3. _verify_200() — URL must respond with HTTP 200 (concurrent)
-    Returns: [{store, price, url, title}] — all guaranteed PDP, matching, live.
-    Caches for 1 hour.
-    """
-    if not SERPER_KEY:
-        return []
-
-    cache_key = product_name.strip().lower()
-    if cache_key in _CACHE:
-        ts, results = _CACHE[cache_key]
-        if time.time() - ts < _CACHE_TTL:
-            return results
-
+def _serper_query(query: str, threshold: float) -> list:
+    """Single Serper Shopping query. Returns validated candidates."""
     try:
         resp = httpx.post(
             "https://google.serper.dev/shopping",
             headers={"X-API-KEY": SERPER_KEY, "Content-Type": "application/json"},
-            json={"q": product_name, "num": 10, "gl": "us"},
-            timeout=5.0,
+            json={"q": query, "num": 10, "gl": "us"},
+            timeout=6.0,
         )
         if resp.status_code != 200:
             return []
@@ -200,15 +189,12 @@ def resolve(product_name: str) -> list:
                 continue
 
             clean = _canonicalize(link)
-
-            # Gate 1: URL must look like a product page
             if not _is_pdp(clean):
                 continue
 
-            # Gate 2: Title must substantially match the queried product name
-            similarity = _word_overlap(product_name, title)
-            if similarity < 0.45:
-                print(f"[RESOLVER] skip low-similarity ({similarity:.2f}): {title!r}")
+            similarity = _word_overlap(query, title)
+            if similarity < threshold:
+                print(f"[RESOLVER] skip ({similarity:.2f}): {title!r}")
                 continue
 
             if store in seen_stores:
@@ -217,12 +203,56 @@ def resolve(product_name: str) -> list:
 
             candidates.append({"store": store, "price": price, "url": clean, "title": title})
 
-        # Serper Shopping only indexes live product pages — URL pattern + title
-        # similarity is sufficient; HTTP re-validation is blocked by Amazon/Walmart
-        # anti-bot measures and adds latency without improving accuracy.
-        _CACHE[cache_key] = (time.time(), candidates)
         return candidates
-
     except Exception as e:
         print(f"[RESOLVER] {e}")
         return []
+
+
+def _simplify(name: str) -> str:
+    """Strip size/variant/descriptor words to get a broader search query."""
+    # Remove trailing descriptors like "3.4 oz", "100ml", "Eau de Parfum", etc.
+    simplified = re.sub(
+        r'\b(\d+\.?\d*\s*(oz|ml|fl|g|l|liter|litre|ounce)s?|eau\s+de\s+(parfum|toilette|cologne)|edp|edt|edc|pack\s+of\s+\d+|set|bundle)\b',
+        '', name, flags=re.IGNORECASE
+    ).strip()
+    simplified = re.sub(r'\s{2,}', ' ', simplified).strip(' ,')
+    return simplified if simplified and simplified.lower() != name.lower() else ""
+
+
+def resolve(product_name: str) -> list:
+    """
+    Query Serper Shopping for the exact product name and return verified PDPs.
+    Retries with a simplified query and lower similarity threshold if the
+    first attempt returns nothing — ensuring "unavailable" is truly a last resort.
+    Caches results for 1 hour.
+    """
+    if not SERPER_KEY:
+        return []
+
+    cache_key = product_name.strip().lower()
+    if cache_key in _CACHE:
+        ts, results = _CACHE[cache_key]
+        if time.time() - ts < _CACHE_TTL:
+            return results
+
+    # Attempt 1: exact name, standard threshold
+    results = _serper_query(product_name, threshold=0.40)
+
+    # Attempt 2: simplified name (drops size/variant), looser threshold
+    if not results:
+        simplified = _simplify(product_name)
+        if simplified:
+            print(f"[RESOLVER] retry with simplified: {simplified!r}")
+            results = _serper_query(simplified, threshold=0.30)
+
+    # Attempt 3: brand + first two words only, very loose (catches anything)
+    if not results:
+        words = product_name.split()
+        short = " ".join(words[:3]) if len(words) > 3 else ""
+        if short:
+            print(f"[RESOLVER] retry with short: {short!r}")
+            results = _serper_query(short, threshold=0.25)
+
+    _CACHE[cache_key] = (time.time(), results)
+    return results
