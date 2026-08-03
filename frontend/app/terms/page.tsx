@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -32,7 +32,7 @@ export default function TermsPage() {
       {/* Nav */}
       <nav style={S.nav}>
         <Link href="/" style={S.brand}>
-          BuyRight <span style={{ color: "#00F5D4" }}>AI</span>
+          BuyRight <span style={{ color: "#0A84FF" }}>AI</span>
         </Link>
         <div style={S.navRight}>
           <Link href="/about" style={S.navLink}>About</Link>
@@ -220,16 +220,16 @@ const S: Record<string, React.CSSProperties> = {
   brand:        { color: "#F1F5F9", fontSize: 18, fontWeight: 700, textDecoration: "none" },
   navRight:     { display: "flex", gap: 20, alignItems: "center" },
   navLink:      { color: "#94A3B8", fontSize: 14, textDecoration: "none" },
-  navCta:       { background: "rgba(0,245,212,0.08)", color: "#00F5D4", border: "1px solid rgba(0,245,212,0.2)", borderRadius: 8, padding: "7px 16px", fontSize: 13, fontWeight: 600, textDecoration: "none" },
+  navCta:       { background: "rgba(10,132,255,0.08)", color: "#0A84FF", border: "1px solid rgba(10,132,255,0.2)", borderRadius: 8, padding: "7px 16px", fontSize: 13, fontWeight: 600, textDecoration: "none" },
 
   pageHeader:   { textAlign: "center", padding: "56px 24px 32px" },
-  pill:         { display: "inline-block", background: "rgba(0,245,212,0.08)", color: "#00F5D4", border: "1px solid rgba(0,245,212,0.2)", borderRadius: 99, padding: "4px 14px", fontSize: 12, fontWeight: 600, marginBottom: 16, textTransform: "uppercase", letterSpacing: "0.5px" },
+  pill:         { display: "inline-block", background: "rgba(10,132,255,0.08)", color: "#0A84FF", border: "1px solid rgba(10,132,255,0.2)", borderRadius: 99, padding: "4px 14px", fontSize: 12, fontWeight: 600, marginBottom: 16, textTransform: "uppercase", letterSpacing: "0.5px" },
   h1:           { color: "#F1F5F9", fontSize: 36, fontWeight: 800, margin: "0 0 10px", letterSpacing: "-0.5px" },
   headerMeta:   { color: "#475569", fontSize: 13, margin: 0 },
 
   summaryWrap:  { width: "100%", maxWidth: 800, padding: "0 40px 40px", boxSizing: "border-box" },
-  summaryBox:   { background: "rgba(0,245,212,0.05)", border: "1px solid rgba(0,245,212,0.15)", borderRadius: 12, padding: "20px 24px" },
-  summaryLabel: { color: "#00F5D4", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", margin: "0 0 8px" },
+  summaryBox:   { background: "rgba(10,132,255,0.05)", border: "1px solid rgba(10,132,255,0.15)", borderRadius: 12, padding: "20px 24px" },
+  summaryLabel: { color: "#0A84FF", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", margin: "0 0 8px" },
   summaryText:  { color: "#94A3B8", fontSize: 14, lineHeight: 1.7, margin: 0 },
 
   body:         { width: "100%", maxWidth: 1100, display: "flex", gap: 48, padding: "0 40px 80px", boxSizing: "border-box", alignItems: "flex-start" },
@@ -247,7 +247,7 @@ const S: Record<string, React.CSSProperties> = {
 
   contactBox:   { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: "20px 24px", display: "flex", flexDirection: "column", gap: 6 },
   contactLine:  { color: "#94A3B8", fontSize: 14, margin: 0 },
-  contactLink:  { color: "#00F5D4", textDecoration: "none" },
+  contactLink:  { color: "#0A84FF", textDecoration: "none" },
 
   footer:       { width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 40px", borderTop: "1px solid rgba(255,255,255,0.06)", boxSizing: "border-box", flexWrap: "wrap", gap: 12 },
   footerCopy:   { color: "rgba(255,255,255,0.2)", fontSize: 12 },

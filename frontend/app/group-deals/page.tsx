@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -286,11 +286,11 @@ export default function GroupDealsPage() {
     <main style={S.page}>
       <nav style={S.header}>
         <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
-          <Link href="/dashboard" style={S.brand}>BuyRight <span style={{ color: "#00F5D4" }}>AI</span></Link>
+          <Link href="/dashboard" style={S.brand}>BuyRight <span style={{ color: "#0A84FF" }}>AI</span></Link>
           <div style={{ display: "flex", gap: 24 }}>
             <Link href="/dashboard"   style={S.navLink}>Home</Link>
             <Link href="/procurement" style={S.navLink}>AI Advisor</Link>
-            <Link href="/group-deals" style={{ ...S.navLink, color: "#00F5D4", fontWeight: 700 }}>Group Deals</Link>
+            <Link href="/group-deals" style={{ ...S.navLink, color: "#0A84FF", fontWeight: 700 }}>Group Deals</Link>
             <Link href="/history"     style={S.navLink}>History</Link>
             <Link href="/pricing"     style={S.navLink}>Pricing</Link>
           </div>
@@ -503,7 +503,7 @@ export default function GroupDealsPage() {
                           <p style={{ color: "#475569", fontSize: 12, margin: 0 }}>{r.store}</p>
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
-                          <p style={{ color: "#00F5D4", fontSize: 16, fontWeight: 800, margin: "0 0 2px" }}>${r.price.toFixed(0)}</p>
+                          <p style={{ color: "#0A84FF", fontSize: 16, fontWeight: 800, margin: "0 0 2px" }}>${r.price.toFixed(0)}</p>
                           {r.rating && <p style={{ color: "#FBBF24", fontSize: 11, margin: 0 }}>★ {r.rating}</p>}
                         </div>
                       </button>
@@ -548,7 +548,7 @@ export default function GroupDealsPage() {
                     {form.store && <p style={{ color: "#475569", fontSize: 12, margin: 0 }}>{form.store}</p>}
                   </div>
                   {form.current_price && (
-                    <p style={{ color: "#00F5D4", fontSize: 17, fontWeight: 800, margin: 0, flexShrink: 0 }}>${parseFloat(form.current_price).toFixed(0)}</p>
+                    <p style={{ color: "#0A84FF", fontSize: 17, fontWeight: 800, margin: 0, flexShrink: 0 }}>${parseFloat(form.current_price).toFixed(0)}</p>
                   )}
                 </div>
 
@@ -590,10 +590,10 @@ export default function GroupDealsPage() {
                     ))}
                   </div>
                   {form.current_price && !isNaN(parseFloat(form.current_price)) && (
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10, padding: "10px 14px", background: "rgba(0,245,212,0.05)", border: "1px solid rgba(0,245,212,0.15)", borderRadius: 9 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10, padding: "10px 14px", background: "rgba(10,132,255,0.05)", border: "1px solid rgba(10,132,255,0.15)", borderRadius: 9 }}>
                       <span style={{ color: "#64748B", fontSize: 13 }}>Group target price</span>
                       <span>
-                        <span style={{ color: "#00F5D4", fontSize: 17, fontWeight: 800 }}>${(parseFloat(form.current_price) * (1 - form.discount_pct / 100)).toFixed(0)}</span>
+                        <span style={{ color: "#0A84FF", fontSize: 17, fontWeight: 800 }}>${(parseFloat(form.current_price) * (1 - form.discount_pct / 100)).toFixed(0)}</span>
                         <span style={{ color: "#475569", fontSize: 12 }}> (save ${(parseFloat(form.current_price) * form.discount_pct / 100).toFixed(0)})</span>
                       </span>
                     </div>
@@ -666,9 +666,9 @@ function DealCard({
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
         <span style={{
           ...D.badge,
-          background: isActive ? "rgba(0,245,212,0.1)" : "rgba(251,191,36,0.1)",
-          color: isActive ? "#00F5D4" : "#FBBF24",
-          border: `1px solid ${isActive ? "rgba(0,245,212,0.2)" : "rgba(251,191,36,0.2)"}`,
+          background: isActive ? "rgba(10,132,255,0.1)" : "rgba(251,191,36,0.1)",
+          color: isActive ? "#0A84FF" : "#FBBF24",
+          border: `1px solid ${isActive ? "rgba(10,132,255,0.2)" : "rgba(251,191,36,0.2)"}`,
         }}>
           {isActive ? "✓ Active" : "● Forming"}
         </span>
@@ -677,7 +677,7 @@ function DealCard({
 
       <h3 style={D.productName}>{deal.product_name}</h3>
       <p style={D.prices}>
-        <span style={{ color: "#00F5D4", fontWeight: 700 }}>${deal.target_price.toFixed(0)}</span>
+        <span style={{ color: "#0A84FF", fontWeight: 700 }}>${deal.target_price.toFixed(0)}</span>
         <span style={{ color: "#475569" }}> target from ${deal.current_price.toFixed(0)}</span>
       </p>
 
@@ -697,7 +697,7 @@ function DealCard({
               ...D.progressFill,
               width: `${progress}%`,
               background: isActive
-                ? "linear-gradient(90deg,#00F5D4,#00D4B8)"
+                ? "linear-gradient(90deg,#0A84FF,#00D4B8)"
                 : "linear-gradient(90deg,#818CF8,#A78BFA)",
             }}
           />
@@ -708,7 +708,7 @@ function DealCard({
         {isActive && deal.negotiation_script ? (
           <button
             onClick={() => setExpandedScript(scriptOpen ? null : deal.id)}
-            style={{ ...D.actionBtn, background: "rgba(0,245,212,0.08)", color: "#00F5D4", border: "1px solid rgba(0,245,212,0.2)", flex: 1 }}
+            style={{ ...D.actionBtn, background: "rgba(10,132,255,0.08)", color: "#0A84FF", border: "1px solid rgba(10,132,255,0.2)", flex: 1 }}
           >
             {scriptOpen ? "▲ Hide Script" : "▼ View Script"}
           </button>
@@ -742,7 +742,7 @@ function DealCard({
 
       {scriptOpen && deal.negotiation_script && (
         <div style={D.scriptBox}>
-          <p style={{ color: "#00F5D4", fontSize: 11, fontWeight: 700, margin: "0 0 10px", textTransform: "uppercase", letterSpacing: "0.6px" }}>
+          <p style={{ color: "#0A84FF", fontSize: 11, fontWeight: 700, margin: "0 0 10px", textTransform: "uppercase", letterSpacing: "0.6px" }}>
             Bulk Discount Negotiation Script
           </p>
           <p style={{ color: "#CBD5E1", fontSize: 13, lineHeight: 1.75, whiteSpace: "pre-wrap", margin: 0 }}>
@@ -750,7 +750,7 @@ function DealCard({
           </p>
           <button
             onClick={() => deal.negotiation_script && navigator.clipboard?.writeText(deal.negotiation_script)}
-            style={{ marginTop: 14, background: "rgba(0,245,212,0.08)", border: "1px solid rgba(0,245,212,0.2)", color: "#00F5D4", borderRadius: 8, padding: "7px 16px", fontSize: 12, cursor: "pointer" }}
+            style={{ marginTop: 14, background: "rgba(10,132,255,0.08)", border: "1px solid rgba(10,132,255,0.2)", color: "#0A84FF", borderRadius: 8, padding: "7px 16px", fontSize: 12, cursor: "pointer" }}
           >
             Copy script
           </button>
@@ -818,5 +818,5 @@ const D: Record<string, React.CSSProperties> = {
   progressTrack: { height: 5, background: "rgba(255,255,255,0.06)", borderRadius: 99, overflow: "hidden" },
   progressFill:  { height: "100%", borderRadius: 99, transition: "width 0.4s ease" },
   actionBtn:     { borderRadius: 9, padding: "9px 14px", fontSize: 13, cursor: "pointer", textAlign: "center" },
-  scriptBox:     { marginTop: 16, background: "rgba(0,245,212,0.04)", border: "1px solid rgba(0,245,212,0.12)", borderRadius: 12, padding: "16px" },
+  scriptBox:     { marginTop: 16, background: "rgba(10,132,255,0.04)", border: "1px solid rgba(10,132,255,0.12)", borderRadius: 12, padding: "16px" },
 };

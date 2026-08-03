@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import type { Metadata } from "next";
 import KnowledgeGraph from "../components/KnowledgeGraph";
 
@@ -14,7 +14,7 @@ export default function AboutPage() {
       {/* Nav */}
       <nav style={S.nav}>
         <Link href="/" style={S.brand}>
-          BuyRight <span style={{ color: "#00F5D4" }}>AI</span>
+          BuyRight <span style={{ color: "#0A84FF" }}>AI</span>
         </Link>
         <Link href="/sign-in" style={S.cta}>Get started free →</Link>
       </nav>
@@ -24,7 +24,7 @@ export default function AboutPage() {
         <div style={S.pill}>Built for the way people actually shop</div>
         <h1 style={S.h1}>
           The AI that tells you<br />
-          <span style={{ color: "#00F5D4" }}>when to buy — and when to wait.</span>
+          <span style={{ color: "#0A84FF" }}>when to buy — and when to wait.</span>
         </h1>
         <p style={S.heroSub}>
           BuyRight AI is a consumer-side shopping intelligence platform. It tracks prices, analyzes market timing, negotiates on your behalf, and executes purchases — so you never overpay again.
@@ -60,10 +60,10 @@ export default function AboutPage() {
           </p>
           <div style={S.problemGrid}>
             {[
-              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>, title: "Dynamic pricing", desc: "Prices change dozens of times a day. The same product can cost 40% more depending on when — and who — is looking." },
-              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, title: "Artificial urgency", desc: "\"Only 2 left\" and countdown timers are engineered to override your judgment and force an emotional purchase." },
-              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>, title: "Comparison overload", desc: "Dozens of SKUs, bundled warranties, hidden fees, and review manipulation make it nearly impossible to compare honestly." },
-              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>, title: "Price drop regret", desc: "You buy today and the price drops 20% next week. Retailers bank on this. Price protection is buried in fine print." },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A84FF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>, title: "Dynamic pricing", desc: "Prices change dozens of times a day. The same product can cost 40% more depending on when — and who — is looking." },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A84FF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, title: "Artificial urgency", desc: "\"Only 2 left\" and countdown timers are engineered to override your judgment and force an emotional purchase." },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A84FF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>, title: "Comparison overload", desc: "Dozens of SKUs, bundled warranties, hidden fees, and review manipulation make it nearly impossible to compare honestly." },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A84FF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>, title: "Price drop regret", desc: "You buy today and the price drops 20% next week. Retailers bank on this. Price protection is buried in fine print." },
             ].map(p => (
               <div key={p.title} style={S.problemCard}>
                 <span style={S.problemIcon}>{p.icon}</span>
@@ -76,7 +76,7 @@ export default function AboutPage() {
       </section>
 
       {/* How it works */}
-      <section style={{ ...S.section, background: "rgba(0,245,212,0.02)", borderTop: "1px solid rgba(0,245,212,0.06)", borderBottom: "1px solid rgba(0,245,212,0.06)" }}>
+      <section style={{ ...S.section, background: "rgba(10,132,255,0.02)", borderTop: "1px solid rgba(10,132,255,0.06)", borderBottom: "1px solid rgba(10,132,255,0.06)" }}>
         <div style={S.sectionInner}>
           <div style={S.pill}>How it works</div>
           <h2 style={S.h2}>From question to action in seconds.</h2>
@@ -103,12 +103,12 @@ export default function AboutPage() {
           <h2 style={S.h2}>Every buying scenario, covered.</h2>
           <div style={S.featGrid}>
             {[
-              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>, title: "Price Intelligence", desc: "Real-time price tracking across Amazon, Best Buy, Walmart, Target, and 80+ retailers. Identifies the historical low, upcoming sale probability, and the exact right moment to buy." },
-              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, title: "Automated Negotiation", desc: "BuyRight AI drafts and sends negotiation requests to retailers on your behalf — citing competitor pricing, timing leverage, and loyalty status to unlock discounts humans rarely get." },
-              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>, title: "Consumer Procurement", desc: "You describe what you need and your budget. BuyRight researches, shortlists, negotiates, and executes — end-to-end, with a full audit trail of every decision." },
-              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, title: "Group Deals", desc: "Invite friends or join anonymous buying groups to unlock wholesale pricing that isn't available to individual consumers." },
-              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>, title: "Post-Purchase Fulfillment", desc: "Monitors price drops after you buy and automatically files for price adjustments. Tracks deliveries, flags delays, and initiates returns if items don't arrive as described." },
-              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg>, title: "Life Event Planning", desc: "Planning a move, a baby, or a home renovation? BuyRight AI builds a prioritized purchase calendar — mapping what to buy now vs. what to wait on based on your timeline." },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A84FF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>, title: "Price Intelligence", desc: "Real-time price tracking across Amazon, Best Buy, Walmart, Target, and 80+ retailers. Identifies the historical low, upcoming sale probability, and the exact right moment to buy." },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A84FF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, title: "Automated Negotiation", desc: "BuyRight AI drafts and sends negotiation requests to retailers on your behalf — citing competitor pricing, timing leverage, and loyalty status to unlock discounts humans rarely get." },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A84FF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>, title: "Consumer Procurement", desc: "You describe what you need and your budget. BuyRight researches, shortlists, negotiates, and executes — end-to-end, with a full audit trail of every decision." },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A84FF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, title: "Group Deals", desc: "Invite friends or join anonymous buying groups to unlock wholesale pricing that isn't available to individual consumers." },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A84FF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>, title: "Post-Purchase Fulfillment", desc: "Monitors price drops after you buy and automatically files for price adjustments. Tracks deliveries, flags delays, and initiates returns if items don't arrive as described." },
+              { icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A84FF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg>, title: "Life Event Planning", desc: "Planning a move, a baby, or a home renovation? BuyRight AI builds a prioritized purchase calendar — mapping what to buy now vs. what to wait on based on your timeline." },
             ].map(f => (
               <div key={f.title} style={S.featCard}>
                 <span style={S.featIcon}>{f.icon}</span>
@@ -133,7 +133,7 @@ export default function AboutPage() {
       </section>
 
       {/* Mission */}
-      <section style={{ ...S.section, background: "rgba(0,245,212,0.03)", borderTop: "1px solid rgba(0,245,212,0.08)", borderBottom: "1px solid rgba(0,245,212,0.08)" }}>
+      <section style={{ ...S.section, background: "rgba(10,132,255,0.03)", borderTop: "1px solid rgba(10,132,255,0.08)", borderBottom: "1px solid rgba(10,132,255,0.08)" }}>
         <div style={{ ...S.sectionInner, maxWidth: 680, textAlign: "center" }}>
           <div style={S.pill}>Our mission</div>
           <h2 style={S.h2}>Information asymmetry in retail ends here.</h2>
@@ -157,7 +157,7 @@ export default function AboutPage() {
               <p style={S.planPrice}>$0<span style={S.planPer}>/month</span></p>
               <ul style={S.planFeats}>
                 {["AI price advisor — 5 free queries", "Buy / wait / negotiate verdicts", "Live price comparison across retailers", "Conversation history"].map(f => (
-                  <li key={f} style={S.planFeat}><span style={{ color: "#00F5D4", marginRight: 8 }}>✓</span>{f}</li>
+                  <li key={f} style={S.planFeat}><span style={{ color: "#0A84FF", marginRight: 8 }}>✓</span>{f}</li>
                 ))}
                 {["Consumer Procurement agent", "Automated negotiation", "Post-purchase fulfillment", "Group & collective deals"].map(f => (
                   <li key={f} style={S.planFeatOff}><span style={{ color: "#475569", marginRight: 8 }}>✗</span>{f}</li>
@@ -165,13 +165,13 @@ export default function AboutPage() {
               </ul>
               <Link href="/sign-in" style={S.planBtnGhost}>Start free</Link>
             </div>
-            <div style={{ ...S.pricingCard, border: "1px solid rgba(0,245,212,0.35)", position: "relative" }}>
+            <div style={{ ...S.pricingCard, border: "1px solid rgba(10,132,255,0.35)", position: "relative" }}>
               <div style={S.pricingBadge}>Most popular</div>
               <p style={S.planLabel}>Pro</p>
               <p style={S.planPrice}>$9<span style={S.planPer}>/month</span></p>
               <ul style={S.planFeats}>
                 {["Everything in Free", "Consumer Procurement agent", "Automated negotiation", "Post-purchase fulfillment", "Group & collective deals", "Cancel anytime"].map(f => (
-                  <li key={f} style={S.planFeat}><span style={{ color: "#00F5D4", marginRight: 8 }}>✓</span>{f}</li>
+                  <li key={f} style={S.planFeat}><span style={{ color: "#0A84FF", marginRight: 8 }}>✓</span>{f}</li>
                 ))}
               </ul>
               <Link href="/pricing" style={S.planBtnTeal}>Subscribe now →</Link>
@@ -210,14 +210,14 @@ const S: Record<string, React.CSSProperties> = {
   page:           { minHeight: "100vh", background: "#0B0F19", fontFamily: "system-ui, -apple-system, sans-serif", display: "flex", flexDirection: "column", alignItems: "center" },
   nav:            { width: "100%", maxWidth: 1100, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 40px", boxSizing: "border-box" },
   brand:          { color: "#F1F5F9", fontSize: 18, fontWeight: 700, textDecoration: "none" },
-  cta:            { background: "rgba(0,245,212,0.08)", color: "#00F5D4", border: "1px solid rgba(0,245,212,0.2)", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 600, textDecoration: "none" },
+  cta:            { background: "rgba(10,132,255,0.08)", color: "#0A84FF", border: "1px solid rgba(10,132,255,0.2)", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 600, textDecoration: "none" },
 
   hero:           { textAlign: "center", padding: "72px 24px 48px", maxWidth: 720 },
-  pill:           { display: "inline-block", background: "rgba(0,245,212,0.08)", color: "#00F5D4", border: "1px solid rgba(0,245,212,0.2)", borderRadius: 99, padding: "4px 14px", fontSize: 12, fontWeight: 600, marginBottom: 20, textTransform: "uppercase", letterSpacing: "0.5px" },
+  pill:           { display: "inline-block", background: "rgba(10,132,255,0.08)", color: "#0A84FF", border: "1px solid rgba(10,132,255,0.2)", borderRadius: 99, padding: "4px 14px", fontSize: 12, fontWeight: 600, marginBottom: 20, textTransform: "uppercase", letterSpacing: "0.5px" },
   h1:             { color: "#F1F5F9", fontSize: 48, fontWeight: 800, margin: "0 0 20px", letterSpacing: "-1px", lineHeight: 1.15 },
   heroSub:        { color: "#94A3B8", fontSize: 17, lineHeight: 1.7, margin: "0 auto 32px", maxWidth: 560 },
   heroCtas:       { display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" },
-  primaryBtn:     { background: "#00F5D4", color: "#0B0F19", borderRadius: 10, padding: "13px 28px", fontWeight: 700, fontSize: 15, textDecoration: "none", display: "inline-block" },
+  primaryBtn:     { background: "#0A84FF", color: "#0B0F19", borderRadius: 10, padding: "13px 28px", fontWeight: 700, fontSize: 15, textDecoration: "none", display: "inline-block" },
   ghostBtn:       { background: "transparent", color: "#94A3B8", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "13px 28px", fontWeight: 600, fontSize: 15, textDecoration: "none", display: "inline-block" },
 
   statsBar:       { display: "flex", gap: 0, borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)", width: "100%", justifyContent: "center" },
@@ -238,7 +238,7 @@ const S: Record<string, React.CSSProperties> = {
 
   stepsGrid:      { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 24, marginTop: 48 },
   stepCard:       { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: "32px 28px" },
-  stepNum:        { width: 36, height: 36, background: "rgba(0,245,212,0.1)", border: "1px solid rgba(0,245,212,0.25)", borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center", color: "#00F5D4", fontWeight: 800, fontSize: 15, marginBottom: 16 },
+  stepNum:        { width: 36, height: 36, background: "rgba(10,132,255,0.1)", border: "1px solid rgba(10,132,255,0.25)", borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center", color: "#0A84FF", fontWeight: 800, fontSize: 15, marginBottom: 16 },
   stepTitle:      { color: "#F1F5F9", fontSize: 16, fontWeight: 700, margin: "0 0 10px" },
   stepDesc:       { color: "#94A3B8", fontSize: 14, lineHeight: 1.65, margin: 0 },
 
@@ -250,14 +250,14 @@ const S: Record<string, React.CSSProperties> = {
 
   pricingCards:   { display: "flex", gap: 20, marginTop: 48, flexWrap: "wrap", justifyContent: "center" },
   pricingCard:    { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "36px 32px", width: 300, display: "flex", flexDirection: "column", gap: 20, boxSizing: "border-box" },
-  pricingBadge:   { position: "absolute", top: -13, left: "50%", transform: "translateX(-50%)", background: "#00F5D4", color: "#0B0F19", fontSize: 11, fontWeight: 800, padding: "4px 14px", borderRadius: 99, whiteSpace: "nowrap" },
+  pricingBadge:   { position: "absolute", top: -13, left: "50%", transform: "translateX(-50%)", background: "#0A84FF", color: "#0B0F19", fontSize: 11, fontWeight: 800, padding: "4px 14px", borderRadius: 99, whiteSpace: "nowrap" },
   planLabel:      { color: "#94A3B8", fontSize: 12, fontWeight: 700, margin: 0, textTransform: "uppercase", letterSpacing: "0.8px" },
   planPrice:      { color: "#F1F5F9", fontSize: 44, fontWeight: 800, margin: 0 },
   planPer:        { fontSize: 16, fontWeight: 400, color: "#94A3B8" },
   planFeats:      { listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10, flex: 1 },
   planFeat:       { color: "#E2E8F0", fontSize: 14, display: "flex", alignItems: "flex-start" },
   planFeatOff:    { color: "#475569", fontSize: 14, display: "flex", alignItems: "flex-start" },
-  planBtnTeal:    { background: "#00F5D4", color: "#0B0F19", borderRadius: 10, padding: "13px 20px", fontWeight: 700, fontSize: 14, textDecoration: "none", textAlign: "center", display: "block" },
+  planBtnTeal:    { background: "#0A84FF", color: "#0B0F19", borderRadius: 10, padding: "13px 20px", fontWeight: 700, fontSize: 14, textDecoration: "none", textAlign: "center", display: "block" },
   planBtnGhost:   { background: "rgba(255,255,255,0.05)", color: "#94A3B8", borderRadius: 10, padding: "13px 20px", fontWeight: 600, fontSize: 14, textDecoration: "none", textAlign: "center", display: "block" },
 
   footer:         { width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 40px", borderTop: "1px solid rgba(255,255,255,0.06)", boxSizing: "border-box", flexWrap: "wrap", gap: 12 },

@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { API_BASE as BASE } from "@/lib/config";
 import { timeAgo } from "@/lib/utils";
-const ACCENT = "#00F5D4";
+const ACCENT = "#0A84FF";
 
 interface Session {
   id: number;

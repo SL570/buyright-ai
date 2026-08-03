@@ -14,7 +14,7 @@ export default function SignInPage() {
     <main style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#0B0F19", padding: "24px 16px" }}>
       <div style={{ width: "100%", maxWidth: 380, textAlign: "center" }}>
         <h1 style={{ color: "#F1F5F9", fontSize: 28, fontWeight: 800, margin: "0 0 6px", fontFamily: "system-ui", letterSpacing: "-0.5px" }}>
-          BuyRight <span style={{ color: "#00F5D4" }}>AI</span>
+          BuyRight <span style={{ color: "#0A84FF" }}>AI</span>
         </h1>
         <p style={{ color: "#64748B", fontSize: 14, margin: "0 0 36px", fontFamily: "system-ui" }}>
           Stop overpaying. Buy right, every time.

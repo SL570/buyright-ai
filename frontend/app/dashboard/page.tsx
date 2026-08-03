@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
@@ -8,7 +8,7 @@ import { getQuota, consumeQuery, syncWithServer, FREE_LIMIT, type Quota } from "
 import { timeAgo } from "@/lib/utils";
 
 const BASE   = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
-const ACCENT = "#00F5D4";
+const ACCENT = "#0A84FF";
 
 interface HistorySession {
   id: number;
@@ -372,7 +372,7 @@ const S: Record<string, React.CSSProperties> = {
   seeAll:           { color: ACCENT, fontSize: 13, textDecoration: "none", fontWeight: 600 },
   recentGrid:       { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 },
   recentCard:       { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "18px 16px", display: "flex", flexDirection: "column", gap: 12, cursor: "pointer", textAlign: "left" as const, fontFamily: "inherit" },
-  recentEmoji:      { fontSize: 11, fontWeight: 700, color: ACCENT, background: "rgba(0,245,212,0.08)", border: "1px solid rgba(0,245,212,0.15)", borderRadius: 6, padding: "4px 7px", letterSpacing: "0.5px", flexShrink: 0, alignSelf: "flex-start" },
+  recentEmoji:      { fontSize: 11, fontWeight: 700, color: ACCENT, background: "rgba(10,132,255,0.08)", border: "1px solid rgba(10,132,255,0.15)", borderRadius: 6, padding: "4px 7px", letterSpacing: "0.5px", flexShrink: 0, alignSelf: "flex-start" },
   recentInfo:       { flex: 1 },
   recentProduct:    { color: "#E2E8F0", fontSize: 14, fontWeight: 600, margin: "0 0 5px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const },
   recentMeta:       { color: "#475569", fontSize: 12, margin: 0 },
@@ -390,7 +390,7 @@ const S: Record<string, React.CSSProperties> = {
   collArrow:        { color: "#475569", fontSize: 18, marginLeft: "auto", flexShrink: 0 },
   cta:              { textAlign: "center" as const, padding: "32px 0 64px", display: "flex", flexDirection: "column", alignItems: "center", gap: 16 },
   ctaText:          { color: "#475569", fontSize: 15, margin: 0 },
-  ctaBtn:           { background: "rgba(0,245,212,0.08)", color: ACCENT, border: "1px solid rgba(0,245,212,0.2)", borderRadius: 10, padding: "11px 24px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" },
+  ctaBtn:           { background: "rgba(10,132,255,0.08)", color: ACCENT, border: "1px solid rgba(10,132,255,0.2)", borderRadius: 10, padding: "11px 24px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" },
   footer:           { borderTop: "1px solid rgba(255,255,255,0.06)", padding: "18px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" as const, gap: 10 },
   footerCopy:       { color: "rgba(255,255,255,0.2)", fontSize: 12 },
   footerNav:        { display: "flex", gap: 20 },

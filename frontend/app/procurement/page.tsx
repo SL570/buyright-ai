@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Fragment, Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -13,7 +13,7 @@ interface Message {
 }
 
 const BASE    = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
-const ACCENT  = "#00F5D4";
+const ACCENT  = "#0A84FF";
 
 const STARTERS = [
   "I need a gaming laptop under $1,200 for college by August",
@@ -469,7 +469,7 @@ function ProcurementPageInner() {
             <div style={{ ...S.msgRow, justifyContent: "flex-start" }}>
               <div style={S.avatar}>🛒</div>
               <div style={{ ...S.aiBubble, padding: "12px 16px" }}>
-                <div style={{ fontSize: 13, color: "#00F5D4", display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ fontSize: 13, color: "#0A84FF", display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ animation: "spin 1.2s linear infinite", display: "inline-block" }}>⟳</span>
                   {loadingMsg}
                 </div>
@@ -573,16 +573,16 @@ const S: Record<string, React.CSSProperties> = {
   starters:   { display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginTop: 8 },
   starterBtn: { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "#94A3B8", borderRadius: 99, padding: "8px 16px", fontSize: 12, cursor: "pointer" },
   msgRow:     { display: "flex", gap: 10, alignItems: "flex-start" },
-  avatar:     { width: 30, height: 30, borderRadius: "50%", background: "rgba(0,245,212,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0, marginTop: 2 },
+  avatar:     { width: 30, height: 30, borderRadius: "50%", background: "rgba(10,132,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0, marginTop: 2 },
   userBubble: { background: "#1E293B", color: "#F1F5F9", borderRadius: "16px 16px 4px 16px", padding: "12px 16px", fontSize: 14, lineHeight: 1.6, maxWidth: "80%", whiteSpace: "pre-wrap" },
-  aiBubble:   { background: "rgba(0,245,212,0.05)", border: "1px solid rgba(0,245,212,0.15)", color: "#E2E8F0", borderRadius: "16px 16px 16px 4px", padding: "14px 16px", fontSize: 14, maxWidth: "85%" },
+  aiBubble:   { background: "rgba(10,132,255,0.05)", border: "1px solid rgba(10,132,255,0.15)", color: "#E2E8F0", borderRadius: "16px 16px 16px 4px", padding: "14px 16px", fontSize: 14, maxWidth: "85%" },
   typing:     { display: "flex", gap: 4, alignItems: "center", padding: "14px 18px" },
-  dot:        { width: 7, height: 7, borderRadius: "50%", background: "#00F5D4", display: "inline-block", animation: "blink 1.2s infinite" },
+  dot:        { width: 7, height: 7, borderRadius: "50%", background: "#0A84FF", display: "inline-block", animation: "blink 1.2s infinite" },
   inputArea:  { flexShrink: 0, padding: "12px 16px 16px", borderTop: "1px solid rgba(255,255,255,0.07)" },
   inputRow:   { maxWidth: 760, margin: "0 auto", display: "flex", gap: 10 },
   input:      { flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "12px 16px", color: "#F1F5F9", fontSize: 14, outline: "none" },
   micBtn:     { border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "0 14px", fontSize: 18, cursor: "pointer", flexShrink: 0 },
-  sendBtn:    { background: "#00F5D4", color: "#0B0F19", border: "none", borderRadius: 10, padding: "12px 22px", fontWeight: 700, fontSize: 14, cursor: "pointer" },
+  sendBtn:    { background: "#0A84FF", color: "#0B0F19", border: "none", borderRadius: 10, padding: "12px 22px", fontWeight: 700, fontSize: 14, cursor: "pointer" },
   hint:       { color: "#334155", fontSize: 11, textAlign: "center", margin: "6px 0 0" },
   journeyBar: { flexShrink: 0, borderTop: "0.5px solid rgba(255,255,255,0.05)", padding: "10px 16px 8px" },
   journeyRow: { maxWidth: 500, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center" },

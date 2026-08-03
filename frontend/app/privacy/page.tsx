@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -29,7 +29,7 @@ export default function PrivacyPage() {
       {/* Nav */}
       <nav style={S.nav}>
         <Link href="/" style={S.brand}>
-          BuyRight <span style={{ color: "#00F5D4" }}>AI</span>
+          BuyRight <span style={{ color: "#0A84FF" }}>AI</span>
         </Link>
         <div style={S.navRight}>
           <Link href="/about" style={S.navLink}>About</Link>
@@ -128,7 +128,7 @@ export default function PrivacyPage() {
               ].map(([purpose, basis]) => (
                 <div key={purpose} style={S.tableRow}>
                   <div style={S.tableCell}>{purpose}</div>
-                  <div style={{ ...S.tableCell, color: "#00F5D4", fontWeight: 600 }}>{basis}</div>
+                  <div style={{ ...S.tableCell, color: "#0A84FF", fontWeight: 600 }}>{basis}</div>
                 </div>
               ))}
             </div>
@@ -160,7 +160,7 @@ export default function PrivacyPage() {
                 ["buyright-pref", "Stores UI preferences (e.g., last selected feature)", "1 year"],
               ].map(([name, purpose, duration]) => (
                 <div key={name} style={S.tableRow}>
-                  <div style={{ ...S.tableCell, fontFamily: "monospace", fontSize: 13, color: "#00F5D4" }}>{name}</div>
+                  <div style={{ ...S.tableCell, fontFamily: "monospace", fontSize: 13, color: "#0A84FF" }}>{name}</div>
                   <div style={S.tableCell}>{purpose}</div>
                   <div style={{ ...S.tableCell, color: "#94A3B8" }}>{duration}</div>
                 </div>
@@ -273,16 +273,16 @@ const S: Record<string, React.CSSProperties> = {
   brand:        { color: "#F1F5F9", fontSize: 18, fontWeight: 700, textDecoration: "none" },
   navRight:     { display: "flex", gap: 20, alignItems: "center" },
   navLink:      { color: "#94A3B8", fontSize: 14, textDecoration: "none" },
-  navCta:       { background: "rgba(0,245,212,0.08)", color: "#00F5D4", border: "1px solid rgba(0,245,212,0.2)", borderRadius: 8, padding: "7px 16px", fontSize: 13, fontWeight: 600, textDecoration: "none" },
+  navCta:       { background: "rgba(10,132,255,0.08)", color: "#0A84FF", border: "1px solid rgba(10,132,255,0.2)", borderRadius: 8, padding: "7px 16px", fontSize: 13, fontWeight: 600, textDecoration: "none" },
 
   pageHeader:   { textAlign: "center", padding: "56px 24px 32px" },
-  pill:         { display: "inline-block", background: "rgba(0,245,212,0.08)", color: "#00F5D4", border: "1px solid rgba(0,245,212,0.2)", borderRadius: 99, padding: "4px 14px", fontSize: 12, fontWeight: 600, marginBottom: 16, textTransform: "uppercase", letterSpacing: "0.5px" },
+  pill:         { display: "inline-block", background: "rgba(10,132,255,0.08)", color: "#0A84FF", border: "1px solid rgba(10,132,255,0.2)", borderRadius: 99, padding: "4px 14px", fontSize: 12, fontWeight: 600, marginBottom: 16, textTransform: "uppercase", letterSpacing: "0.5px" },
   h1:           { color: "#F1F5F9", fontSize: 36, fontWeight: 800, margin: "0 0 10px", letterSpacing: "-0.5px" },
   headerMeta:   { color: "#475569", fontSize: 13, margin: 0 },
 
   commitWrap:   { width: "100%", maxWidth: 900, padding: "0 40px 40px", boxSizing: "border-box" },
-  commitBox:    { background: "rgba(0,245,212,0.04)", border: "1px solid rgba(0,245,212,0.12)", borderRadius: 16, padding: "24px 28px" },
-  commitLabel:  { color: "#00F5D4", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", margin: "0 0 16px" },
+  commitBox:    { background: "rgba(10,132,255,0.04)", border: "1px solid rgba(10,132,255,0.12)", borderRadius: 16, padding: "24px 28px" },
+  commitLabel:  { color: "#0A84FF", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", margin: "0 0 16px" },
   commitGrid:   { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 },
   commitItem:   { display: "flex", alignItems: "flex-start", gap: 10 },
   commitIcon:   { fontSize: 16, flexShrink: 0, marginTop: 1 },
@@ -301,7 +301,7 @@ const S: Record<string, React.CSSProperties> = {
   list:         { margin: "0 0 16px", paddingLeft: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 },
   li:           { color: "#94A3B8", fontSize: 15, lineHeight: 1.6, paddingLeft: 0 },
   strong:       { color: "#E2E8F0", fontWeight: 600 },
-  link:         { color: "#00F5D4", textDecoration: "none" },
+  link:         { color: "#0A84FF", textDecoration: "none" },
 
   table:        { border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, overflow: "hidden", marginBottom: 16 },
   tableRow:     { display: "flex", borderBottom: "1px solid rgba(255,255,255,0.05)" },

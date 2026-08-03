@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 
-const ACCENT = "#00F5D4";
+const ACCENT = "#0A84FF";
 
 const FAQS = [
   { q: "Is BuyRight AI free?", a: "Yes — the AI Advisor is completely free with no credit card required. The Pro plan ($9/month) unlocks Consumer Procurement, automated negotiation, post-purchase fulfillment, and group deals." },
@@ -16,7 +16,7 @@ const FAQS = [
 ];
 
 const IC = (path: string, vb = "0 0 24 24") => (
-  <svg width="22" height="22" viewBox={vb} fill="none" stroke="#00F5D4" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="22" height="22" viewBox={vb} fill="none" stroke="#0A84FF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
     {path.split("|").map((d, i) => <path key={i} d={d} />)}
   </svg>
 );
@@ -42,15 +42,64 @@ export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
+    <>
+    <style>{`
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(22px); }
+        to   { opacity: 1; transform: translateY(0);    }
+      }
+      @keyframes brFloat {
+        0%, 100% { transform: translateY(0px);   }
+        50%       { transform: translateY(-12px); }
+      }
+      @keyframes brShimmer {
+        0%   { background-position: 200% center; }
+        100% { background-position: -200% center; }
+      }
+      .br-anim-1 { opacity:0; animation: fadeInUp 0.65s cubic-bezier(0.25,0.46,0.45,0.94) 0.05s both; }
+      .br-anim-2 { opacity:0; animation: fadeInUp 0.65s cubic-bezier(0.25,0.46,0.45,0.94) 0.18s both; }
+      .br-anim-3 { opacity:0; animation: fadeInUp 0.65s cubic-bezier(0.25,0.46,0.45,0.94) 0.30s both; }
+      .br-anim-4 { opacity:0; animation: fadeInUp 0.65s cubic-bezier(0.25,0.46,0.45,0.94) 0.42s both; }
+      .br-anim-5 { opacity:0; animation: fadeInUp 0.65s cubic-bezier(0.25,0.46,0.45,0.94) 0.54s both; }
+      .br-float  { animation: brFloat 5s ease-in-out infinite; }
+      .br-shimmer {
+        background: linear-gradient(90deg, #0A84FF 0%, #60C8FF 45%, #0A84FF 90%);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: brShimmer 4s linear infinite;
+      }
+      .br-btn {
+        transition: transform 0.18s cubic-bezier(0.25,0.46,0.45,0.94),
+                    box-shadow 0.22s ease !important;
+      }
+      .br-btn:hover  { transform: scale(1.04); box-shadow: 0 8px 36px rgba(10,132,255,0.32); }
+      .br-btn:active { transform: scale(0.97); }
+      .br-card {
+        transition: transform 0.22s cubic-bezier(0.25,0.46,0.45,0.94),
+                    border-color 0.22s ease,
+                    box-shadow 0.22s ease !important;
+      }
+      .br-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(10,132,255,0.22) !important;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.28);
+      }
+      .br-nav-link {
+        transition: color 0.15s ease;
+      }
+      .br-nav-link:hover { color: #F1F5F9 !important; }
+    `}</style>
     <main style={S.page}>
 
       {/* ── Nav ── */}
       <nav style={S.nav}>
         <span style={S.brand}>BuyRight <span style={{ color: ACCENT }}>AI</span></span>
         <div style={S.navCenter}>
-          <Link href="/about"   style={S.navLink}>Product</Link>
-          <Link href="/pricing" style={S.navLink}>Pricing</Link>
-          <Link href="/about"   style={S.navLink}>About</Link>
+          <Link href="/about"   style={S.navLink} className="br-nav-link">Product</Link>
+          <Link href="/pricing" style={S.navLink} className="br-nav-link">Pricing</Link>
+          <Link href="/about"   style={S.navLink} className="br-nav-link">About</Link>
         </div>
         <div style={S.navRight}>
           {isAuthed ? (
@@ -67,27 +116,27 @@ export default function LandingPage() {
       {/* ── Hero ── */}
       <section style={S.hero}>
         <div style={S.heroLeft}>
-          <div style={S.pill}>AI-powered shopping intelligence</div>
-          <h1 style={S.h1}>
+          <div style={S.pill} className="br-anim-1">AI-powered shopping intelligence</div>
+          <h1 style={S.h1} className="br-anim-2">
             Buy smarter.<br />
-            <span style={{ color: ACCENT }}>Not harder.</span>
+            <span className="br-shimmer">Not harder.</span>
           </h1>
-          <p style={S.heroSub}>
+          <p style={S.heroSub} className="br-anim-3">
             Tell BuyRight AI what you want to buy. Get a data-backed buy&nbsp;/&nbsp;wait&nbsp;/&nbsp;negotiate verdict — with live prices, hidden catches, and the exact right moment to pull the trigger.
           </p>
-          <div style={S.heroCtas}>
-            <Link href="/sign-in" style={S.primaryBtn}>Start for free →</Link>
-            <Link href="/about"   style={S.secondaryBtn}>See how it works</Link>
+          <div style={S.heroCtas} className="br-anim-4">
+            <Link href="/sign-in" style={S.primaryBtn} className="br-btn">Start for free →</Link>
+            <Link href="/about"   style={S.secondaryBtn} className="br-btn">See how it works</Link>
           </div>
-          <p style={S.heroFine}>Free forever · No credit card · Live in 30 seconds</p>
+          <p style={S.heroFine} className="br-anim-5">Free forever · No credit card · Live in 30 seconds</p>
         </div>
 
         {/* Live demo card */}
-        <div style={S.heroRight}>
+        <div style={S.heroRight} className="br-float">
           <div style={S.demoCard}>
             <div style={S.demoHeader}>
               <div style={S.demoAvatarWrap}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00F5D4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0A84FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
                 </svg>
               </div>
@@ -126,7 +175,7 @@ export default function LandingPage() {
             </div>
 
             <div style={S.demoBtns}>
-              <button style={S.demoBtnPrimary}>Find Best Price →</button>
+              <button style={S.demoBtnPrimary} className="br-btn">Find Best Price →</button>
               <button style={S.demoBtnSecondary}>Ask follow-up</button>
             </div>
           </div>
@@ -171,7 +220,7 @@ export default function LandingPage() {
           <h2 style={S.h2}>Every stage of the buying journey.</h2>
           <div style={S.featureGrid}>
             {FEATURES.map(f => (
-              <div key={f.title} style={S.featureCard}>
+              <div key={f.title} style={S.featureCard} className="br-card">
                 <span style={S.featureIcon}>{f.icon}</span>
                 <h3 style={S.featureTitle}>{f.title}</h3>
                 <p style={S.featureDesc}>{f.desc}</p>
@@ -229,7 +278,7 @@ export default function LandingPage() {
             </div>
 
             {/* Pro */}
-            <div style={{ ...S.pricingCard, border: "1px solid rgba(0,245,212,0.3)", position: "relative" }}>
+            <div style={{ ...S.pricingCard, border: "1px solid rgba(10,132,255,0.3)", position: "relative" }}>
               <div style={S.popularBadge}>Most popular</div>
               <p style={S.planName}>Pro</p>
               <p style={S.planPrice}>$9<span style={S.planPer}>/month</span></p>
@@ -239,7 +288,7 @@ export default function LandingPage() {
                   <li key={f} style={S.planFeature}><span style={{ color: ACCENT }}>✓</span> {f}</li>
                 ))}
               </ul>
-              <Link href="/sign-in" style={S.planBtnPro}>Subscribe now →</Link>
+              <Link href="/sign-in" style={S.planBtnPro} className="br-btn">Subscribe now →</Link>
               <p style={{ color: "#334155", fontSize: 11, textAlign: "center", margin: "12px 0 0" }}>Secured by Stripe · Cancel anytime</p>
             </div>
           </div>
@@ -269,13 +318,13 @@ export default function LandingPage() {
       </section>
 
       {/* ── Final CTA ── */}
-      <section style={{ ...S.section, borderTop: "1px solid rgba(0,245,212,0.08)" }}>
+      <section style={{ ...S.section, borderTop: "1px solid rgba(10,132,255,0.08)" }}>
         <div style={{ ...S.sectionInner, textAlign: "center", maxWidth: 600, paddingBottom: 96 }}>
           <h2 style={{ ...S.h2, fontSize: 36 }}>Ready to buy right?</h2>
           <p style={{ color: "#94A3B8", fontSize: 16, margin: "0 0 36px", lineHeight: 1.7 }}>
             Get your first buy&nbsp;/&nbsp;wait verdict in under 30 seconds. No credit card, no setup, no BS.
           </p>
-          <Link href="/sign-in" style={{ ...S.primaryBtn, fontSize: 16, padding: "16px 36px" }}>
+          <Link href="/sign-in" style={{ ...S.primaryBtn, fontSize: 16, padding: "16px 36px" }} className="br-btn">
             Start for free →
           </Link>
           <p style={{ color: "#334155", fontSize: 13, marginTop: 20 }}>Free forever · Pro at $9/month</p>
@@ -316,6 +365,7 @@ export default function LandingPage() {
         </div>
       </footer>
     </main>
+    </>
   );
 }
 
@@ -333,7 +383,7 @@ const S: Record<string, React.CSSProperties> = {
   /* Hero */
   hero:           { display: "flex", alignItems: "center", gap: 64, padding: "80px 48px 96px", maxWidth: 1200, margin: "0 auto", width: "100%", boxSizing: "border-box" as const },
   heroLeft:       { flex: "1 1 480px", maxWidth: 560 },
-  pill:           { display: "inline-block", background: "rgba(0,245,212,0.07)", color: ACCENT, border: "1px solid rgba(0,245,212,0.18)", borderRadius: 99, padding: "5px 14px", fontSize: 12, fontWeight: 600, letterSpacing: "0.4px", marginBottom: 24, textTransform: "uppercase" as const },
+  pill:           { display: "inline-block", background: "rgba(10,132,255,0.07)", color: ACCENT, border: "1px solid rgba(10,132,255,0.18)", borderRadius: 99, padding: "5px 14px", fontSize: 12, fontWeight: 600, letterSpacing: "0.4px", marginBottom: 24, textTransform: "uppercase" as const },
   h1:             { fontSize: 56, fontWeight: 800, lineHeight: 1.1, margin: "0 0 24px", letterSpacing: "-1.5px" },
   heroSub:        { color: "#94A3B8", fontSize: 17, lineHeight: 1.75, margin: "0 0 36px" },
   heroCtas:       { display: "flex", gap: 14, flexWrap: "wrap" as const },
@@ -345,12 +395,12 @@ const S: Record<string, React.CSSProperties> = {
   /* Demo card */
   demoCard:       { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 20, padding: "20px", display: "flex", flexDirection: "column", gap: 14 },
   demoHeader:     { display: "flex", alignItems: "center", gap: 10 },
-  demoAvatarWrap: { width: 32, height: 32, borderRadius: "50%", background: "rgba(0,245,212,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  demoAvatarWrap: { width: 32, height: 32, borderRadius: "50%", background: "rgba(10,132,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   demoTitle:      { color: "#94A3B8", fontSize: 13, fontWeight: 600 },
   demoLive:       { color: ACCENT, fontSize: 11, marginLeft: "auto", fontWeight: 600 },
   demoQuery:      { background: "#0F1622", borderRadius: 10, padding: "10px 14px", color: "#94A3B8", fontSize: 13, lineHeight: 1.5, fontStyle: "italic" },
   verdictRow:     { display: "flex", alignItems: "center", gap: 10 },
-  verdictBadge:   { background: "rgba(0,245,212,0.12)", color: ACCENT, border: "1px solid rgba(0,245,212,0.25)", borderRadius: 8, padding: "4px 12px", fontSize: 12, fontWeight: 800 },
+  verdictBadge:   { background: "rgba(10,132,255,0.12)", color: ACCENT, border: "1px solid rgba(10,132,255,0.25)", borderRadius: 8, padding: "4px 12px", fontSize: 12, fontWeight: 800 },
   verdictConf:    { color: "#475569", fontSize: 12 },
   demoProductName:{ color: "#F1F5F9", fontSize: 16, fontWeight: 700 },
   priceRow:       { display: "flex", gap: 12 },
@@ -361,7 +411,7 @@ const S: Record<string, React.CSSProperties> = {
   demoPoints:     { display: "flex", flexDirection: "column", gap: 6 },
   demoPoint:      { display: "flex", alignItems: "flex-start", color: "#CBD5E1", fontSize: 13, lineHeight: 1.5 },
   demoPointWarn:  { display: "flex", alignItems: "flex-start", color: "#94A3B8", fontSize: 13, lineHeight: 1.5 },
-  demoReason:     { background: "rgba(0,245,212,0.04)", border: "1px solid rgba(0,245,212,0.1)", borderRadius: 10, padding: "11px 14px", color: "#94A3B8", fontSize: 12, lineHeight: 1.65 },
+  demoReason:     { background: "rgba(10,132,255,0.04)", border: "1px solid rgba(10,132,255,0.1)", borderRadius: 10, padding: "11px 14px", color: "#94A3B8", fontSize: 12, lineHeight: 1.65 },
   demoBtns:       { display: "flex", gap: 8 },
   demoBtnPrimary: { flex: 1, background: ACCENT, color: "#080C14", border: "none", borderRadius: 9, padding: "11px 0", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" },
   demoBtnSecondary:{ flex: 1, background: "rgba(255,255,255,0.05)", color: "#94A3B8", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 9, padding: "11px 0", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" },
@@ -379,7 +429,7 @@ const S: Record<string, React.CSSProperties> = {
 
   /* How it works */
   stepsGrid:      { display: "flex", alignItems: "flex-start", gap: 0, flexWrap: "wrap" as const },
-  stepN:          { width: 40, height: 40, borderRadius: "50%", background: "rgba(0,245,212,0.08)", border: "1px solid rgba(0,245,212,0.2)", color: ACCENT, fontSize: 15, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  stepN:          { width: 40, height: 40, borderRadius: "50%", background: "rgba(10,132,255,0.08)", border: "1px solid rgba(10,132,255,0.2)", color: ACCENT, fontSize: 15, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   stepTitle:      { color: "#F1F5F9", fontSize: 16, fontWeight: 700, margin: "0 0 6px" },
   stepDesc:       { color: "#64748B", fontSize: 14, lineHeight: 1.65, margin: 0 },
   stepArrow:      { color: "#1E2D40", fontSize: 24, padding: "8px 24px", flexShrink: 0 },
