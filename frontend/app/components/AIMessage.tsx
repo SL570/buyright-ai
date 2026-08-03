@@ -197,7 +197,7 @@ interface Props {
 }
 
 const SECTION_LABELS: Record<string, string> = {
-  "🕵": "BuyRight Hidden Catches",
+  "🕵": "Hidden Catches",
   "⭐": "Future Proof",
   "😬": "Common Regrets",
   "🔍": "After Living With It",
@@ -206,10 +206,15 @@ const SECTION_LABELS: Record<string, string> = {
   "✅": "Before You Buy",
 };
 
+const STRIP_EMOJI = /^(🕵|⭐|😬|🔍|❌|🔀|✅)\s*/u;
+
 function resolveHeader(header: string): string {
-  const trimmed = header.trim();
-  if (SECTION_LABELS[trimmed]) return `${trimmed} ${SECTION_LABELS[trimmed]}`;
-  return header;
+  // Strip leading emoji marker then look up clean label
+  const stripped = header.replace(STRIP_EMOJI, "").trim();
+  for (const [, label] of Object.entries(SECTION_LABELS)) {
+    if (stripped.toLowerCase().startsWith(label.toLowerCase().slice(0, 6))) return label;
+  }
+  return stripped || header.replace(STRIP_EMOJI, "").trim();
 }
 
 function CollapsibleSection({ header, children, accent }: { header: string; children: React.ReactNode; accent: string }) {
@@ -225,7 +230,7 @@ function CollapsibleSection({ header, children, accent }: { header: string; chil
           padding: "11px 0", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
         }}
       >
-        <span style={{ fontSize: 13, fontWeight: 600, color: open ? "#A8C0D8" : "#7B98B8" }}>{label}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: open ? "#A8C0D8" : "#7B98B8" }}>{label.replace(STRIP_EMOJI, "")}</span>
         <svg
           width="14" height="14" viewBox="0 0 14 14" fill="none"
           style={{
@@ -262,7 +267,7 @@ function BundleCard({ data, accent }: { data: BundleData; accent: string }) {
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: accent, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-          🛒 Complete Setup
+          Complete Setup
         </div>
         {remaining !== null && (
           <div style={{ fontSize: 11, fontWeight: 600, color: remaining >= 0 ? "#00CF72" : "#F06565" }}>
@@ -543,7 +548,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 14 }}>
                 <div>
                   <div style={{ fontSize: 10, fontWeight: 800, color: "#00CF72", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 }}>
-                    🏆 Buy This
+                    Top Pick
                   </div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: "#EFF3FF", lineHeight: 1.2 }}>{winner.name}</div>
                   {(() => {
@@ -680,7 +685,9 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
         const allDone = journeyStages.every(s => s.done);
         if (allDone) return (
           <div style={{ marginTop: 16, paddingTop: 12, borderTop: "0.5px solid rgba(255,255,255,0.06)", textAlign: "center" }}>
-            <div style={{ fontSize: 22, marginBottom: 6 }}>🎉</div>
+            <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(0,207,114,0.12)", border: "1px solid rgba(0,207,114,0.3)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 8px" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00CF72" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#00CF72" }}>Buying Journey Complete</div>
             <div style={{ fontSize: 11, color: "#3A6050", marginTop: 3 }}>You're ready to buy with total confidence.</div>
           </div>
@@ -919,13 +926,13 @@ function ScriptBox({ children, accent }: { children: string; accent: string }) {
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: accent }}>
-          ✍ Negotiation Script
+          Negotiation Script
         </span>
         <button
           onClick={copy}
           style={{ background: "none", border: "0.5px solid rgba(255,255,255,0.1)", color: "#7B8FAF", borderRadius: 4, padding: "3px 8px", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}
         >
-          {copied ? "✓ Copied" : "⎘ Copy"}
+          {copied ? "Copied" : "Copy"}
         </button>
       </div>
       <div style={{ fontSize: 13, lineHeight: 1.75, color: "#E2E8F0", fontStyle: "italic", whiteSpace: "pre-wrap" }}>
