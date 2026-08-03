@@ -90,6 +90,14 @@ export default function LandingPage() {
         transition: color 0.15s ease;
       }
       .br-nav-link:hover { color: #F1F5F9 !important; }
+      .br-glass {
+        backdrop-filter: blur(24px) saturate(180%);
+        -webkit-backdrop-filter: blur(24px) saturate(180%);
+      }
+      .br-glass-soft {
+        backdrop-filter: blur(16px) saturate(160%);
+        -webkit-backdrop-filter: blur(16px) saturate(160%);
+      }
     `}</style>
     <main style={S.page}>
 
@@ -133,7 +141,7 @@ export default function LandingPage() {
 
         {/* Live demo card */}
         <div style={S.heroRight} className="br-float">
-          <div style={S.demoCard}>
+          <div style={S.demoCard} className="br-glass">
             <div style={S.demoHeader}>
               <div style={S.demoAvatarWrap}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0A84FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -214,13 +222,13 @@ export default function LandingPage() {
       </section>
 
       {/* ── Features ── */}
-      <section style={{ ...S.section, background: "rgba(255,255,255,0.01)", borderTop: "1px solid rgba(255,255,255,0.05)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+      <section style={{ ...S.section, background: "rgba(255,255,255,0.015)", borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <div style={S.sectionInner}>
           <p style={S.eyebrow}>What it covers</p>
           <h2 style={S.h2}>Every stage of the buying journey.</h2>
           <div style={S.featureGrid}>
             {FEATURES.map(f => (
-              <div key={f.title} style={S.featureCard} className="br-card">
+              <div key={f.title} style={S.featureCard} className="br-card br-glass-soft">
                 <span style={S.featureIcon}>{f.icon}</span>
                 <h3 style={S.featureTitle}>{f.title}</h3>
                 <p style={S.featureDesc}>{f.desc}</p>
@@ -256,13 +264,13 @@ export default function LandingPage() {
       </section>
 
       {/* ── Pricing ── */}
-      <section style={{ ...S.section, background: "rgba(255,255,255,0.01)", borderTop: "1px solid rgba(255,255,255,0.05)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+      <section style={{ ...S.section, background: "rgba(255,255,255,0.015)", borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <div style={S.sectionInner}>
           <p style={S.eyebrow}>Pricing</p>
           <h2 style={S.h2}>Start free. Upgrade when it pays for itself.</h2>
           <div style={S.pricingGrid}>
             {/* Free */}
-            <div style={S.pricingCard}>
+            <div style={S.pricingCard} className="br-glass">
               <p style={S.planName}>Free</p>
               <p style={S.planPrice}>$0<span style={S.planPer}>/month</span></p>
               <p style={S.planDesc}>Everything you need to research smarter.</p>
@@ -278,7 +286,7 @@ export default function LandingPage() {
             </div>
 
             {/* Pro */}
-            <div style={{ ...S.pricingCard, border: "1px solid rgba(10,132,255,0.3)", position: "relative" }}>
+            <div style={{ ...S.pricingCard, border: "1px solid rgba(10,132,255,0.38)", position: "relative", boxShadow: "0 0 50px rgba(10,132,255,0.12), inset 0 1px 0 rgba(10,132,255,0.15)" }} className="br-glass">
               <div style={S.popularBadge}>Most popular</div>
               <p style={S.planName}>Pro</p>
               <p style={S.planPrice}>$9<span style={S.planPer}>/month</span></p>
@@ -370,10 +378,10 @@ export default function LandingPage() {
 }
 
 const S: Record<string, React.CSSProperties> = {
-  page:           { minHeight: "100vh", background: "#080C14", fontFamily: "system-ui,-apple-system,sans-serif", display: "flex", flexDirection: "column", color: "#F1F5F9" },
+  page:           { minHeight: "100vh", background: "radial-gradient(ellipse 80% 45% at 50% -10%, rgba(10,132,255,0.09) 0%, transparent 60%), radial-gradient(ellipse 55% 45% at 85% 105%, rgba(10,132,255,0.05) 0%, transparent 50%), #080C14", fontFamily: "system-ui,-apple-system,sans-serif", display: "flex", flexDirection: "column", color: "#F1F5F9" },
 
   /* Nav */
-  nav:            { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 48px", height: 64, borderBottom: "1px solid rgba(255,255,255,0.05)", position: "sticky", top: 0, background: "rgba(8,12,20,0.92)", backdropFilter: "blur(20px)", zIndex: 100 },
+  nav:            { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 48px", height: 64, borderBottom: "1px solid rgba(255,255,255,0.06)", position: "sticky", top: 0, background: "rgba(8,12,20,0.65)", backdropFilter: "blur(32px) saturate(180%)", zIndex: 100 },
   brand:          { color: "#F1F5F9", fontSize: 18, fontWeight: 800, letterSpacing: "-0.3px", flexShrink: 0 },
   navCenter:      { display: "flex", gap: 32 },
   navLink:        { color: "#64748B", fontSize: 14, textDecoration: "none" },
@@ -393,7 +401,7 @@ const S: Record<string, React.CSSProperties> = {
   heroRight:      { flex: "0 0 400px" },
 
   /* Demo card */
-  demoCard:       { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 20, padding: "20px", display: "flex", flexDirection: "column", gap: 14 },
+  demoCard:       { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.13)", borderRadius: 20, padding: "20px", display: "flex", flexDirection: "column", gap: 14, boxShadow: "0 0 60px rgba(10,132,255,0.08), inset 0 1px 0 rgba(255,255,255,0.07)" },
   demoHeader:     { display: "flex", alignItems: "center", gap: 10 },
   demoAvatarWrap: { width: 32, height: 32, borderRadius: "50%", background: "rgba(10,132,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   demoTitle:      { color: "#94A3B8", fontSize: 13, fontWeight: 600 },
@@ -436,7 +444,7 @@ const S: Record<string, React.CSSProperties> = {
 
   /* Features */
   featureGrid:    { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(290px,1fr))", gap: 20 },
-  featureCard:    { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 18, padding: "28px 24px" },
+  featureCard:    { background: "rgba(255,255,255,0.045)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 18, padding: "28px 24px" },
   featureIcon:    { marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "flex-start" },
   featureTitle:   { color: "#F1F5F9", fontSize: 15, fontWeight: 700, margin: "0 0 8px" },
   featureDesc:    { color: "#64748B", fontSize: 14, lineHeight: 1.65, margin: 0 },
@@ -452,7 +460,7 @@ const S: Record<string, React.CSSProperties> = {
 
   /* Pricing */
   pricingGrid:    { display: "flex", gap: 24, flexWrap: "wrap" as const, justifyContent: "center" },
-  pricingCard:    { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 22, padding: "36px 32px", flex: "1 1 280px", maxWidth: 340, display: "flex", flexDirection: "column", gap: 0 },
+  pricingCard:    { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 22, padding: "36px 32px", flex: "1 1 280px", maxWidth: 340, display: "flex", flexDirection: "column", gap: 0 },
   popularBadge:   { position: "absolute", top: -13, left: "50%", transform: "translateX(-50%)", background: ACCENT, color: "#080C14", fontSize: 11, fontWeight: 800, padding: "4px 14px", borderRadius: 99, whiteSpace: "nowrap" as const },
   planName:       { color: "#94A3B8", fontSize: 12, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.8px", margin: "0 0 12px" },
   planPrice:      { color: "#F1F5F9", fontSize: 48, fontWeight: 800, margin: "0 0 8px", letterSpacing: "-1px" },
