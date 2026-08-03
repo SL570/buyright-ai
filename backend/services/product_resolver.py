@@ -1,11 +1,19 @@
 """
 Product Resolver — converts a product name into verified direct product page URLs.
 
+Confidence tiers (only ≥80 are returned):
+  100  Exact ASIN / Walmart ID + near-perfect title
+   95  Product ID in URL + good title match
+   90  Product ID in URL + acceptable title match
+   85  No product ID, excellent title match
+   82  No product ID, good title match
+   80  No product ID, acceptable title match  (minimum)
+    0  Model mismatch or poor overlap → filtered out (no Buy button)
+
 Rules:
 - NEVER return a homepage, search page, category page, or brand listing
 - ONLY return URLs that point to a specific product detail page (PDP)
-- Title must overlap ≥ 45% with the queried product name (prevents wrong-product links)
-- HTTP 200 verification via concurrent HEAD requests (catches dead links / 404s)
+- Title must reach confidence ≥ 80 — prevents wrong-product links
 - Canonicalize Amazon → /dp/ASIN, Walmart → /ip/ID
 - Cache results for 1 hour
 """
@@ -124,6 +132,48 @@ _MODEL_RE = re.compile(r'\b([A-Z]{1,4}[-_]?[0-9]{2,}[A-Z0-9]*|[A-Z0-9]{2,}[-_][A
 def _extract_models(s: str) -> set:
     return {m.group(0).upper().replace("-", "").replace("_", "") for m in _MODEL_RE.finditer(s)}
 
+def _confidence_score(url: str, query: str, title: str, overlap: float) -> int:
+    """
+    Returns 0-100 purchase link confidence. Anything below 80 must NOT show a Buy button.
+
+    Bonus signal: a product ID embedded in the URL (ASIN, Walmart /ip/ID, SKU, etc.)
+    means Serper retrieved an actual PDP, not a listing or category page.
+    """
+    # Model-number guard: if the query names a model (XM5, WH-1000XM5 …) that model
+    # must appear in the result title. Zero-model-overlap → definitely wrong product.
+    q_models = _extract_models(query)
+    if q_models:
+        t_models = _extract_models(title)
+        if not q_models.issubset(t_models) and not (q_models & t_models):
+            return 0
+
+    u = url.lower()
+    has_product_id = bool(
+        re.search(r'/dp/[a-z0-9]{10}', u)   # Amazon ASIN
+        or re.search(r'/ip/\d{6,}', u)      # Walmart item ID
+        or re.search(r'skuid=\d+', u)       # Best Buy SKU (query param)
+        or re.search(r'/site/[\w-]+/[\w-]+\.\w+\?', u)  # Best Buy product slug
+        or re.search(r'/A-\d{6,}', u)       # Target product ID
+        or re.search(r'[Pp]\d{6,}', u)      # Sephora P-number
+        or re.search(r'/ulta/\d+', u)       # Ulta product ID
+        or re.search(r'[Ii][Dd]=\d{5,}', u) # Macy's ID=
+    )
+
+    if has_product_id:
+        if overlap >= 0.90: return 100
+        if overlap >= 0.75: return 95
+        if overlap >= 0.55: return 90
+        return 0  # product ID present but title too distant — suspicious mismatch
+
+    # No recognized product ID — rely entirely on title similarity
+    if overlap >= 0.90: return 95
+    if overlap >= 0.80: return 90
+    if overlap >= 0.65: return 85
+    if overlap >= 0.50: return 82
+    if overlap >= 0.40: return 80
+    return 0
+
+
 def _word_overlap(query: str, title: str) -> float:
     """
     Fraction of meaningful query words that appear in the result title.
@@ -161,8 +211,14 @@ def _word_overlap(query: str, title: str) -> float:
 
 # ── Resolver ──────────────────────────────────────────────────────────────────
 
-def _serper_query(query: str, threshold: float) -> list:
-    """Single Serper Shopping query. Returns validated candidates."""
+_MIN_CONFIDENCE = 80  # Buy button threshold — never link below this
+
+def _serper_query(query: str) -> list:
+    """
+    Single Serper Shopping query. Returns only candidates with confidence >= 80.
+    Every returned item has a 'confidence' field so the caller can sort or surface
+    it in future UI (e.g. "Verified product page" badge).
+    """
     try:
         resp = httpx.post(
             "https://google.serper.dev/shopping",
@@ -192,16 +248,24 @@ def _serper_query(query: str, threshold: float) -> list:
             if not _is_pdp(clean):
                 continue
 
-            similarity = _word_overlap(query, title)
-            if similarity < threshold:
-                print(f"[RESOLVER] skip ({similarity:.2f}): {title!r}")
+            overlap = _word_overlap(query, title)
+            confidence = _confidence_score(clean, query, title, overlap)
+
+            if confidence < _MIN_CONFIDENCE:
+                print(f"[RESOLVER] skip (conf={confidence}, overlap={overlap:.2f}): {title!r}")
                 continue
 
             if store in seen_stores:
                 continue
             seen_stores.add(store)
 
-            candidates.append({"store": store, "price": price, "url": clean, "title": title})
+            candidates.append({
+                "store": store,
+                "price": price,
+                "url": clean,
+                "title": title,
+                "confidence": confidence,
+            })
 
         return candidates
     except Exception as e:
@@ -236,23 +300,24 @@ def resolve(product_name: str) -> list:
         if time.time() - ts < _CACHE_TTL:
             return results
 
-    # Attempt 1: exact name, standard threshold
-    results = _serper_query(product_name, threshold=0.40)
+    # Attempt 1: exact product name
+    results = _serper_query(product_name)
 
-    # Attempt 2: simplified name (drops size/variant), looser threshold
+    # Attempt 2: simplified name (drops size/variant descriptors like "100ml", "Eau de Parfum")
+    # A shorter query can surface the correct product when Serper doesn't recognize the full name.
     if not results:
         simplified = _simplify(product_name)
         if simplified:
             print(f"[RESOLVER] retry with simplified: {simplified!r}")
-            results = _serper_query(simplified, threshold=0.30)
+            results = _serper_query(simplified)
 
-    # Attempt 3: brand + first two words only, very loose (catches anything)
+    # Attempt 3: brand + first two content words (last resort for uncommon products)
     if not results:
         words = product_name.split()
         short = " ".join(words[:3]) if len(words) > 3 else ""
         if short:
             print(f"[RESOLVER] retry with short: {short!r}")
-            results = _serper_query(short, threshold=0.25)
+            results = _serper_query(short)
 
     _CACHE[cache_key] = (time.time(), results)
     return results

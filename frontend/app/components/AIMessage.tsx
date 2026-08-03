@@ -82,7 +82,8 @@ function searchUrl(store: string, productName: string): string {
   const q = encodeURIComponent(productName);
   if (store === "amazon")   return `https://www.amazon.com/s?k=${q}`;
   if (store === "walmart")  return `https://www.walmart.com/search?q=${q}`;
-  if (store === "bestbuy")  return `https://www.bestbuy.com/site/searchpage.jsp?st=${q}`;
+  if (store === "sephora")  return `https://www.sephora.com/search?keyword=${q}`;
+  if (store === "google")   return `https://www.google.com/search?tbm=shop&q=${q}`;
   return "";
 }
 
@@ -186,7 +187,7 @@ export interface JourneyStage {
   done: boolean;
 }
 
-export interface PriceLink { store: string; price: string; url: string; title: string; direct?: boolean; }
+export interface PriceLink { store: string; price: string; url: string; title: string; direct?: boolean; confidence?: number; }
 
 interface Props {
   priceLinksLoading?: boolean;
@@ -434,46 +435,60 @@ function RetailerGrid({ links, loading, productName }: { links: PriceLink[]; loa
 
   if (sorted.length === 0) {
     const name = productName || "";
-    const fallbacks = name
+    const searches = name
       ? [
-          { store: "Amazon",   url: searchUrl("amazon",  name), color: "#FF9900" },
-          { store: "Walmart",  url: searchUrl("walmart", name), color: "#0071CE" },
-          { store: "Best Buy", url: searchUrl("bestbuy", name), color: "#0046BE" },
+          { label: "Search Amazon",          url: searchUrl("amazon",  name), color: "#FF9900" },
+          { label: "Search Walmart",          url: searchUrl("walmart", name), color: "#0071CE" },
+          { label: "Search Sephora",          url: searchUrl("sephora", name), color: "#333333" },
+          { label: "Search Google Shopping",  url: searchUrl("google",  name), color: "#4285F4" },
         ]
       : [];
     return (
-      <div style={{ marginTop: 16, padding: "12px 14px", borderRadius: 10, background: "rgba(245,168,58,0.05)", border: "0.5px solid rgba(245,168,58,0.2)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}>
-          <span style={{ fontSize: 13, color: "#F5A83A" }}>⚠</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#C4A86A" }}>Direct purchase link unavailable</span>
+      <div style={{
+        marginTop: 16, padding: "14px 16px", borderRadius: 10,
+        background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.08)",
+      }}>
+        {/* Shield icon + heading */}
+        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4D9EFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#7BA8CC" }}>Verifying product page</span>
         </div>
-        <div style={{ fontSize: 12, color: "#4A6080", marginBottom: fallbacks.length ? 10 : 0, lineHeight: 1.5 }}>
-          We couldn't verify an exact product page with enough confidence.
-        </div>
-        {fallbacks.length > 0 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            {fallbacks.map((f, i) => (
-              <a
-                key={i}
-                href={f.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  textDecoration: "none", padding: "8px 12px", borderRadius: 8,
-                  background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.07)",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
-              >
-                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: f.color, flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, color: "#7B98B8" }}>Search {f.store}</span>
-                </span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: f.color }}>→</span>
-              </a>
-            ))}
-          </div>
+        <p style={{ fontSize: 12, color: "#4A6080", lineHeight: 1.6, margin: "0 0 12px" }}>
+          We're still verifying retailer inventory for this exact product.
+          We only link directly to verified product pages to prevent sending you to the wrong item.
+        </p>
+        {searches.length > 0 && (
+          <>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#2D4060", letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 7 }}>
+              Find manually
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {searches.map((s, i) => (
+                <a
+                  key={i}
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    textDecoration: "none", padding: "7px 11px", borderRadius: 7,
+                    background: "transparent", border: "0.5px solid rgba(255,255,255,0.06)",
+                    transition: "background 0.1s",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+                >
+                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.color, flexShrink: 0, opacity: 0.7 }} />
+                    <span style={{ fontSize: 12, color: "#5577AA" }}>{s.label}</span>
+                  </span>
+                  <span style={{ fontSize: 11, color: "#3D5571" }}>→</span>
+                </a>
+              ))}
+            </div>
+          </>
         )}
       </div>
     );
