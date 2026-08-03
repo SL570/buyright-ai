@@ -113,14 +113,28 @@ def _is_pdp(url: str) -> bool:
 _STOPWORDS = {'the', 'a', 'an', 'and', 'or', 'for', 'of', 'in', 'on', 'at',
               'with', 'by', 'to', 'oz', 'ml', 'pack', 'set', 'new', 'sale'}
 
+# Matches alphanumeric model identifiers like XM5, WH-1000XM5, B0XXXXXXXX, GTX4090
+_MODEL_RE = re.compile(r'\b([A-Z]{1,4}[-_]?[0-9]{2,}[A-Z0-9]*|[A-Z0-9]{2,}[-_][A-Z0-9]+)\b', re.IGNORECASE)
+
+def _extract_models(s: str) -> set:
+    return {m.group(0).upper().replace("-", "").replace("_", "") for m in _MODEL_RE.finditer(s)}
+
 def _word_overlap(query: str, title: str) -> float:
     """
     Fraction of meaningful query words that appear in the result title.
     Returns 0-1; used to detect wrong-product matches from Serper.
+    Returns 0 immediately if the query contains a model number that is
+    absent from the title (e.g. XM5 query must not match XM4 result).
     """
     def words(s: str) -> set:
         tokens = re.sub(r'[^a-z0-9]', ' ', s.lower()).split()
         return {t for t in tokens if len(t) > 1 and t not in _STOPWORDS}
+
+    # Model-number hard check — any model token in the query must appear in the title
+    q_models = _extract_models(query)
+    t_models = _extract_models(title)
+    if q_models and not q_models.issubset(t_models):
+        return 0.0
 
     q_words = words(query)
     t_words = words(title)

@@ -78,16 +78,7 @@ const BADGE_STYLE: Record<string, { bg: string; color: string }> = {
   neutral: { bg: "rgba(255,255,255,0.06)",color: "#7B8FAF" },
 };
 
-function storeSearchUrl(store: string, name: string): string {
-  const q = encodeURIComponent(name);
-  const s = store.toLowerCase();
-  if (s.includes("best buy")) return `https://www.bestbuy.com/site/searchpage.jsp?st=${q}`;
-  if (s.includes("costco"))   return `https://www.costco.com/CatalogSearch?keyword=${q}`;
-  if (s.includes("walmart"))  return `https://www.walmart.com/search?q=${q}`;
-  if (s.includes("target"))   return `https://www.target.com/s?searchTerm=${q}`;
-  if (s.includes("apple"))    return `https://www.apple.com/shop/product/search?q=${q}`;
-  return `https://www.amazon.com/s?k=${q}`;
-}
+// storeSearchUrl intentionally removed — BuyRight never sends users to search pages
 
 function parseContent(raw: string) {
   let body = raw;
@@ -293,13 +284,7 @@ function BundleCard({ data, accent }: { data: BundleData; accent: string }) {
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0, marginLeft: 12 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: "#EFF3FF", fontFamily: "monospace" }}>${item.price}</span>
-              <a
-                href={storeSearchUrl(item.store, item.name)}
-                target="_blank" rel="noopener noreferrer"
-                style={{ fontSize: 10, color: accent, textDecoration: "none" }}
-              >
-                {item.store} →
-              </a>
+              <span style={{ fontSize: 10, color: "#3D5571" }}>{item.store}</span>
 
             </div>
           </div>
@@ -317,7 +302,7 @@ function BundleCard({ data, accent }: { data: BundleData; accent: string }) {
             )}
           </div>
           <button
-            onClick={() => data.items.forEach(item => window.open(storeSearchUrl(item.store, item.name), "_blank"))}
+            onClick={() => {/* individual Buy buttons handle navigation */}}
             style={{
               background: accent, color: "#0C1525", border: "none",
               borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700,
@@ -696,13 +681,15 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
                           {p.score != null && <div style={{ fontSize: 10, color: "#2D4060" }}>{p.score}/100</div>}
                         </div>
                         {reason && <div style={{ fontSize: 11, color: "#3D5571", marginTop: 6, lineHeight: 1.55 }}>{stripEmoji(reason)}</div>}
-                        <a
-                          href={p.url || matchLinks(p.name, priceLinks)[0]?.url || storeSearchUrl(p.store, p.name)}
-                          target="_blank" rel="noopener noreferrer"
-                          style={{ fontSize: 10, color: "#3D5571", textDecoration: "none", marginTop: 8, display: "inline-block" }}
-                        >
-                          Compare →
-                        </a>
+                        {matchLinks(p.name, priceLinks)[0]?.url && (
+                          <a
+                            href={matchLinks(p.name, priceLinks)[0]!.url}
+                            target="_blank" rel="noopener noreferrer"
+                            style={{ fontSize: 10, color: "#3D5571", textDecoration: "none", marginTop: 8, display: "inline-block" }}
+                          >
+                            Compare →
+                          </a>
+                        )}
                       </div>
                     );
                   })}
@@ -739,11 +726,10 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
       {decisionSummary && (
         <>
           <DecisionSummaryCard data={decisionSummary} accent={accent} onFindPrice={
-            products ? () => {
-              const winner = products.find(p => p.recommended);
-              const url = winner?.url || matchLinks(decisionSummary.buy, priceLinks)[0]?.url || storeSearchUrl(winner?.store ?? "amazon", decisionSummary.buy);
-              window.open(url, "_blank");
-            } : undefined
+            (() => {
+              const verifiedUrl = matchLinks(decisionSummary.buy, priceLinks)[0]?.url;
+              return verifiedUrl ? () => window.open(verifiedUrl, "_blank") : undefined;
+            })()
           } />
           <RegretPanel data={decisionSummary} />
         </>
@@ -971,7 +957,7 @@ function DecisionSummaryCard({ data, accent, onFindPrice }: { data: DecisionSumm
           onClick={onFindPrice}
           style={{ width: "100%", background: `${accent}15`, border: `0.5px solid ${accent}30`, color: accent, borderRadius: 8, padding: "8px 0", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
         >
-          Find Lowest Price →
+          Buy →
         </button>
       )}
     </div>
