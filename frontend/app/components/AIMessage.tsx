@@ -78,9 +78,6 @@ const BADGE_STYLE: Record<string, { bg: string; color: string }> = {
   neutral: { bg: "rgba(255,255,255,0.06)",color: "#7B8FAF" },
 };
 
-function googleShoppingUrl(productName: string): string {
-  return `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(productName)}`;
-}
 
 function parseContent(raw: string) {
   let body = raw;
@@ -429,33 +426,7 @@ function RetailerGrid({ links, loading, productName }: { links: PriceLink[]; loa
   }
 
   if (sorted.length === 0) {
-    const fallbackUrl = productName ? googleShoppingUrl(productName) : "https://www.google.com/search?tbm=shop";
-    return (
-      <div style={{ marginTop: 16 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: "#3D5571", letterSpacing: "0.09em", textTransform: "uppercase", marginBottom: 8 }}>
-          Available at
-        </div>
-        <a
-          href={fallbackUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            textDecoration: "none", padding: "10px 14px", borderRadius: 9,
-            background: "rgba(255,255,255,0.04)", border: "0.5px solid rgba(255,255,255,0.14)",
-            transition: "background 0.12s, border-color 0.12s",
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.14)"; }}
-        >
-          <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#4285F4", flexShrink: 0, boxShadow: "0 0 6px #4285F460" }} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#D0DDEF" }}>Continue to Retailer</span>
-          </span>
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#4285F4" }}>Shop →</span>
-        </a>
-      </div>
-    );
+    return null;
   }
 
   return (

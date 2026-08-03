@@ -86,10 +86,14 @@ async def csrf_check_middleware(request: Request, call_next):
     if request.method in ("POST", "PUT", "PATCH", "DELETE") and \
             request.url.path != "/billing/webhook":
         origin = request.headers.get("origin", "")
-        if origin:  # browsers always send Origin on cross-origin requests
-            allowed = {o.rstrip("/") for o in _origins}
-            if origin.rstrip("/") not in allowed:
-                return JSONResponse(status_code=403, content={"detail": "Forbidden"})
+        if origin:
+            # Browser extensions use chrome-extension:// or moz-extension:// — allow them
+            # through CSRF since they authenticate via JWT anyway
+            if not (origin.startswith("chrome-extension://") or
+                    origin.startswith("moz-extension://")):
+                allowed = {o.rstrip("/") for o in _origins}
+                if origin.rstrip("/") not in allowed:
+                    return JSONResponse(status_code=403, content={"detail": "Forbidden"})
     return await call_next(request)
 
 

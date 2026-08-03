@@ -14,13 +14,35 @@ function showAlert(msg, type = "success") {
 
 function retailerEmoji(retailer) {
   const r = (retailer || "").toLowerCase();
-  if (r.includes("amazon"))   return "📦";
-  if (r.includes("best buy")) return "🔵";
-  if (r.includes("walmart"))  return "🟡";
-  if (r.includes("target"))   return "🎯";
-  if (r.includes("costco"))   return "🏬";
-  if (r.includes("newegg"))   return "🖥";
+  if (r.includes("amazon"))       return "📦";
+  if (r.includes("best buy"))     return "🔵";
+  if (r.includes("walmart"))      return "🟡";
+  if (r.includes("target"))       return "🎯";
+  if (r.includes("costco"))       return "🏬";
+  if (r.includes("newegg"))       return "🖥";
+  if (r.includes("sephora"))      return "🌸";
+  if (r.includes("ulta"))         return "💄";
+  if (r.includes("nordstrom"))    return "🛍";
+  if (r.includes("macy"))         return "⭐";
+  if (r.includes("fragrance"))    return "🌹";
+  if (r.includes("jomashop"))     return "⌚";
   return "🛒";
+}
+
+function detectRetailerFromUrl(url) {
+  if (url.includes("amazon"))       return "Amazon";
+  if (url.includes("bestbuy"))      return "Best Buy";
+  if (url.includes("walmart"))      return "Walmart";
+  if (url.includes("target"))       return "Target";
+  if (url.includes("costco"))       return "Costco";
+  if (url.includes("newegg"))       return "Newegg";
+  if (url.includes("sephora"))      return "Sephora";
+  if (url.includes("ulta"))         return "Ulta";
+  if (url.includes("nordstrom"))    return "Nordstrom";
+  if (url.includes("macys"))        return "Macy's";
+  if (url.includes("fragrancenet")) return "FragranceNet";
+  if (url.includes("jomashop"))     return "Jomashop";
+  return "Retailer";
 }
 
 // ── Token management ───────────────────────────────────────────────────────
@@ -57,6 +79,12 @@ async function checkCurrentTab() {
     /target\.com\/p\//,
     /costco\.com\/.*product/,
     /newegg\.com\/p\//,
+    /sephora\.com\/product\//,
+    /ulta\.com\/p\//,
+    /nordstrom\.com\/s\//,
+    /macys\.com\/shop\/product\//,
+    /fragrancenet\.com\/(perfume|cologne)\//,
+    /jomashop\.com\/.*\/product\//,
   ];
 
   const isProduct = productPatterns.some(p => p.test(tab.url));
@@ -65,22 +93,13 @@ async function checkCurrentTab() {
   // Try to get product info from content script
   try {
     const result = await chrome.tabs.sendMessage(tab.id, { type: "GET_PRODUCT" });
-    return result?.product || { name: tab.title?.split(" - ")?.[0]?.slice(0, 60), retailer: detectRetailer(tab.url), url: tab.url };
+    return result?.product || { name: tab.title?.split(" - ")?.[0]?.slice(0, 60), retailer: detectRetailerFromUrl(tab.url), url: tab.url };
   } catch {
     // Content script might not be ready yet
     return { name: tab.title?.split(" - ")?.[0]?.slice(0, 60), retailer: detectRetailer(tab.url), url: tab.url };
   }
 }
 
-function detectRetailer(url) {
-  if (url.includes("amazon"))  return "Amazon";
-  if (url.includes("bestbuy")) return "Best Buy";
-  if (url.includes("walmart")) return "Walmart";
-  if (url.includes("target"))  return "Target";
-  if (url.includes("costco"))  return "Costco";
-  if (url.includes("newegg"))  return "Newegg";
-  return "Retailer";
-}
 
 // ── UI render ──────────────────────────────────────────────────────────────
 
@@ -135,7 +154,7 @@ document.getElementById("btn-disconnect").addEventListener("click", async () => 
 });
 
 document.getElementById("btn-get-token").addEventListener("click", () => {
-  chrome.tabs.create({ url: `${APP_URL}/api/token` });
+  chrome.tabs.create({ url: `${APP_URL}/extension-connect` });
 });
 
 document.getElementById("btn-analyze").addEventListener("click", async () => {

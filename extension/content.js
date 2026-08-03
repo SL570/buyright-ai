@@ -66,6 +66,75 @@ function detectProduct() {
     return name ? { name, price: price ? `$${price}` : null, retailer: "Newegg", url } : null;
   }
 
+  if (url.includes("sephora.com")) {
+    const name =
+      document.querySelector('[data-comp="DisplayName "] span')?.textContent?.trim()
+      || document.querySelector('h1[data-at="product_name"]')?.textContent?.trim()
+      || document.querySelector(".css-1g2jq23")?.textContent?.trim()
+      || document.querySelector("h1")?.textContent?.trim();
+    const price =
+      document.querySelector('[data-comp="Price "] b')?.textContent?.trim()
+      || document.querySelector('[data-at="price"]')?.textContent?.trim()
+      || document.querySelector(".css-slwsz0")?.textContent?.trim();
+    return name ? { name, price, retailer: "Sephora", url } : null;
+  }
+
+  if (url.includes("ulta.com")) {
+    const name =
+      document.querySelector(".ProductMainSection__productName h1")?.textContent?.trim()
+      || document.querySelector('[data-testid="product-name"]')?.textContent?.trim()
+      || document.querySelector("h1")?.textContent?.trim();
+    const price =
+      document.querySelector(".ProductPricingPanel__productPrice")?.textContent?.trim()
+      || document.querySelector('[data-testid="product-price"]')?.textContent?.trim()
+      || document.querySelector(".ProductPricingPanel span")?.textContent?.trim();
+    return name ? { name, price, retailer: "Ulta", url } : null;
+  }
+
+  if (url.includes("nordstrom.com")) {
+    const name =
+      document.querySelector('h1[data-element-id="product-title"]')?.textContent?.trim()
+      || document.querySelector(".product-title")?.textContent?.trim()
+      || document.querySelector("h1")?.textContent?.trim();
+    const price =
+      document.querySelector('[data-element-id="price-label"]')?.textContent?.trim()
+      || document.querySelector(".product-price")?.textContent?.trim();
+    return name ? { name, price, retailer: "Nordstrom", url } : null;
+  }
+
+  if (url.includes("macys.com")) {
+    const name =
+      document.querySelector('h1[id="productTitle"]')?.textContent?.trim()
+      || document.querySelector('[data-auto="product-name"]')?.textContent?.trim()
+      || document.querySelector("h1")?.textContent?.trim();
+    const price =
+      document.querySelector('[data-auto="price-regular"]')?.textContent?.trim()
+      || document.querySelector(".prices-pricing-udc__price")?.textContent?.trim()
+      || document.querySelector('[class*="pricing-udc__price"]')?.textContent?.trim();
+    return name ? { name, price, retailer: "Macy's", url } : null;
+  }
+
+  if (url.includes("fragrancenet.com")) {
+    const name =
+      document.querySelector("h1.product-name")?.textContent?.trim()
+      || document.querySelector("h1")?.textContent?.trim();
+    const price =
+      document.querySelector(".selling-price")?.textContent?.trim()
+      || document.querySelector(".product-price")?.textContent?.trim();
+    return name ? { name, price, retailer: "FragranceNet", url } : null;
+  }
+
+  if (url.includes("jomashop.com")) {
+    const name =
+      document.querySelector("h1.product-name")?.textContent?.trim()
+      || document.querySelector(".product-name h1")?.textContent?.trim()
+      || document.querySelector("h1")?.textContent?.trim();
+    const price =
+      document.querySelector(".our-price .price")?.textContent?.trim()
+      || document.querySelector('[class*="our-price"]')?.textContent?.trim();
+    return name ? { name, price, retailer: "Jomashop", url } : null;
+  }
+
   return null;
 }
 
