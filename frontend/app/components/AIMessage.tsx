@@ -78,7 +78,13 @@ const BADGE_STYLE: Record<string, { bg: string; color: string }> = {
   neutral: { bg: "rgba(255,255,255,0.06)",color: "#7B8FAF" },
 };
 
-// storeSearchUrl intentionally removed — BuyRight never sends users to search pages
+function searchUrl(store: string, productName: string): string {
+  const q = encodeURIComponent(productName);
+  if (store === "amazon")   return `https://www.amazon.com/s?k=${q}`;
+  if (store === "walmart")  return `https://www.walmart.com/search?q=${q}`;
+  if (store === "bestbuy")  return `https://www.bestbuy.com/site/searchpage.jsp?st=${q}`;
+  return "";
+}
 
 function parseContent(raw: string) {
   let body = raw;
@@ -404,7 +410,7 @@ function retailerColor(store: string): string {
   return "#5577AA";
 }
 
-function RetailerGrid({ links, loading }: { links: PriceLink[]; loading?: boolean }) {
+function RetailerGrid({ links, loading, productName }: { links: PriceLink[]; loading?: boolean; productName?: string }) {
   const sorted = [...links].sort((a, b) => parsePrice(a.price) - parsePrice(b.price));
 
   if (loading && sorted.length === 0) {
@@ -427,9 +433,50 @@ function RetailerGrid({ links, loading }: { links: PriceLink[]; loading?: boolea
   }
 
   if (sorted.length === 0) {
-    // Fetch completed with no verified PDPs — show nothing rather than a broken state.
-    // The recommendation remains fully useful; buy links are additive.
-    return null;
+    const name = productName || "";
+    const fallbacks = name
+      ? [
+          { store: "Amazon",   url: searchUrl("amazon",  name), color: "#FF9900" },
+          { store: "Walmart",  url: searchUrl("walmart", name), color: "#0071CE" },
+          { store: "Best Buy", url: searchUrl("bestbuy", name), color: "#0046BE" },
+        ]
+      : [];
+    return (
+      <div style={{ marginTop: 16, padding: "12px 14px", borderRadius: 10, background: "rgba(245,168,58,0.05)", border: "0.5px solid rgba(245,168,58,0.2)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}>
+          <span style={{ fontSize: 13, color: "#F5A83A" }}>⚠</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#C4A86A" }}>Direct purchase link unavailable</span>
+        </div>
+        <div style={{ fontSize: 12, color: "#4A6080", marginBottom: fallbacks.length ? 10 : 0, lineHeight: 1.5 }}>
+          We couldn't verify an exact product page with enough confidence.
+        </div>
+        {fallbacks.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            {fallbacks.map((f, i) => (
+              <a
+                key={i}
+                href={f.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  textDecoration: "none", padding: "8px 12px", borderRadius: 8,
+                  background: "rgba(255,255,255,0.02)", border: "0.5px solid rgba(255,255,255,0.07)",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
+              >
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: f.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, color: "#7B98B8" }}>Search {f.store}</span>
+                </span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: f.color }}>→</span>
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -488,7 +535,7 @@ function RetailerGrid({ links, loading }: { links: PriceLink[]; loading?: boolea
 function BuyButtons({ links, fallbackStore, fallbackName, accent, loading }: {
   links: PriceLink[]; fallbackStore: string; fallbackName: string; accent: string; loading?: boolean;
 }) {
-  return <RetailerGrid links={links} loading={loading} />;
+  return <RetailerGrid links={links} loading={loading} productName={fallbackName} />;
 }
 
 export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9EFF", journeyStages, priceLinks = [], priceLinksLoading = false }: Props) {

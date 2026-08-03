@@ -432,7 +432,10 @@ def procurement(req: ProcurementRequest, user: User = Depends(get_current_user))
         raise HTTPException(status_code=429, detail="Too many requests. Please wait before sending another message.")
     history = [{"role": m.role, "content": m.content} for m in req.messages[-20:]]
     live_prices, link_map = _fetch_live_prices(history)
-    system = PROCUREMENT_PROMPT + live_prices
+    from datetime import date as _date
+    today_str = _date.today().strftime("%B %d, %Y")
+    date_prefix = f"Today's date is {today_str}. Never reference past seasonal sales (July 4th, Memorial Day, Black Friday, etc.) as current or upcoming unless they are genuinely in the future relative to this date. Do not fabricate sale deadlines.\n\n"
+    system = date_prefix + PROCUREMENT_PROMPT + live_prices
     return _sse_stream(system, history, "PROCUREMENT", link_map)
 
 
