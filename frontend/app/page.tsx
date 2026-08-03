@@ -133,19 +133,18 @@ export default function LandingPage() {
       {/* ── Hero ── */}
       <section style={S.hero}>
         <div style={S.heroLeft}>
-          <div style={S.pill} className="br-anim-1">AI-powered shopping intelligence</div>
-          <h1 style={S.h1} className="br-anim-2">
+          <h1 style={S.h1} className="br-anim-1">
             Buy smarter.<br />
             <span className="br-shimmer">Not harder.</span>
           </h1>
-          <p style={S.heroSub} className="br-anim-3">
-            Tell BuyRight AI what you want to buy. Get a data-backed buy&nbsp;/&nbsp;wait&nbsp;/&nbsp;negotiate verdict — with live prices, hidden catches, and the exact right moment to pull the trigger.
+          <p style={S.heroSub} className="br-anim-2">
+            Describe what you want to buy. Get a data-backed buy&nbsp;/&nbsp;wait&nbsp;/&nbsp;negotiate verdict — live prices, hidden catches, and the right moment to act.
           </p>
-          <div style={S.heroCtas} className="br-anim-4">
+          <div style={S.heroCtas} className="br-anim-3">
             <Link href="/sign-in" style={S.primaryBtn} className="br-btn">Start for free →</Link>
             <Link href="/about"   style={S.secondaryBtn} className="br-btn">See how it works</Link>
           </div>
-          <p style={S.heroFine} className="br-anim-5">Free forever · No credit card · Live in 30 seconds</p>
+          <p style={S.heroFine} className="br-anim-4">Free forever · No credit card · Live in 30 seconds</p>
         </div>
 
         {/* Live demo card */}
@@ -202,9 +201,7 @@ export default function LandingPage() {
       {/* ── Trust bar ── */}
       <div style={S.trustBar}>
         <span style={S.trustItem}>Live prices across 80+ retailers</span>
-        <span style={S.trustDot}>·</span>
         <span style={S.trustItem}>5,000+ recommendations generated</span>
-        <span style={S.trustDot}>·</span>
         <span style={S.trustItem}>$420 avg savings per user</span>
       </div>
 
@@ -214,14 +211,11 @@ export default function LandingPage() {
           <p style={S.eyebrow}>How it works</p>
           <h2 style={S.h2}>From question to answer in seconds.</h2>
           <div style={S.stepsGrid}>
-            {STEPS.map((step, i) => (
-              <div key={step.n} style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+            {STEPS.map((step) => (
+              <div key={step.n} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={S.stepN}>{step.n}</div>
-                <div>
-                  <p style={S.stepTitle}>{step.title}</p>
-                  <p style={S.stepDesc}>{step.desc}</p>
-                </div>
-                {i < STEPS.length - 1 && <div style={S.stepArrow}>→</div>}
+                <p style={S.stepTitle}>{step.title}</p>
+                <p style={S.stepDesc}>{step.desc}</p>
               </div>
             ))}
           </div>
@@ -375,8 +369,8 @@ export default function LandingPage() {
           </div>
         </div>
         <div style={S.footerBottom}>
-          <span style={{ color: "#1E2D40" }}>© 2025 BuyRight AI. All rights reserved.</span>
-          <span style={{ color: "#1E2D40" }}>AI-generated recommendations. Always verify before buying.</span>
+          <span style={{ color: "#334155" }}>© 2025 BuyRight AI. All rights reserved.</span>
+          <span style={{ color: "#334155" }}>AI-generated recommendations. Always verify before buying.</span>
         </div>
       </footer>
     </main>
@@ -432,26 +426,26 @@ const S: Record<string, React.CSSProperties> = {
   demoBtnSecondary:{ flex: 1, background: "rgba(255,255,255,0.05)", color: "#94A3B8", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 9, padding: "11px 0", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" },
 
   /* Trust bar */
-  trustBar:       { display: "flex", alignItems: "center", justifyContent: "center", gap: 16, padding: "14px 48px", borderTop: "1px solid rgba(255,255,255,0.05)", borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.01)", flexWrap: "wrap" as const },
+  trustBar:       { display: "flex", alignItems: "center", justifyContent: "center", gap: 40, padding: "16px 48px", borderTop: "1px solid rgba(255,255,255,0.05)", borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.01)", flexWrap: "wrap" as const },
   trustItem:      { color: "#94A3B8", fontSize: 13 },
   trustDot:       { color: "#475569" },
 
   /* Sections */
   section:        { width: "100%" },
-  sectionInner:   { maxWidth: 1100, margin: "0 auto", padding: "88px 48px", boxSizing: "border-box" as const },
-  eyebrow:        { color: "#475569", fontSize: 12, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "1px", margin: "0 0 14px" },
-  h2:             { color: "#F1F5F9", fontSize: 32, fontWeight: 800, margin: "0 0 48px", letterSpacing: "-0.5px" },
+  sectionInner:   { maxWidth: 1100, margin: "0 auto", padding: "72px 48px", boxSizing: "border-box" as const },
+  eyebrow:        { color: "#475569", fontSize: 11, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "1.5px", margin: "0 0 12px" },
+  h2:             { color: "#F1F5F9", fontSize: 34, fontWeight: 800, margin: "0 0 44px", letterSpacing: "-0.6px" },
 
   /* How it works */
-  stepsGrid:      { display: "flex", alignItems: "flex-start", gap: 0, flexWrap: "wrap" as const },
-  stepN:          { width: 40, height: 40, borderRadius: "50%", background: "rgba(10,132,255,0.08)", border: "1px solid rgba(10,132,255,0.2)", color: ACCENT, fontSize: 15, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  stepTitle:      { color: "#F1F5F9", fontSize: 16, fontWeight: 700, margin: "0 0 6px" },
-  stepDesc:       { color: "#64748B", fontSize: 14, lineHeight: 1.65, margin: 0 },
+  stepsGrid:      { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 48 },
+  stepN:          { color: ACCENT, fontSize: 36, fontWeight: 800, lineHeight: 1 },
+  stepTitle:      { color: "#F1F5F9", fontSize: 16, fontWeight: 700, margin: 0 },
+  stepDesc:       { color: "#64748B", fontSize: 14, lineHeight: 1.7, margin: 0 },
   stepArrow:      { color: "#1E2D40", fontSize: 24, padding: "8px 24px", flexShrink: 0 },
 
   /* Features */
   featureGrid:    { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(290px,1fr))", gap: 20 },
-  featureCard:    { background: "rgba(255,255,255,0.045)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 18, padding: "28px 24px" },
+  featureCard:    { background: "rgba(255,255,255,0.04)", border: "1px solid transparent", borderRadius: 20, padding: "32px 28px" },
   featureIcon:    { marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "flex-start" },
   featureTitle:   { color: "#F1F5F9", fontSize: 15, fontWeight: 700, margin: "0 0 8px" },
   featureDesc:    { color: "#64748B", fontSize: 14, lineHeight: 1.65, margin: 0 },
