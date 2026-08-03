@@ -16,9 +16,18 @@ const FAQS = [
 ];
 
 const IC = (path: string, vb = "0 0 24 24") => (
-  <svg width="22" height="22" viewBox={vb} fill="none" stroke="#0A84FF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    {path.split("|").map((d, i) => <path key={i} d={d} />)}
-  </svg>
+  <div style={{
+    width: 52, height: 52, borderRadius: 16,
+    background: "linear-gradient(140deg, rgba(10,132,255,0.18) 0%, rgba(10,132,255,0.05) 100%)",
+    border: "1px solid rgba(10,132,255,0.25)",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    boxShadow: "0 4px 24px rgba(10,132,255,0.14), inset 0 1px 0 rgba(255,255,255,0.07)",
+    flexShrink: 0,
+  }}>
+    <svg width="24" height="24" viewBox={vb} fill="none" stroke="#0A84FF" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      {path.split("|").map((d, i) => <path key={i} d={d} />)}
+    </svg>
+  </div>
 );
 
 const FEATURES = [
