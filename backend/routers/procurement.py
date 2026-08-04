@@ -13,7 +13,7 @@ from models import User
 from services.ratelimit import check_user_rate_limit
 from services.product_resolver import resolve as resolve_product
 
-SERPER_KEY = os.getenv("SERPER_API_KEY", "")
+SERPER_KEY = os.getenv("SERPAPI_KEY", "") or os.getenv("SERPER_API_KEY", "")
 
 
 _REJECT_URL = [
@@ -74,15 +74,14 @@ def _fetch_live_prices(messages: list) -> tuple[str, list]:
     if not query:
         return "", []
     try:
-        resp = httpx.post(
-            "https://google.serper.dev/shopping",
-            headers={"X-API-KEY": SERPER_KEY, "Content-Type": "application/json"},
-            json={"q": query, "num": 10, "gl": "us"},
+        resp = httpx.get(
+            "https://serpapi.com/search",
+            params={"engine": "google_shopping", "q": query, "api_key": SERPER_KEY, "gl": "us", "num": 10},
             timeout=4.0,
         )
         if resp.status_code != 200:
             return "", []
-        items = resp.json().get("shopping", [])
+        items = resp.json().get("shopping_results", [])
         if not items:
             return "", []
 

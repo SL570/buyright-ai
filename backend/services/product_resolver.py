@@ -30,7 +30,7 @@ import httpx
 import os
 from urllib.parse import urlparse
 
-SERPER_KEY = os.getenv("SERPER_API_KEY", "")
+SERPER_KEY = os.getenv("SERPAPI_KEY", "") or os.getenv("SERPER_API_KEY", "")
 
 _CACHE: dict = {}
 _CACHE_TTL = 3600  # 1 hour
@@ -307,16 +307,15 @@ def _serper_query(query: str, category: str = 'general') -> list:
     allowed_domains = CATEGORY_DOMAINS.get(category)  # None = no domain filter
 
     try:
-        resp = httpx.post(
-            "https://google.serper.dev/shopping",
-            headers={"X-API-KEY": SERPER_KEY, "Content-Type": "application/json"},
-            json={"q": query, "num": 10, "gl": "us"},
+        resp = httpx.get(
+            "https://serpapi.com/search",
+            params={"engine": "google_shopping", "q": query, "api_key": SERPER_KEY, "gl": "us", "num": 10},
             timeout=6.0,
         )
         if resp.status_code != 200:
             return []
 
-        items = resp.json().get("shopping", [])
+        items = resp.json().get("shopping_results", [])
         seen_stores: set = set()
         candidates = []
 
