@@ -475,3 +475,29 @@ def product_prices(req: PricesRequest, user: User = Depends(get_current_user)):
     Returns only direct product pages — never search results or homepages.
     """
     return resolve_product(req.query)
+
+
+@router.get("/prices/status")
+def prices_status(user: User = Depends(get_current_user)):
+    """Diagnostic: check SerpApi connectivity. Open in browser while signed in via /api/token."""
+    key = os.getenv("SERPAPI_KEY", "") or os.getenv("SERPER_API_KEY", "")
+    if not key:
+        return {"ok": False, "reason": "SERPAPI_KEY env var not set on this server"}
+    try:
+        resp = httpx.get(
+            "https://serpapi.com/search",
+            params={"engine": "google_shopping", "q": "Toshiba TV 65 inch", "api_key": key, "gl": "us", "num": 3},
+            timeout=8.0,
+        )
+        data = resp.json()
+        if "error" in data:
+            return {"ok": False, "http_status": resp.status_code, "serpapi_error": data["error"]}
+        results = data.get("shopping_results", [])
+        return {
+            "ok": True,
+            "http_status": resp.status_code,
+            "result_count": len(results),
+            "sample": [{"title": r.get("title"), "price": r.get("price"), "source": r.get("source"), "link": r.get("link", "")[:100]} for r in results[:3]],
+        }
+    except Exception as e:
+        return {"ok": False, "reason": str(e)}
