@@ -11,7 +11,7 @@ import httpx
 from auth import get_current_user
 from models import User
 from services.ratelimit import check_user_rate_limit
-from services.product_resolver import resolve as resolve_product
+from services.product_resolver import resolve as resolve_product, _affiliate_url
 
 SERPER_KEY = os.getenv("SERPAPI_KEY", "") or os.getenv("SERPER_API_KEY", "")
 
@@ -113,7 +113,7 @@ def _fetch_live_prices(messages: list) -> tuple[str, list]:
                 retailer_links.append({
                     "store": source,
                     "price": price,
-                    "url":   clean,
+                    "url":   _affiliate_url(clean),
                     "title": title,
                 })
         lines.append("---\n")

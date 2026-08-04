@@ -32,6 +32,30 @@ from urllib.parse import urlparse
 
 SERPER_KEY = os.getenv("SERPAPI_KEY", "") or os.getenv("SERPER_API_KEY", "")
 
+# Affiliate tracking tags — set these in Render environment variables
+_AMAZON_TAG   = os.getenv("AMAZON_AFFILIATE_TAG", "")      # e.g. "buyright-20"
+_BESTBUY_TAG  = os.getenv("BESTBUY_AFFILIATE_TAG", "")     # e.g. "1234567"  (Impact Radius LID)
+_WALMART_TAG  = os.getenv("WALMART_AFFILIATE_TAG", "")     # e.g. "your-impact-id"
+_TARGET_TAG   = os.getenv("TARGET_AFFILIATE_TAG", "")      # e.g. "your-tag"
+
+
+def _affiliate_url(url: str) -> str:
+    """Append affiliate tracking parameters to known retailer URLs."""
+    u = url.lower()
+    sep = "&" if "?" in url else "?"
+    if "amazon.com" in u and _AMAZON_TAG:
+        # Remove any existing tag= param first, then append ours
+        url = re.sub(r'[&?]tag=[^&]*', '', url)
+        sep = "&" if "?" in url else "?"
+        return f"{url}{sep}tag={_AMAZON_TAG}"
+    if "bestbuy.com" in u and _BESTBUY_TAG:
+        return f"{url}{sep}lid={_BESTBUY_TAG}&mid=614003"
+    if "walmart.com" in u and _WALMART_TAG:
+        return f"{url}{sep}wmlspartner={_WALMART_TAG}"
+    if "target.com" in u and _TARGET_TAG:
+        return f"{url}{sep}afid={_TARGET_TAG}"
+    return url
+
 _CACHE: dict = {}
 _CACHE_TTL = 3600  # 1 hour
 
@@ -370,7 +394,7 @@ def _serper_query(query: str, category: str = 'general') -> list:
             candidates.append({
                 "store":      store,
                 "price":      price,
-                "url":        clean,
+                "url":        _affiliate_url(clean),
                 "title":      title,
                 "confidence": confidence,
             })
