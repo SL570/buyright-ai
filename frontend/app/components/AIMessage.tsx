@@ -596,14 +596,7 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
           <div style={{ marginBottom: 14 }}>
             {/* Hero winner */}
             {(() => {
-              let buyLinks = matchLinks(winner.name, priceLinks);
-
-              // Fallback: if Serper found nothing, use the AI's own url field.
-              // Validate it strictly — Amazon /dp/ASIN and other product-path URLs only.
-              if (buyLinks.length === 0 && winner.url && isRealPdp(winner.url)) {
-                const store = winner.store?.split(/[/,]/)[0]?.trim() || "Retailer";
-                buyLinks = [{ store, price: winner.price, url: winner.url, title: winner.name }];
-              }
+              const buyLinks = matchLinks(winner.name, priceLinks);
 
               const cheapestLink = buyLinks.length ? [...buyLinks].sort((a,b) => parsePrice(a.price)-parsePrice(b.price))[0] : null;
               const displayPrice = cheapestLink ? cheapestLink.price : winner.price;
