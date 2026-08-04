@@ -69,6 +69,7 @@ def _fetch_live_prices(messages: list) -> tuple[str, list]:
     Returns (system_prompt_injection, [{store, price, url, title, direct}]).
     """
     if not SERPER_KEY:
+        print("[PRICES] SERPAPI_KEY not set — skipping live price fetch")
         return "", []
     query = next((m["content"][:200] for m in messages if m["role"] == "user"), "")
     if not query:
@@ -80,8 +81,14 @@ def _fetch_live_prices(messages: list) -> tuple[str, list]:
             timeout=4.0,
         )
         if resp.status_code != 200:
+            print(f"[PRICES] SerpApi HTTP {resp.status_code}: {resp.text[:200]}")
             return "", []
-        items = resp.json().get("shopping_results", [])
+        data = resp.json()
+        if "error" in data:
+            print(f"[PRICES] SerpApi error: {data['error']}")
+            return "", []
+        items = data.get("shopping_results", [])
+        print(f"[PRICES] SerpApi returned {len(items)} results for query: {query[:80]!r}")
         if not items:
             return "", []
 

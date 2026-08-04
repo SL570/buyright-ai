@@ -299,11 +299,14 @@ def _confidence_score(url: str, query: str, title: str, overlap: float) -> int:
 
 def _serper_query(query: str, category: str = 'general') -> list:
     """
-    Single Serper Shopping query. Returns only candidates with confidence ≥ 90.
-    Filters results to category-appropriate retailer domains (e.g. no Sephora
-    for electronics, no Best Buy for fragrances).
+    Single SerpApi Shopping query. Returns only candidates with confidence ≥ 90.
+    Filters results to category-appropriate retailer domains.
     Every returned item includes a 'confidence' field.
     """
+    if not SERPER_KEY:
+        print(f"[RESOLVER] SERPAPI_KEY not set — cannot fetch prices for {query!r}")
+        return []
+
     allowed_domains = CATEGORY_DOMAINS.get(category)  # None = no domain filter
 
     try:
@@ -313,9 +316,17 @@ def _serper_query(query: str, category: str = 'general') -> list:
             timeout=6.0,
         )
         if resp.status_code != 200:
+            body = resp.text[:300]
+            print(f"[RESOLVER] SerpApi HTTP {resp.status_code} for {query!r}: {body}")
             return []
 
-        items = resp.json().get("shopping_results", [])
+        data = resp.json()
+        if "error" in data:
+            print(f"[RESOLVER] SerpApi error: {data['error']}")
+            return []
+
+        items = data.get("shopping_results", [])
+        print(f"[RESOLVER] SerpApi returned {len(items)} shopping results for {query!r}")
         seen_stores: set = set()
         candidates = []
 
@@ -331,6 +342,7 @@ def _serper_query(query: str, category: str = 'general') -> list:
                 continue
 
             clean = _canonicalize(link)
+            print(f"[RESOLVER] candidate: {store!r} {price!r} | {title[:60]!r} | {clean[:80]!r}")
 
             # Category domain filter — rejects irrelevant retailers
             if allowed_domains is not None:
@@ -340,19 +352,21 @@ def _serper_query(query: str, category: str = 'general') -> list:
                     continue
 
             if not _is_pdp(clean):
+                print(f"[RESOLVER] skip non-PDP: {clean[:80]!r}")
                 continue
 
             overlap    = _word_overlap(query, title)
             confidence = _confidence_score(clean, query, title, overlap)
 
             if confidence < _MIN_CONFIDENCE:
-                print(f"[RESOLVER] skip conf={confidence} overlap={overlap:.2f}: {title!r}")
+                print(f"[RESOLVER] skip conf={confidence} overlap={overlap:.2f}: {title[:60]!r}")
                 continue
 
             if store in seen_stores:
                 continue
             seen_stores.add(store)
 
+            print(f"[RESOLVER] ACCEPT conf={confidence} overlap={overlap:.2f}: {store!r} {price!r}")
             candidates.append({
                 "store":      store,
                 "price":      price,
@@ -361,9 +375,10 @@ def _serper_query(query: str, category: str = 'general') -> list:
                 "confidence": confidence,
             })
 
+        print(f"[RESOLVER] returning {len(candidates)} verified PDPs for {query!r}")
         return candidates
     except Exception as e:
-        print(f"[RESOLVER] {e}")
+        print(f"[RESOLVER] exception: {e}")
         return []
 
 
