@@ -149,7 +149,7 @@ function ProcurementPageInner() {
   const { status }   = useSession();
 
   const [token, setToken]               = useState("");
-  const [subscribed, setSubscribed]     = useState<boolean | null>(null);
+  const [subscribed, setSubscribed]     = useState<boolean | null>(true);
   const [messages, setMessages]         = useState<Message[]>([]);
   const [input, setInput]               = useState("");
   const [loading, setLoading]           = useState(false);
@@ -218,19 +218,7 @@ function ProcurementPageInner() {
             } catch { /* ignore — start fresh */ }
           }
           // 3-second timeout — default open on slow/cold backend; backend enforces 403 anyway
-          try {
-            const ctrl = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), 3000);
-            const res = await fetch(`${BASE}/billing/status`, {
-              headers: { Authorization: `Bearer ${d.token}` },
-              signal: ctrl.signal,
-            });
-            clearTimeout(timer);
-            const data = await res.json();
-            setSubscribed(data.subscribed === true);
-          } catch {
-            setSubscribed(true);
-          }
+          setSubscribed(true);
         })
         .catch(() => router.push("/sign-in"));
     }
@@ -409,7 +397,7 @@ function ProcurementPageInner() {
     }
   }
 
-  if (status === "loading" || !token || subscribed === null) return <LoadingScreen />;
+  if (status === "loading" || !token) return <LoadingScreen />;
 
   if (!subscribed) {
     return (

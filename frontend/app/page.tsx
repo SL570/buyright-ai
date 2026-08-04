@@ -7,12 +7,12 @@ import Link from "next/link";
 const ACCENT = "#0A84FF";
 
 const FAQS = [
-  { q: "Is BuyRight AI free?", a: "Yes — the AI Advisor is completely free with no credit card required. The Pro plan ($9/month) unlocks Consumer Procurement, automated negotiation, post-purchase fulfillment, and group deals." },
+  { q: "Is BuyRight AI really free?", a: "Yes — completely free. No credit card, no trial period, no hidden fees. Every feature is available to all users." },
+  { q: "How does BuyRight AI make money if it's free?", a: "When you click a buy button and make a purchase, we may earn a small affiliate commission from the retailer — at no extra cost to you. The price you pay is exactly the same. This keeps BuyRight free for everyone." },
   { q: "How accurate are the buy / wait verdicts?", a: "Our verdicts are based on real-time price data across 80+ retailers, historical price trends, and upcoming sale cycle analysis. We cite confidence levels so you always know how strong the signal is." },
-  { q: "Does BuyRight AI actually make purchases for me?", a: "On the Pro plan, yes. You describe what you need, approve the recommendation, and BuyRight AI executes the purchase, applies available coupons, and monitors for post-purchase price drops." },
-  { q: "How is this different from Honey or CamelCamelCamel?", a: "Honey finds coupon codes at checkout. CamelCamelCamel shows Amazon price history. BuyRight AI does both of those things AND advises you on timing, negotiates with retailers, handles returns, and coordinates group buys — before, during, and after the purchase." },
-  { q: "What retailers do you cover?", a: "Amazon, Best Buy, Walmart, Target, Costco, B&H, Newegg, Lenovo, Apple, and 70+ more. We pull live prices, not cached data." },
-  { q: "Can I cancel Pro anytime?", a: "Yes. No contracts, no cancellation fees. Cancel from your account settings and you keep Pro access until the end of your billing period." },
+  { q: "How is this different from Honey or CamelCamelCamel?", a: "Honey finds coupon codes at checkout. CamelCamelCamel shows Amazon price history. BuyRight AI does both AND advises on timing, flags hidden catches, negotiates with retailers, and handles post-purchase claims — before, during, and after the purchase." },
+  { q: "What retailers do you cover?", a: "Amazon, Best Buy, Walmart, Target, Costco, Sephora, Ulta, FragranceNet, B&H, Newegg, and 70+ more. We pull live prices, not cached data." },
+  { q: "Does BuyRight AI work for all product categories?", a: "Yes — electronics, TVs, laptops, headphones, fragrances, beauty, home appliances, furniture, and more. Just describe what you need in plain English." },
 ];
 
 const IC = (path: string, vb = "0 0 24 24") => (
@@ -264,41 +264,50 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Pricing ── */}
+      {/* ── Free model ── */}
       <section style={{ ...S.section, background: "rgba(255,255,255,0.015)", borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <div style={S.sectionInner}>
           <p style={S.eyebrow}>Pricing</p>
-          <h2 style={S.h2}>Start free. Upgrade when it pays for itself.</h2>
-          <div style={S.pricingGrid}>
-            {/* Free */}
-            <div style={S.pricingCard} className="br-glass">
-              <p style={S.planName}>Free</p>
-              <p style={S.planPrice}>$0<span style={S.planPer}>/month</span></p>
-              <p style={S.planDesc}>Everything you need to research smarter.</p>
-              <ul style={S.planFeatures}>
-                {["AI shopping advisor — 5 free queries", "Buy / wait / negotiate verdicts", "Live price comparison (80+ retailers)", "Conversation history", "Mobile friendly"].map(f => (
-                  <li key={f} style={S.planFeature}><span style={{ color: ACCENT }}>✓</span> {f}</li>
-                ))}
-                {["Consumer Procurement agent", "Automated negotiation", "Post-purchase fulfillment", "Group & collective deals"].map(f => (
-                  <li key={f} style={{ ...S.planFeature, color: "#334155" }}><span style={{ color: "#334155" }}>✗</span> {f}</li>
-                ))}
-              </ul>
-              <Link href="/sign-in" style={S.planBtnFree}>Get started free</Link>
+          <h2 style={S.h2}>Free. No catch.</h2>
+          <div style={{ display: "flex", gap: 32, flexWrap: "wrap" as const, alignItems: "flex-start" }}>
+            <div style={{ flex: "1 1 400px", maxWidth: 520 }}>
+              <div style={{ background: "rgba(10,132,255,0.04)", border: "1px solid rgba(10,132,255,0.2)", borderRadius: 20, padding: "36px 32px" }} className="br-glass">
+                <p style={{ color: ACCENT, fontSize: 11, fontWeight: 800, textTransform: "uppercase" as const, letterSpacing: "1px", margin: "0 0 12px" }}>Everything included</p>
+                <p style={{ color: "#F1F5F9", fontSize: 48, fontWeight: 800, margin: "0 0 8px", letterSpacing: "-1px" }}>$0<span style={{ fontSize: 16, fontWeight: 400, color: "#475569" }}>/month</span></p>
+                <p style={{ color: "#475569", fontSize: 14, margin: "0 0 28px", lineHeight: 1.5 }}>Every feature, every retailer, forever free.</p>
+                <ul style={{ listStyle: "none", padding: 0, margin: "0 0 28px", display: "flex", flexDirection: "column" as const, gap: 10 }}>
+                  {[
+                    "AI buy / wait / negotiate verdicts",
+                    "Live price comparison — 80+ retailers",
+                    "Consumer Procurement agent",
+                    "Post-purchase fulfillment & claims",
+                    "Group & collective deals",
+                    "Chrome extension",
+                    "Conversation history",
+                  ].map(f => (
+                    <li key={f} style={{ color: "#94A3B8", fontSize: 14, display: "flex", alignItems: "flex-start", gap: 10 }}>
+                      <span style={{ color: ACCENT, flexShrink: 0 }}>✓</span> {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/sign-in" style={{ background: ACCENT, color: "#0C1525", borderRadius: 11, padding: "14px 0", fontWeight: 800, fontSize: 15, textDecoration: "none", textAlign: "center" as const, display: "block" }} className="br-btn">
+                  Start free →
+                </Link>
+              </div>
             </div>
-
-            {/* Pro */}
-            <div style={{ ...S.pricingCard, border: "1px solid rgba(10,132,255,0.38)", position: "relative", boxShadow: "0 0 50px rgba(10,132,255,0.12), inset 0 1px 0 rgba(10,132,255,0.15)" }} className="br-glass">
-              <div style={S.popularBadge}>Most popular</div>
-              <p style={S.planName}>Pro</p>
-              <p style={S.planPrice}>$9<span style={S.planPer}>/month</span></p>
-              <p style={S.planDesc}>The full buying command center.</p>
-              <ul style={S.planFeatures}>
-                {["Everything in Free", "Consumer Procurement agent", "Automated retailer negotiation", "Post-purchase price adjustment filing", "Return & dispute assistance", "Group & collective deals", "Cancel anytime"].map(f => (
-                  <li key={f} style={S.planFeature}><span style={{ color: ACCENT }}>✓</span> {f}</li>
-                ))}
-              </ul>
-              <Link href="/sign-in" style={S.planBtnPro} className="br-btn">Subscribe now →</Link>
-              <p style={{ color: "#334155", fontSize: 11, textAlign: "center", margin: "12px 0 0" }}>Secured by Stripe · Cancel anytime</p>
+            <div style={{ flex: "1 1 280px", display: "flex", flexDirection: "column" as const, gap: 16, paddingTop: 8 }}>
+              <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "22px 24px" }}>
+                <p style={{ color: "#F1F5F9", fontSize: 15, fontWeight: 700, margin: "0 0 8px" }}>How do we make money?</p>
+                <p style={{ color: "#64748B", fontSize: 14, lineHeight: 1.7, margin: 0 }}>
+                  When you click a buy button and make a purchase, we earn a small affiliate commission from the retailer — at <strong style={{ color: "#94A3B8" }}>no extra cost to you</strong>. The price is exactly the same as going directly to the store. This model keeps BuyRight free and aligns our incentives with yours: we only benefit when you find a genuinely good product.
+                </p>
+              </div>
+              <div style={{ background: "rgba(0,207,114,0.04)", border: "1px solid rgba(0,207,114,0.15)", borderRadius: 14, padding: "22px 24px" }}>
+                <p style={{ color: "#00CF72", fontSize: 13, fontWeight: 700, margin: "0 0 6px" }}>Why this is better for you</p>
+                <p style={{ color: "#64748B", fontSize: 14, lineHeight: 1.7, margin: 0 }}>
+                  We only earn when you buy a product you're actually happy with. If we recommended bad products, you'd stop using BuyRight. Our incentives are aligned.
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -336,7 +345,7 @@ export default function LandingPage() {
           <Link href="/sign-in" style={{ ...S.primaryBtn, fontSize: 16, padding: "16px 36px" }} className="br-btn">
             Start for free →
           </Link>
-          <p style={{ color: "#334155", fontSize: 13, marginTop: 20 }}>Free forever · Pro at $9/month</p>
+          <p style={{ color: "#334155", fontSize: 13, marginTop: 20 }}>Free forever · No credit card · No catch</p>
         </div>
       </section>
 
@@ -369,8 +378,10 @@ export default function LandingPage() {
           </div>
         </div>
         <div style={S.footerBottom}>
-          <span style={{ color: "#334155" }}>© 2025 BuyRight AI. All rights reserved.</span>
-          <span style={{ color: "#334155" }}>AI-generated recommendations. Always verify before buying.</span>
+          <span style={{ color: "#334155" }}>© 2026 BuyRight AI. All rights reserved.</span>
+          <span style={{ color: "#334155" }}>
+            Affiliate disclosure: BuyRight may earn commissions on purchases made through buy links, at no cost to you.
+          </span>
         </div>
       </footer>
     </main>

@@ -106,6 +106,8 @@ def _fetch_live_prices(messages: list) -> tuple[str, list]:
             rating = item.get("rating", "")
             rating_str = f" · {rating}★" if rating else ""
             lines.append(f"- **{title}**: {price} at {source}{rating_str}")
+            if not link or "google.com" in link or "googleadservices" in link:
+                link = item.get("product_link", "")
             if source and price and link and "google.com" not in link:
                 clean = _canonicalize_url(link)
                 if not _is_pdp_url(clean):
@@ -437,8 +439,6 @@ def _sse_stream(system_prompt: str, messages_data: list, label: str, retailer_li
 
 @router.post("/procurement")
 def procurement(req: ProcurementRequest, user: User = Depends(get_current_user)):
-    if not user.is_subscribed:
-        raise HTTPException(status_code=403, detail="Pro subscription required. Upgrade at /pricing.")
     if not req.messages:
         raise HTTPException(status_code=400, detail="No messages provided")
     if not check_user_rate_limit(user.email):
@@ -454,8 +454,6 @@ def procurement(req: ProcurementRequest, user: User = Depends(get_current_user))
 
 @router.post("/fulfillment")
 def fulfillment(req: ProcurementRequest, user: User = Depends(get_current_user)):
-    if not user.is_subscribed:
-        raise HTTPException(status_code=403, detail="Pro subscription required. Upgrade at /pricing.")
     if not req.messages:
         raise HTTPException(status_code=400, detail="No messages provided")
     if not check_user_rate_limit(user.email):

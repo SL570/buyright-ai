@@ -7,8 +7,21 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "BuyRight AI — Shop smarter",
-  description: "AI-powered shopping intelligence: price tracking, group deals, buy/wait verdicts.",
+  title: "BuyRight AI — Your Free AI Shopping Advisor",
+  description: "Get a data-backed Buy / Wait / Negotiate verdict in seconds. Free AI that researches products, compares live prices across 80+ retailers, and finds hidden catches before you buy.",
+  keywords: "AI shopping assistant, buy or wait, price comparison, best price finder, product recommendation AI, shopping advisor",
+  openGraph: {
+    title: "BuyRight AI — Your Free AI Shopping Advisor",
+    description: "Describe what you want to buy. Get a buy/wait/negotiate verdict with live prices, hidden catches flagged, and the best moment to act. 100% free.",
+    type: "website",
+    siteName: "BuyRight AI",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BuyRight AI — Free AI Shopping Advisor",
+    description: "Buy smarter. Not harder. Free AI that tells you when to buy, where to buy, and what to avoid.",
+  },
+  robots: "index, follow",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

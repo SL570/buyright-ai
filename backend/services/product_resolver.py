@@ -357,13 +357,19 @@ def _serper_query(query: str, category: str = 'general') -> list:
         for item in items:
             store = item.get("source", "")
             price = item.get("price", "")
-            link  = item.get("link", "")
             title = item.get("title", "")
 
+            # Prefer direct store link; fall back to product_link if link is absent or a Google redirect
+            link = item.get("link", "") or item.get("product_link", "")
+            if not link:
+                link = item.get("product_link", "")
             if not store or not price or not link:
                 continue
-            if "google.com" in link:
-                continue
+            if "google.com" in link or "googleadservices" in link or "gclid" in link:
+                # Try product_link as fallback
+                link = item.get("product_link", "")
+                if not link or "google.com" in link:
+                    continue
 
             clean = _canonicalize(link)
             print(f"[RESOLVER] candidate: {store!r} {price!r} | {title[:60]!r} | {clean[:80]!r}")
