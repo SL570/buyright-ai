@@ -296,7 +296,17 @@ function ProcurementPageInner() {
             body: JSON.stringify({ query: prodName }),
           })
             .then(r => r.ok ? r.json() : [])
-            .then(links => { if (Array.isArray(links) && links.length) setPriceLinks(links); })
+            .then(links => {
+              if (Array.isArray(links) && links.length) {
+                setPriceLinks(prev => {
+                  // Resolver-verified links win for stores they cover;
+                  // keep initial Serper links for stores the resolver didn't return.
+                  const resolverStores = new Set(links.map((l: any) => l.store.toLowerCase()));
+                  const kept = prev.filter(p => !resolverStores.has(p.store.toLowerCase()));
+                  return [...links, ...kept];
+                });
+              }
+            })
             .catch(() => {})
             .finally(() => setPriceLinksLoading(false));
         };
