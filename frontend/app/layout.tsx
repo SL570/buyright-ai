@@ -28,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <head>
+        {/* @ts-ignore — Impact uses non-standard value attr */}
         <meta name="impact-site-verification" value="06fe8312-c6d5-412b-a275-f8900f0d6eec" />
       </head>
       <body className="min-h-full flex flex-col">
