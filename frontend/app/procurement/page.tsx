@@ -253,7 +253,7 @@ function ProcurementPageInner() {
 
   async function send(text?: string) {
     const userText = (text ?? input).trim();
-    if (!userText || loading) return;
+    if (!userText || loading || !backendReady) return;
     setInput("");
     activeMsgsRef.current = getMsgs(userText);
     setLoadingMsg(activeMsgsRef.current[0]);
@@ -466,7 +466,7 @@ function ProcurementPageInner() {
               </p>
               <div style={S.starters}>
                 {STARTERS.map(s => (
-                  <button key={s} onClick={() => send(s)} style={S.starterBtn}>{s}</button>
+                  <button key={s} onClick={() => send(s)} disabled={!backendReady} style={{ ...S.starterBtn, opacity: backendReady ? 1 : 0.4, cursor: backendReady ? "pointer" : "default" }}>{s}</button>
                 ))}
               </div>
             </div>
