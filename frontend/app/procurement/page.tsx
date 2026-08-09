@@ -589,6 +589,7 @@ function ProcurementPageInner() {
       <style>{`
         @keyframes blink { 0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.9; } }
       `}</style>
     </main>
   );

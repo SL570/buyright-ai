@@ -82,6 +82,7 @@ const BADGE_STYLE: Record<string, { bg: string; color: string }> = {
 function parseContent(raw: string) {
   let body = raw;
   let products: Product[] | null = null;
+  let loadingProducts = false;
   let verdict: { text: string; type: VerdictType } | null = null;
 
   // Extract complete PRODUCT_GRID block
@@ -94,7 +95,12 @@ function parseContent(raw: string) {
     } catch { /* fallthrough */ }
   }
   if (!products) {
-    body = body.replace(/PRODUCT_GRID:[\s\S]*/, "").trim();
+    const pgStart = body.indexOf("PRODUCT_GRID:");
+    if (pgStart !== -1) {
+      // Mid-stream: show text before PRODUCT_GRID, skeleton card where grid will be
+      body = body.substring(0, pgStart).trim();
+      loadingProducts = true;
+    }
   }
 
   // Extract **Verdict:** line
@@ -152,7 +158,7 @@ function parseContent(raw: string) {
   body = body.replace(/\nBUNDLE_ITEMS:.*/, "").trim();
   body = body.replace(/^BUNDLE_ITEMS:.*\n?/, "").trim();
 
-  return { products, verdict, body, decisionSummary, whyPicked, bundleData };
+  return { products, loadingProducts, verdict, body, decisionSummary, whyPicked, bundleData };
 }
 
 // Split markdown body into plain sections and collapsed detail sections
@@ -585,6 +591,21 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
           letterSpacing: "0.07em", marginBottom: 10,
         }}>
           {vs.icon} {verdict.text}
+        </div>
+      )}
+
+      {/* Skeleton card while PRODUCT_GRID is streaming in */}
+      {loadingProducts && (
+        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px", marginBottom: 12 }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
+            <div style={{ width: 60, height: 10, borderRadius: 6, background: "rgba(255,255,255,0.08)", animation: "pulse 1.4s ease-in-out infinite" }} />
+            <div style={{ width: 120, height: 10, borderRadius: 6, background: "rgba(10,132,255,0.15)", animation: "pulse 1.4s ease-in-out infinite 0.1s" }} />
+          </div>
+          <div style={{ width: "55%", height: 28, borderRadius: 8, background: "rgba(255,255,255,0.06)", marginBottom: 10, animation: "pulse 1.4s ease-in-out infinite 0.2s" }} />
+          <div style={{ width: "30%", height: 18, borderRadius: 6, background: "rgba(255,255,255,0.05)", marginBottom: 16, animation: "pulse 1.4s ease-in-out infinite 0.3s" }} />
+          <div style={{ display: "flex", gap: 8 }}>
+            {[0,1,2].map(i => <div key={i} style={{ width: 80, height: 8, borderRadius: 4, background: "rgba(255,255,255,0.05)", animation: `pulse 1.4s ease-in-out infinite ${0.1*i}s` }} />)}
+          </div>
         </div>
       )}
 
