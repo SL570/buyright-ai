@@ -162,6 +162,8 @@ function ProcurementPageInner() {
   const [priceLinksLoading, setPriceLinksLoading] = useState(false);
   const [backendReady, setBackendReady]     = useState(false);
   const bottomRef                       = useRef<HTMLDivElement>(null);
+  const chatWrapRef                     = useRef<HTMLDivElement>(null);
+  const userScrolledUp                  = useRef(false);
   const recogRef                        = useRef<any>(null);
   const autoSendRef                     = useRef("");
 
@@ -234,8 +236,22 @@ function ProcurementPageInner() {
     }
   }, [status, router, searchParams]);
 
+  // Detect when the user manually scrolls up — stop auto-scrolling until they send again
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = chatWrapRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+      userScrolledUp.current = !atBottom;
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!userScrolledUp.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages, loading]);
 
   function startVoice() {
@@ -254,6 +270,7 @@ function ProcurementPageInner() {
   async function send(text?: string) {
     const userText = (text ?? input).trim();
     if (!userText || loading || !backendReady) return;
+    userScrolledUp.current = false; // resume auto-scroll for the new response
     setInput("");
     activeMsgsRef.current = getMsgs(userText);
     setLoadingMsg(activeMsgsRef.current[0]);
@@ -459,7 +476,7 @@ function ProcurementPageInner() {
         </div>
       </div>
 
-      <div style={S.chatWrap}>
+      <div ref={chatWrapRef} style={S.chatWrap}>
         <div style={S.chatInner}>
           {messages.length === 0 && (
             <div style={S.emptyState}>
