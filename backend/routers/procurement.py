@@ -5,9 +5,9 @@ from typing import Literal, List
 import os
 import re
 import json
+import asyncio
 import anthropic
 import httpx
-import concurrent.futures
 
 from auth import get_current_user
 from models import User
@@ -125,10 +125,55 @@ def _fetch_live_prices(messages: list) -> tuple[str, list]:
         print(f"[SERPER] Price fetch failed: {e}")
         return "", []
 
+
+async def _fetch_live_prices_async(messages: list) -> tuple[str, list]:
+    """Async version of _fetch_live_prices using httpx.AsyncClient."""
+    if not SERPER_KEY:
+        return "", []
+    query = next((m["content"][:200] for m in messages if m["role"] == "user"), "")
+    if not query:
+        return "", []
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                "https://serpapi.com/search",
+                params={"engine": "google_shopping", "q": query, "api_key": SERPER_KEY, "gl": "us", "num": 10},
+                timeout=2.5,
+            )
+        if resp.status_code != 200:
+            return "", []
+        data = resp.json()
+        if "error" in data:
+            return "", []
+        items = data.get("shopping_results", [])
+        if not items:
+            return "", []
+        retailer_links: list = []
+        for item in items[:10]:
+            title  = item.get("title", "")
+            price  = item.get("price", "N/A")
+            source = item.get("source", "")
+            link   = item.get("link", "")
+            if not link or "google.com" in link or "googleadservices" in link:
+                link = item.get("product_link", "")
+            if source and price and link and "google.com" not in link:
+                clean = _canonicalize_url(link)
+                if not _is_pdp_url(clean):
+                    continue
+                retailer_links.append({
+                    "store": source, "price": price,
+                    "url": _affiliate_url(clean), "title": title,
+                })
+        return "", retailer_links
+    except Exception as e:
+        print(f"[SERPER ASYNC] Price fetch failed: {e}")
+        return "", []
+
+
 router = APIRouter(tags=["procurement"])
 
-_price_executor = concurrent.futures.ThreadPoolExecutor(max_workers=8, thread_name_prefix="price_fetch")
-_anthropic = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+_anthropic      = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))        # sync — fulfillment only
+_anthropic_async = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))  # async — procurement
 
 PROCUREMENT_PROMPT = """You are BuyRight AI — an AI Personal Buyer, not a shopping assistant.
 
@@ -442,47 +487,41 @@ def _sse_stream(system_prompt: str, messages_data: list, label: str, retailer_li
 
 
 @router.post("/procurement")
-def procurement(req: ProcurementRequest, user: User = Depends(get_current_user)):
+async def procurement(req: ProcurementRequest, user: User = Depends(get_current_user)):
     if not req.messages:
         raise HTTPException(status_code=400, detail="No messages provided")
     if not check_user_rate_limit(user.email):
         raise HTTPException(status_code=429, detail="Too many requests. Please wait before sending another message.")
     history = [{"role": m.role, "content": m.content} for m in req.messages[-20:]]
 
-    # Start price fetch in the background — Claude starts immediately without waiting
-    price_future = _price_executor.submit(_fetch_live_prices, history)
-
     from datetime import date as _date
     today_str = _date.today().strftime("%B %d, %Y")
     date_prefix = f"Today's date is {today_str}. Never reference past seasonal sales (July 4th, Memorial Day, Black Friday, etc.) as current or upcoming unless they are genuinely in the future relative to this date. Do not fabricate sale deadlines.\n\n"
     system = date_prefix + PROCUREMENT_PROMPT
 
-    def _gen():
+    async def _gen():
+        # Fire price fetch as a real async task — runs concurrently with Claude stream
+        price_task = asyncio.create_task(_fetch_live_prices_async(history))
         price_emitted = False
         try:
-            with _anthropic.messages.stream(
+            async with _anthropic_async.messages.stream(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=2000,
                 system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
                 messages=history,
                 extra_headers={"anthropic-beta": "prompt-caching-2024-07-31"},
             ) as stream:
-                for text in stream.text_stream:
-                    # Emit price_links the moment they arrive, without blocking Claude
-                    if not price_emitted and price_future.done():
+                async for text in stream.text_stream:
+                    if not price_emitted and price_task.done():
                         price_emitted = True
-                        try:
-                            _, link_map = price_future.result(timeout=0)
-                            if link_map:
-                                yield f"data: {json.dumps({'price_links': link_map})}\n\n"
-                        except Exception:
-                            pass
+                        _, link_map = price_task.result()
+                        if link_map:
+                            yield f"data: {json.dumps({'price_links': link_map})}\n\n"
                     yield f"data: {json.dumps({'text': text})}\n\n"
 
-            # After stream ends, emit prices if they haven't been sent yet
             if not price_emitted:
                 try:
-                    _, link_map = price_future.result(timeout=1.0)
+                    _, link_map = await asyncio.wait_for(price_task, timeout=1.0)
                     if link_map:
                         yield f"data: {json.dumps({'price_links': link_map})}\n\n"
                 except Exception:
