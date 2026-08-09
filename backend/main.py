@@ -3,7 +3,7 @@ import os
 import time
 import uuid
 from datetime import datetime
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -162,9 +162,42 @@ def root():
     return {"status": "ok"}
 
 
+async def _warm_procurement_cache():
+    """Send a 1-token request to write the procurement system prompt into Anthropic's cache.
+    Called on startup and on every /health ping (UptimeRobot every 5 min = same as cache TTL).
+    Eliminates the 3-4s cold-cache TTFT for the first user request in each session."""
+    try:
+        from routers.procurement import PROCUREMENT_PROMPT, _anthropic_async
+        from datetime import date as _date
+        today_str = _date.today().strftime("%B %d, %Y")
+        date_prefix = (
+            f"Today's date is {today_str}. Never reference past seasonal sales "
+            f"(July 4th, Memorial Day, Black Friday, etc.) as current or upcoming "
+            f"unless they are genuinely in the future relative to this date. "
+            f"Do not fabricate sale deadlines.\n\n"
+        )
+        await _anthropic_async.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1,
+            system=[{"type": "text", "text": date_prefix + PROCUREMENT_PROMPT,
+                     "cache_control": {"type": "ephemeral"}}],
+            messages=[{"role": "user", "content": "hi"}],
+            extra_headers={"anthropic-beta": "prompt-caching-2024-07-31"},
+        )
+        print("[CACHE] Procurement prompt cache warmed")
+    except Exception as e:
+        print(f"[CACHE] Warmup failed: {e}")
+
+
 @app.api_route("/health", methods=["GET", "HEAD"])
-def health():
+async def health(background_tasks: BackgroundTasks):
+    background_tasks.add_task(_warm_procurement_cache)
     return {"status": "ok"}
+
+
+@app.on_event("startup")
+async def warm_cache_on_startup():
+    await _warm_procurement_cache()
 
 
 @app.on_event("startup")
