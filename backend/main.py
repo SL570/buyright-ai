@@ -170,17 +170,16 @@ async def _warm_procurement_cache():
         from routers.procurement import PROCUREMENT_PROMPT, _anthropic_async
         from datetime import date as _date
         today_str = _date.today().strftime("%B %d, %Y")
-        date_prefix = (
-            f"Today's date is {today_str}. Never reference past seasonal sales "
-            f"(July 4th, Memorial Day, Black Friday, etc.) as current or upcoming "
-            f"unless they are genuinely in the future relative to this date. "
-            f"Do not fabricate sale deadlines.\n\n"
-        )
+        date_prefix = f"Today's date is {today_str}. Do not reference past seasonal sales as upcoming unless genuinely future. Do not fabricate sale deadlines.\n\n"
+        # Must match the exact two-block structure used by the procurement endpoint
+        # so the cache key matches and warmup actually primes real requests
         await _anthropic_async.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=1,
-            system=[{"type": "text", "text": date_prefix + PROCUREMENT_PROMPT,
-                     "cache_control": {"type": "ephemeral"}}],
+            system=[
+                {"type": "text", "text": PROCUREMENT_PROMPT, "cache_control": {"type": "ephemeral"}},
+                {"type": "text", "text": date_prefix},
+            ],
             messages=[{"role": "user", "content": "hi"}],
             extra_headers={"anthropic-beta": "prompt-caching-2024-07-31"},
         )

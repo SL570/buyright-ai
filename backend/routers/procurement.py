@@ -502,12 +502,19 @@ async def procurement(req: ProcurementRequest, user: User = Depends(get_current_
         raise HTTPException(status_code=400, detail="No messages provided")
     if not check_user_rate_limit(user.email):
         raise HTTPException(status_code=429, detail="Too many requests. Please wait before sending another message.")
-    history = [{"role": m.role, "content": m.content} for m in req.messages[-20:]]
+    # Trim to last 12 messages — reduces tokens Claude must read before token 1
+    history = [{"role": m.role, "content": m.content} for m in req.messages[-12:]]
 
     from datetime import date as _date
     today_str = _date.today().strftime("%B %d, %Y")
-    date_prefix = f"Today's date is {today_str}. Never reference past seasonal sales (July 4th, Memorial Day, Black Friday, etc.) as current or upcoming unless they are genuinely in the future relative to this date. Do not fabricate sale deadlines.\n\n"
-    system = date_prefix + PROCUREMENT_PROMPT
+    date_prefix = f"Today's date is {today_str}. Do not reference past seasonal sales as upcoming unless genuinely future. Do not fabricate sale deadlines.\n\n"
+
+    # Two-block system: PROCUREMENT_PROMPT is permanently cached (never changes),
+    # date_prefix is a tiny uncached block processed fresh — cache never invalidates
+    system_blocks = [
+        {"type": "text", "text": PROCUREMENT_PROMPT, "cache_control": {"type": "ephemeral"}},
+        {"type": "text", "text": date_prefix},
+    ]
 
     async def _gen():
         loop = asyncio.get_running_loop()
@@ -522,7 +529,7 @@ async def procurement(req: ProcurementRequest, user: User = Depends(get_current_
             async with _anthropic_async.messages.stream(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=2000,
-                system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
+                system=system_blocks,
                 messages=history,
                 extra_headers={"anthropic-beta": "prompt-caching-2024-07-31"},
             ) as stream:
