@@ -510,12 +510,13 @@ async def procurement(req: ProcurementRequest, user: User = Depends(get_current_
     system = date_prefix + PROCUREMENT_PROMPT
 
     async def _gen():
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         # Broad query price fetch — runs from the very start, concurrently with Claude
         price_task = asyncio.create_task(_fetch_live_prices_async(history))
         price_emitted = False
-        # Resolver task — started the moment PRODUCT_GRID is detected mid-stream
-        resolver_task = None
+        # Resolver future — started the moment PRODUCT_GRID is detected mid-stream
+        # run_in_executor returns a Future (not a coroutine), so no create_task wrapper
+        resolver_future = None
         full_text = ""
         try:
             async with _anthropic_async.messages.stream(
@@ -534,13 +535,14 @@ async def procurement(req: ProcurementRequest, user: User = Depends(get_current_
                         if link_map:
                             yield f"data: {json.dumps({'price_links': link_map})}\n\n"
                     # The instant PRODUCT_GRID appears, kick off the product-specific resolver
-                    # It runs in a thread (sync httpx) without blocking the event loop
-                    if resolver_task is None and "PRODUCT_GRID:" in full_text:
-                        product_name = _extract_product_name(full_text)
-                        if product_name:
-                            resolver_task = asyncio.create_task(
-                                loop.run_in_executor(None, resolve_product, product_name)
-                            )
+                    # run_in_executor runs the sync resolver in a thread without blocking the event loop
+                    if resolver_future is None and "PRODUCT_GRID:" in full_text:
+                        try:
+                            product_name = _extract_product_name(full_text)
+                            if product_name:
+                                resolver_future = loop.run_in_executor(None, resolve_product, product_name)
+                        except Exception:
+                            pass
                     yield f"data: {json.dumps({'text': text})}\n\n"
 
             # Flush broad price_links if not yet emitted
@@ -558,9 +560,9 @@ async def procurement(req: ProcurementRequest, user: User = Depends(get_current_
 
             # Resolver has been running since PRODUCT_GRID was first detected —
             # wait up to 3s for the remainder; it's often already done by now
-            if resolver_task:
+            if resolver_future:
                 try:
-                    verified = await asyncio.wait_for(resolver_task, timeout=3.0)
+                    verified = await asyncio.wait_for(resolver_future, timeout=3.0)
                     if verified:
                         yield f"data: {json.dumps({'verified_links': verified})}\n\n"
                 except Exception:
