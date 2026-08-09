@@ -7,6 +7,7 @@ import re
 import json
 import anthropic
 import httpx
+import concurrent.futures
 
 from auth import get_current_user
 from models import User
@@ -78,7 +79,7 @@ def _fetch_live_prices(messages: list) -> tuple[str, list]:
         resp = httpx.get(
             "https://serpapi.com/search",
             params={"engine": "google_shopping", "q": query, "api_key": SERPER_KEY, "gl": "us", "num": 10},
-            timeout=4.0,
+            timeout=2.5,
         )
         if resp.status_code != 200:
             print(f"[PRICES] SerpApi HTTP {resp.status_code}: {resp.text[:200]}")
@@ -125,6 +126,8 @@ def _fetch_live_prices(messages: list) -> tuple[str, list]:
         return "", []
 
 router = APIRouter(tags=["procurement"])
+
+_price_executor = concurrent.futures.ThreadPoolExecutor(max_workers=8, thread_name_prefix="price_fetch")
 
 PROCUREMENT_PROMPT = """You are BuyRight AI — an AI Personal Buyer, not a shopping assistant.
 
@@ -444,12 +447,47 @@ def procurement(req: ProcurementRequest, user: User = Depends(get_current_user))
     if not check_user_rate_limit(user.email):
         raise HTTPException(status_code=429, detail="Too many requests. Please wait before sending another message.")
     history = [{"role": m.role, "content": m.content} for m in req.messages[-20:]]
-    live_prices, link_map = _fetch_live_prices(history)
+
+    # Submit price fetch immediately so it runs concurrently with SSE setup
+    price_future = _price_executor.submit(_fetch_live_prices, history)
+
     from datetime import date as _date
     today_str = _date.today().strftime("%B %d, %Y")
     date_prefix = f"Today's date is {today_str}. Never reference past seasonal sales (July 4th, Memorial Day, Black Friday, etc.) as current or upcoming unless they are genuinely in the future relative to this date. Do not fabricate sale deadlines.\n\n"
-    system = date_prefix + PROCUREMENT_PROMPT + live_prices
-    return _sse_stream(system, history, "PROCUREMENT", link_map)
+
+    def _gen():
+        # Signal the frontend immediately so the spinner starts right away
+        yield f"data: {json.dumps({'status': 'fetching_prices'})}\n\n"
+
+        # Wait for the concurrent price fetch (timeout slightly above the httpx timeout)
+        try:
+            live_prices, link_map = price_future.result(timeout=3.5)
+        except Exception:
+            live_prices, link_map = "", []
+
+        system = date_prefix + PROCUREMENT_PROMPT + live_prices
+
+        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        if link_map:
+            yield f"data: {json.dumps({'price_links': link_map})}\n\n"
+        try:
+            with client.messages.stream(
+                model="claude-sonnet-4-6",
+                max_tokens=2000,
+                system=system,
+                messages=history,
+            ) as stream:
+                for text in stream.text_stream:
+                    yield f"data: {json.dumps({'text': text})}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            print(f"[PROCUREMENT STREAM ERROR] {type(e).__name__}: {e}")
+            yield f"data: {json.dumps({'error': 'AI service unavailable. Please try again.'})}\n\n"
+
+    return StreamingResponse(_gen(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    })
 
 
 @router.post("/fulfillment")
