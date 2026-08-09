@@ -128,6 +128,7 @@ def _fetch_live_prices(messages: list) -> tuple[str, list]:
 router = APIRouter(tags=["procurement"])
 
 _price_executor = concurrent.futures.ThreadPoolExecutor(max_workers=8, thread_name_prefix="price_fetch")
+_anthropic = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 PROCUREMENT_PROMPT = """You are BuyRight AI — an AI Personal Buyer, not a shopping assistant.
 
@@ -417,16 +418,16 @@ class ProcurementRequest(BaseModel):
 
 
 def _sse_stream(system_prompt: str, messages_data: list, label: str, retailer_links: list | None = None):
-    client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     def _gen():
         if retailer_links:
             yield f"data: {json.dumps({'price_links': retailer_links})}\n\n"
         try:
-            with client.messages.stream(
-                model="claude-sonnet-4-6",
+            with _anthropic.messages.stream(
+                model="claude-haiku-4-5-20251001",
                 max_tokens=2000,
-                system=system_prompt,
+                system=[{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}],
                 messages=messages_data,
+                extra_headers={"anthropic-beta": "prompt-caching-2024-07-31"},
             ) as stream:
                 for text in stream.text_stream:
                     yield f"data: {json.dumps({'text': text})}\n\n"
@@ -457,14 +458,14 @@ def procurement(req: ProcurementRequest, user: User = Depends(get_current_user))
     system = date_prefix + PROCUREMENT_PROMPT
 
     def _gen():
-        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
         price_emitted = False
         try:
-            with client.messages.stream(
-                model="claude-sonnet-4-6",
+            with _anthropic.messages.stream(
+                model="claude-haiku-4-5-20251001",
                 max_tokens=2000,
-                system=system,
+                system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
                 messages=history,
+                extra_headers={"anthropic-beta": "prompt-caching-2024-07-31"},
             ) as stream:
                 for text in stream.text_stream:
                     # Emit price_links the moment they arrive, without blocking Claude
