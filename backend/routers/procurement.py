@@ -424,7 +424,7 @@ def _sse_stream(system_prompt: str, messages_data: list, label: str, retailer_li
         try:
             with _anthropic.messages.stream(
                 model="claude-haiku-4-5-20251001",
-                max_tokens=1500,
+                max_tokens=2000,
                 system=[{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}],
                 messages=messages_data,
                 extra_headers={"anthropic-beta": "prompt-caching-2024-07-31"},
@@ -462,7 +462,7 @@ def procurement(req: ProcurementRequest, user: User = Depends(get_current_user))
         try:
             with _anthropic.messages.stream(
                 model="claude-haiku-4-5-20251001",
-                max_tokens=1500,
+                max_tokens=2000,
                 system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
                 messages=history,
                 extra_headers={"anthropic-beta": "prompt-caching-2024-07-31"},

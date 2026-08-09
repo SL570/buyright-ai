@@ -491,6 +491,7 @@ function ProcurementPageInner() {
                 <div style={S.aiBubble}>
                   <AIMessage
                     content={m.content}
+                    isStreaming={loading && i === messages.length - 1}
                     onFollowUp={send}
                     followups={loading ? [] : getFollowups(messages, i)}
                     accent={ACCENT}

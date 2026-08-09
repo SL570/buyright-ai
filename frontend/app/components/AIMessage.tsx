@@ -190,6 +190,7 @@ export interface PriceLink { store: string; price: string; url: string; title: s
 interface Props {
   priceLinksLoading?: boolean;
   content: string;
+  isStreaming?: boolean;
   onFollowUp?: (q: string) => void;
   followups?: string[];
   accent?: string;
@@ -517,7 +518,7 @@ function BuyButtons({ links, fallbackStore, fallbackName, accent, loading }: {
   return <RetailerGrid links={links} loading={loading} productName={fallbackName} />;
 }
 
-export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9EFF", journeyStages, priceLinks = [], priceLinksLoading = false }: Props) {
+export function AIMessage({ content, isStreaming = false, onFollowUp, followups = [], accent = "#4D9EFF", journeyStages, priceLinks = [], priceLinksLoading = false }: Props) {
   const { products, loadingProducts, verdict, body, decisionSummary, whyPicked, bundleData } = parseContent(content);
   const vs = verdict ? V_STYLE[verdict.type] : null;
 
@@ -594,8 +595,8 @@ export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9E
         </div>
       )}
 
-      {/* Skeleton card while PRODUCT_GRID is streaming in */}
-      {loadingProducts && (
+      {/* Skeleton card while PRODUCT_GRID is mid-stream — clears the moment streaming stops */}
+      {loadingProducts && isStreaming && (
         <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px", marginBottom: 12 }}>
           <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
             <div style={{ width: 60, height: 10, borderRadius: 6, background: "rgba(255,255,255,0.08)", animation: "pulse 1.4s ease-in-out infinite" }} />
