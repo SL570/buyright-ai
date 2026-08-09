@@ -544,6 +544,10 @@ async def procurement(req: ProcurementRequest, user: User = Depends(get_current_
                     yield f"data: {json.dumps({'text': text})}\n\n"
 
             # Flush broad price_links if not yet emitted
+            # Claude is done — signal the frontend to stop the spinner immediately
+            yield "data: [CONTENT_DONE]\n\n"
+
+            # Flush broad price_links if not yet emitted
             if not price_emitted:
                 try:
                     _, link_map = await asyncio.wait_for(price_task, timeout=0.5)
@@ -552,8 +556,8 @@ async def procurement(req: ProcurementRequest, user: User = Depends(get_current_
                 except Exception:
                     pass
 
-            # Emit resolver's verified links — it has been running concurrently so
-            # it's likely already done; at worst we wait the remainder of its timeout
+            # Resolver has been running since PRODUCT_GRID was first detected —
+            # wait up to 3s for the remainder; it's often already done by now
             if resolver_task:
                 try:
                     verified = await asyncio.wait_for(resolver_task, timeout=3.0)

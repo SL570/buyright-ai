@@ -319,6 +319,12 @@ function ProcurementPageInner() {
             if (!line.startsWith("data: ")) continue;
             const payload = line.slice(6).trim();
             if (payload === "[DONE]") break outer;
+            // Claude finished — stop spinner immediately, keep stream open for prices
+            if (payload === "[CONTENT_DONE]") {
+              setLoading(false);
+              setMessages([...next, { role: "assistant", content: fullText }]);
+              continue;
+            }
             try {
               const parsed = JSON.parse(payload);
               if (parsed.error) throw new Error(parsed.error);
