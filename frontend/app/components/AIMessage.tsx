@@ -730,16 +730,6 @@ export function AIMessage({ content, isStreaming = false, onFollowUp, followups 
         <BundleCard data={bundleData} accent={accent} />
       )}
 
-      {/* Blinking cursor before first token arrives */}
-      {isStreaming && !body && !loadingProducts && (
-        <span style={{
-          display: "inline-block", width: 2, height: "1.1em",
-          background: "#0A84FF", borderRadius: 1,
-          animation: "cursor-blink 1s step-end infinite",
-          verticalAlign: "text-bottom",
-        }} />
-      )}
-
       {/* Markdown body — detail sections collapsed by default */}
       <div style={{ fontSize: 14, lineHeight: 1.75, color: "#E2E8F0" }}>
         {splitBodyIntoSections(body).map((section, i) =>
@@ -754,15 +744,6 @@ export function AIMessage({ content, isStreaming = false, onFollowUp, followups 
               {stripEmoji(section.content)}
             </ReactMarkdown>
           )
-        )}
-        {/* Cursor at end of text while streaming */}
-        {isStreaming && body && (
-          <span style={{
-            display: "inline-block", width: 2, height: "1em",
-            background: "#0A84FF", borderRadius: 1,
-            animation: "cursor-blink 1s step-end infinite",
-            verticalAlign: "text-bottom", marginLeft: 2,
-          }} />
         )}
       </div>
 

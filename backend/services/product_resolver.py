@@ -337,7 +337,7 @@ def _serper_query(query: str, category: str = 'general') -> list:
         resp = httpx.get(
             "https://serpapi.com/search",
             params={"engine": "google_shopping", "q": query, "api_key": SERPER_KEY, "gl": "us", "num": 10},
-            timeout=6.0,
+            timeout=3.0,
         )
         if resp.status_code != 200:
             body = resp.text[:300]
@@ -444,20 +444,12 @@ def resolve(product_name: str) -> list:
     # Attempt 1: exact product name
     results = _serper_query(product_name, category)
 
-    # Attempt 2: simplified name (drops "100ml", "Eau de Parfum", etc.)
+    # Attempt 2: simplified name — only if cache miss AND first attempt returned nothing
     if not results:
         simplified = _simplify(product_name)
         if simplified:
             print(f"[RESOLVER] retry simplified: {simplified!r}")
             results = _serper_query(simplified, category)
-
-    # Attempt 3: brand + first two content words (last resort)
-    if not results:
-        words = product_name.split()
-        short = " ".join(words[:3]) if len(words) > 3 else ""
-        if short:
-            print(f"[RESOLVER] retry short: {short!r}")
-            results = _serper_query(short, category)
 
     _CACHE[cache_key] = (time.time(), results)
     return results
