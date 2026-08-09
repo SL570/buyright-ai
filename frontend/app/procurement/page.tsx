@@ -302,35 +302,11 @@ function ProcurementPageInner() {
         let fullText = "";
         let buffer = "";
         let firstChunk = true;
-        let priceFetchFired = false;
+        let journeyFired = false;
         let rafPending = false;
         const flushText = () => {
           setMessages([...next, { role: "assistant", content: fullText }]);
           rafPending = false;
-        };
-
-        const fetchPrices = (prodName: string) => {
-          if (!prodName || !token) return;
-          setPriceLinksLoading(true);
-          fetch(`${BASE}/prices`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ query: prodName }),
-          })
-            .then(r => r.ok ? r.json() : [])
-            .then(links => {
-              if (Array.isArray(links) && links.length) {
-                setPriceLinks(prev => {
-                  // Resolver-verified links win for stores they cover;
-                  // keep initial Serper links for stores the resolver didn't return.
-                  const resolverStores = new Set(links.map((l: any) => l.store.toLowerCase()));
-                  const kept = prev.filter(p => !resolverStores.has(p.store.toLowerCase()));
-                  return [...links, ...kept];
-                });
-              }
-            })
-            .catch(() => {})
-            .finally(() => setPriceLinksLoading(false));
         };
 
         outer: while (true) {
@@ -346,19 +322,24 @@ function ProcurementPageInner() {
             try {
               const parsed = JSON.parse(payload);
               if (parsed.error) throw new Error(parsed.error);
-              if (Array.isArray(parsed.price_links)) { setPriceLinks(parsed.price_links); }
+              // Broad SerpApi results arrive early (concurrent with Claude)
+              if (Array.isArray(parsed.price_links)) { setPriceLinks(parsed.price_links); setPriceLinksLoading(true); }
+              // Resolver-verified PDP links arrive at stream end — replaces/upgrades broad results
+              if (Array.isArray(parsed.verified_links) && parsed.verified_links.length) {
+                setPriceLinks(prev => {
+                  const resolverStores = new Set(parsed.verified_links.map((l: any) => l.store.toLowerCase()));
+                  const kept = prev.filter((p: any) => !resolverStores.has(p.store.toLowerCase()));
+                  return [...parsed.verified_links, ...kept];
+                });
+                setPriceLinksLoading(false);
+              }
               if (parsed.text) {
                 if (firstChunk) { setLoading(false); firstChunk = false; }
                 fullText += parsed.text;
-                // Throttle re-renders to once per animation frame — prevents 1500+ renders per response
                 if (!rafPending) { rafPending = true; requestAnimationFrame(flushText); }
-                // Fire /prices the moment PRODUCT_GRID is fully received — don't wait for stream end
-                if (!priceFetchFired && fullText.includes("END_PRODUCT_GRID")) {
-                  priceFetchFired = true;
+                if (!journeyFired && fullText.includes("END_PRODUCT_GRID")) {
+                  journeyFired = true;
                   setJourneyStep(prev => Math.max(prev, 1));
-                  const partialMsgs = [...next, { role: "assistant" as const, content: fullText }];
-                  const earlyProd = getFirstProduct(partialMsgs);
-                  if (earlyProd?.name) fetchPrices(earlyProd.name);
                 }
               }
             } catch (parseErr: any) {
@@ -366,12 +347,12 @@ function ProcurementPageInner() {
             }
           }
         }
+        // Stream done — verified_links already arrived via SSE; clear loading state
+        setPriceLinksLoading(false);
         const finalMsgs = [...next, { role: "assistant" as const, content: fullText }];
         const prod = getFirstProduct(finalMsgs);
-        // Fallback: if END_PRODUCT_GRID never appeared mid-stream, fire /prices now
-        if (!priceFetchFired && prod?.name) {
+        if (!journeyFired && prod?.name) {
           setJourneyStep(prev => Math.max(prev, 1));
-          fetchPrices(prod.name);
         }
         const title = next[0]?.content.slice(0, 60) ?? "Research";
         try {

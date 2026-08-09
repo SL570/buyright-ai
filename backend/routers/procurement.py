@@ -126,6 +126,16 @@ def _fetch_live_prices(messages: list) -> tuple[str, list]:
         return "", []
 
 
+def _extract_product_name(text: str) -> str:
+    """Pull the first product 'name' field from a partial PRODUCT_GRID SSE chunk."""
+    idx = text.find("PRODUCT_GRID:")
+    if idx == -1:
+        return ""
+    partial = text[idx + len("PRODUCT_GRID:"):].strip()
+    m = re.search(r'"name"\s*:\s*"([^"]{3,})"', partial)
+    return m.group(1).strip() if m else ""
+
+
 async def _fetch_live_prices_async(messages: list) -> tuple[str, list]:
     """Async version of _fetch_live_prices using httpx.AsyncClient."""
     if not SERPER_KEY:
@@ -500,9 +510,13 @@ async def procurement(req: ProcurementRequest, user: User = Depends(get_current_
     system = date_prefix + PROCUREMENT_PROMPT
 
     async def _gen():
-        # Fire price fetch as a real async task — runs concurrently with Claude stream
+        loop = asyncio.get_event_loop()
+        # Broad query price fetch — runs from the very start, concurrently with Claude
         price_task = asyncio.create_task(_fetch_live_prices_async(history))
         price_emitted = False
+        # Resolver task — started the moment PRODUCT_GRID is detected mid-stream
+        resolver_task = None
+        full_text = ""
         try:
             async with _anthropic_async.messages.stream(
                 model="claude-haiku-4-5-20251001",
@@ -512,18 +526,39 @@ async def procurement(req: ProcurementRequest, user: User = Depends(get_current_
                 extra_headers={"anthropic-beta": "prompt-caching-2024-07-31"},
             ) as stream:
                 async for text in stream.text_stream:
+                    full_text += text
+                    # Emit broad price_links as soon as they're ready
                     if not price_emitted and price_task.done():
                         price_emitted = True
                         _, link_map = price_task.result()
                         if link_map:
                             yield f"data: {json.dumps({'price_links': link_map})}\n\n"
+                    # The instant PRODUCT_GRID appears, kick off the product-specific resolver
+                    # It runs in a thread (sync httpx) without blocking the event loop
+                    if resolver_task is None and "PRODUCT_GRID:" in full_text:
+                        product_name = _extract_product_name(full_text)
+                        if product_name:
+                            resolver_task = asyncio.create_task(
+                                loop.run_in_executor(None, resolve_product, product_name)
+                            )
                     yield f"data: {json.dumps({'text': text})}\n\n"
 
+            # Flush broad price_links if not yet emitted
             if not price_emitted:
                 try:
-                    _, link_map = await asyncio.wait_for(price_task, timeout=1.0)
+                    _, link_map = await asyncio.wait_for(price_task, timeout=0.5)
                     if link_map:
                         yield f"data: {json.dumps({'price_links': link_map})}\n\n"
+                except Exception:
+                    pass
+
+            # Emit resolver's verified links — it has been running concurrently so
+            # it's likely already done; at worst we wait the remainder of its timeout
+            if resolver_task:
+                try:
+                    verified = await asyncio.wait_for(resolver_task, timeout=3.0)
+                    if verified:
+                        yield f"data: {json.dumps({'verified_links': verified})}\n\n"
                 except Exception:
                     pass
 
