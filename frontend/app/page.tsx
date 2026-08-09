@@ -390,10 +390,10 @@ export default function LandingPage() {
 }
 
 const S: Record<string, React.CSSProperties> = {
-  page:           { minHeight: "100vh", background: "radial-gradient(ellipse 80% 45% at 50% -10%, rgba(10,132,255,0.09) 0%, transparent 60%), radial-gradient(ellipse 55% 45% at 85% 105%, rgba(10,132,255,0.05) 0%, transparent 50%), #0C1525", fontFamily: "system-ui,-apple-system,sans-serif", display: "flex", flexDirection: "column", color: "#F1F5F9" },
+  page:           { minHeight: "100vh", background: "radial-gradient(ellipse 90% 55% at 50% -5%, rgba(10,132,255,0.22) 0%, rgba(10,132,255,0.06) 45%, transparent 70%), radial-gradient(ellipse 50% 40% at 90% 110%, rgba(10,132,255,0.10) 0%, transparent 55%), radial-gradient(ellipse 40% 35% at 10% 100%, rgba(10,80,200,0.08) 0%, transparent 50%), #05080F", fontFamily: "system-ui,-apple-system,sans-serif", display: "flex", flexDirection: "column", color: "#F1F5F9" },
 
   /* Nav */
-  nav:            { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 48px", height: 64, borderBottom: "1px solid rgba(255,255,255,0.06)", position: "sticky", top: 0, background: "rgba(8,12,20,0.65)", backdropFilter: "blur(32px) saturate(180%)", zIndex: 100 },
+  nav:            { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 48px", height: 64, borderBottom: "1px solid rgba(255,255,255,0.06)", position: "sticky", top: 0, background: "rgba(5,8,15,0.75)", backdropFilter: "blur(32px) saturate(180%)", zIndex: 100 },
   brand:          { color: "#F1F5F9", fontSize: 18, fontWeight: 800, letterSpacing: "-0.3px", flexShrink: 0 },
   navCenter:      { display: "flex", gap: 32 },
   navLink:        { color: "#64748B", fontSize: 14, textDecoration: "none" },
