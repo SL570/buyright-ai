@@ -77,6 +77,9 @@ export default function DashboardPage() {
   const inputRef   = useRef<HTMLInputElement>(null);
   const fetchedRef = useRef(false);
 
+  // Wake up the Render backend immediately so it's warm before the user navigates to procurement
+  useEffect(() => { fetch(`${BASE}/health`).catch(() => {}); }, []);
+
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/sign-in"); return; }
     if (status === "authenticated" && !fetchedRef.current) {

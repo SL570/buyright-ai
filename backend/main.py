@@ -162,6 +162,11 @@ def root():
     return {"status": "ok"}
 
 
+@app.api_route("/health", methods=["GET", "HEAD"])
+def health():
+    return {"status": "ok"}
+
+
 @app.on_event("startup")
 def run_db_migrations():
     """Add columns that may not exist in databases created before schema changes."""

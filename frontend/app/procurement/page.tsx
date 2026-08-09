@@ -164,6 +164,9 @@ function ProcurementPageInner() {
   const recogRef                        = useRef<any>(null);
   const autoSendRef                     = useRef("");
 
+  // Wake up the Render backend immediately on page load so it's warm by the time the user sends
+  useEffect(() => { fetch(`${BASE}/health`).catch(() => {}); }, []);
+
   useEffect(() => {
     if (!loading) { setLoadingMsg(activeMsgsRef.current[0]); return; }
     let i = 0;
