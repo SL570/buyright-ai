@@ -448,28 +448,17 @@ def procurement(req: ProcurementRequest, user: User = Depends(get_current_user))
         raise HTTPException(status_code=429, detail="Too many requests. Please wait before sending another message.")
     history = [{"role": m.role, "content": m.content} for m in req.messages[-20:]]
 
-    # Submit price fetch immediately so it runs concurrently with SSE setup
+    # Start price fetch in the background — Claude starts immediately without waiting
     price_future = _price_executor.submit(_fetch_live_prices, history)
 
     from datetime import date as _date
     today_str = _date.today().strftime("%B %d, %Y")
     date_prefix = f"Today's date is {today_str}. Never reference past seasonal sales (July 4th, Memorial Day, Black Friday, etc.) as current or upcoming unless they are genuinely in the future relative to this date. Do not fabricate sale deadlines.\n\n"
+    system = date_prefix + PROCUREMENT_PROMPT
 
     def _gen():
-        # Signal the frontend immediately so the spinner starts right away
-        yield f"data: {json.dumps({'status': 'fetching_prices'})}\n\n"
-
-        # Wait for the concurrent price fetch (timeout slightly above the httpx timeout)
-        try:
-            live_prices, link_map = price_future.result(timeout=3.5)
-        except Exception:
-            live_prices, link_map = "", []
-
-        system = date_prefix + PROCUREMENT_PROMPT + live_prices
-
         client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-        if link_map:
-            yield f"data: {json.dumps({'price_links': link_map})}\n\n"
+        price_emitted = False
         try:
             with client.messages.stream(
                 model="claude-sonnet-4-6",
@@ -478,7 +467,26 @@ def procurement(req: ProcurementRequest, user: User = Depends(get_current_user))
                 messages=history,
             ) as stream:
                 for text in stream.text_stream:
+                    # Emit price_links the moment they arrive, without blocking Claude
+                    if not price_emitted and price_future.done():
+                        price_emitted = True
+                        try:
+                            _, link_map = price_future.result(timeout=0)
+                            if link_map:
+                                yield f"data: {json.dumps({'price_links': link_map})}\n\n"
+                        except Exception:
+                            pass
                     yield f"data: {json.dumps({'text': text})}\n\n"
+
+            # After stream ends, emit prices if they haven't been sent yet
+            if not price_emitted:
+                try:
+                    _, link_map = price_future.result(timeout=1.0)
+                    if link_map:
+                        yield f"data: {json.dumps({'price_links': link_map})}\n\n"
+                except Exception:
+                    pass
+
             yield "data: [DONE]\n\n"
         except Exception as e:
             print(f"[PROCUREMENT STREAM ERROR] {type(e).__name__}: {e}")

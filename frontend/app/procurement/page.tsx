@@ -312,7 +312,6 @@ function ProcurementPageInner() {
             try {
               const parsed = JSON.parse(payload);
               if (parsed.error) throw new Error(parsed.error);
-              if (parsed.status === "fetching_prices") { setLoadingMsg("Fetching live prices..."); }
               if (Array.isArray(parsed.price_links)) { setPriceLinks(parsed.price_links); }
               if (parsed.text) {
                 if (firstChunk) { setLoading(false); firstChunk = false; }
