@@ -160,12 +160,19 @@ function ProcurementPageInner() {
   const [sessionId, setSessionId]       = useState<number | null>(null);
   const [priceLinks, setPriceLinks]         = useState<{store:string;price:string;url:string;title:string;direct?:boolean}[]>([]);
   const [priceLinksLoading, setPriceLinksLoading] = useState(false);
+  const [backendReady, setBackendReady]     = useState(false);
   const bottomRef                       = useRef<HTMLDivElement>(null);
   const recogRef                        = useRef<any>(null);
   const autoSendRef                     = useRef("");
 
-  // Wake up the Render backend immediately on page load so it's warm by the time the user sends
-  useEffect(() => { fetch(`${BASE}/health`).catch(() => {}); }, []);
+  // Warm up Render and track when it's ready — input stays locked until backend confirms
+  useEffect(() => {
+    const ping = () =>
+      fetch(`${BASE}/health`, { cache: "no-store" })
+        .then(() => setBackendReady(true))
+        .catch(() => setTimeout(ping, 3000)); // retry if still cold
+    ping();
+  }, []);
 
   useEffect(() => {
     if (!loading) { setLoadingMsg(activeMsgsRef.current[0]); return; }
@@ -400,7 +407,7 @@ function ProcurementPageInner() {
     }
   }
 
-  const authReady = status !== "loading" && !!token;
+  const authReady = status !== "loading" && !!token && backendReady;
 
   if (!subscribed) {
     return (
@@ -571,7 +578,7 @@ function ProcurementPageInner() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-            placeholder={!authReady ? "Connecting..." : listening ? "Listening..." : "What do you need to buy? Include budget and timeline..."}
+            placeholder={!backendReady ? "Warming up server..." : !authReady ? "Connecting..." : listening ? "Listening..." : "What do you need to buy? Include budget and timeline..."}
             disabled={loading || !authReady}
           />
           <button onClick={() => send()} disabled={loading || !authReady || !input.trim()} style={S.sendBtn}>Send</button>
