@@ -518,7 +518,7 @@ function BuyButtons({ links, fallbackStore, fallbackName, accent, loading }: {
 }
 
 export function AIMessage({ content, onFollowUp, followups = [], accent = "#4D9EFF", journeyStages, priceLinks = [], priceLinksLoading = false }: Props) {
-  const { products, verdict, body, decisionSummary, whyPicked, bundleData } = parseContent(content);
+  const { products, loadingProducts, verdict, body, decisionSummary, whyPicked, bundleData } = parseContent(content);
   const vs = verdict ? V_STYLE[verdict.type] : null;
 
   // Shared ReactMarkdown component map — reused across plain + collapsible sections
