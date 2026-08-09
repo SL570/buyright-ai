@@ -400,7 +400,7 @@ function ProcurementPageInner() {
     }
   }
 
-  if (status === "loading" || !token) return <LoadingScreen />;
+  const authReady = status !== "loading" && !!token;
 
   if (!subscribed) {
     return (
@@ -571,10 +571,10 @@ function ProcurementPageInner() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-            placeholder={listening ? "Listening..." : "What do you need to buy? Include budget and timeline..."}
-            disabled={loading}
+            placeholder={!authReady ? "Connecting..." : listening ? "Listening..." : "What do you need to buy? Include budget and timeline..."}
+            disabled={loading || !authReady}
           />
-          <button onClick={() => send()} disabled={loading || !input.trim()} style={S.sendBtn}>Send</button>
+          <button onClick={() => send()} disabled={loading || !authReady || !input.trim()} style={S.sendBtn}>Send</button>
         </div>
         <p style={S.hint}>Press the mic button to speak</p>
       </div>
