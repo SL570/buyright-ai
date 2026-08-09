@@ -22,26 +22,7 @@ const STARTERS = [
   "Get me a standing desk and monitor setup for under $600",
 ];
 
-const LOADING_MSGS: Record<string, string[]> = {
-  tv:        ["Comparing panel types...", "Checking HDR and refresh rates...", "Looking for open box deals...", "Finding the best timing to buy...", "Almost done..."],
-  laptop:    ["Running CPU benchmarks...", "Testing battery life claims...", "Checking student discounts...", "Comparing build quality...", "Almost done..."],
-  headphone: ["Testing ANC performance...", "Checking flight compatibility...", "Comparing comfort for long trips...", "Finding the best value...", "Almost done..."],
-  phone:     ["Comparing camera systems...", "Checking carrier deals...", "Looking at trade-in values...", "Testing battery claims...", "Almost done..."],
-  desk:      ["Measuring ergonomic specs...", "Checking weight capacity...", "Comparing monitor arms...", "Finding the best bundle...", "Almost done..."],
-  camera:    ["Comparing sensor performance...", "Checking lens compatibility...", "Looking at refurbished options...", "Reviewing firmware support...", "Almost done..."],
-  default:   ["Comparing products across major retailers...", "Filtering out weak specs and bad reviews...", "Checking today's live prices...", "Weighing your budget and priorities...", "Finding hidden catches...", "Almost done..."],
-};
 
-function getMsgs(text: string): string[] {
-  const t = text.toLowerCase();
-  if (/\b(tv|television|oled|qled|4k|8k)\b/.test(t)) return LOADING_MSGS.tv;
-  if (/\b(laptop|macbook|notebook|chromebook)\b/.test(t)) return LOADING_MSGS.laptop;
-  if (/\b(headphone|earbud|airpod|speaker|anc|noise.cancel)\b/.test(t)) return LOADING_MSGS.headphone;
-  if (/\b(phone|iphone|android|pixel|galaxy)\b/.test(t)) return LOADING_MSGS.phone;
-  if (/\b(desk|monitor|keyboard|mouse|standing|office)\b/.test(t)) return LOADING_MSGS.desk;
-  if (/\b(camera|lens|photography|mirrorless|dslr)\b/.test(t)) return LOADING_MSGS.camera;
-  return LOADING_MSGS.default;
-}
 
 const JOURNEY = [
   { label: "Choose",  emoji: "🎯", msg: null },
@@ -153,8 +134,6 @@ function ProcurementPageInner() {
   const [messages, setMessages]         = useState<Message[]>([]);
   const [input, setInput]               = useState("");
   const [loading, setLoading]           = useState(false);
-  const [loadingMsg, setLoadingMsg]     = useState(LOADING_MSGS.default[0]);
-  const activeMsgsRef                   = useRef(LOADING_MSGS.default);
   const [listening, setListening]       = useState(false);
   const [journeyStep, setJourneyStep]   = useState(0);
   const [sessionId, setSessionId]       = useState<number | null>(null);
@@ -175,13 +154,6 @@ function ProcurementPageInner() {
         .catch(() => setTimeout(ping, 3000)); // retry if still cold
     ping();
   }, []);
-
-  useEffect(() => {
-    if (!loading) { setLoadingMsg(activeMsgsRef.current[0]); return; }
-    let i = 0;
-    const id = setInterval(() => { i = (i + 1) % activeMsgsRef.current.length; setLoadingMsg(activeMsgsRef.current[i]); }, 1800);
-    return () => clearInterval(id);
-  }, [loading]);
 
   // Fire auto-send once token is available (query came from dashboard search)
   useEffect(() => {
@@ -272,10 +244,9 @@ function ProcurementPageInner() {
     if (!userText || loading || !backendReady) return;
     userScrolledUp.current = false; // resume auto-scroll for the new response
     setInput("");
-    activeMsgsRef.current = getMsgs(userText);
-    setLoadingMsg(activeMsgsRef.current[0]);
     const next: Message[] = [...messages, { role: "user", content: userText }];
-    setMessages(next);
+    // Pre-add empty assistant bubble so the blinking cursor appears immediately
+    setMessages([...next, { role: "assistant", content: "" }]);
     setLoading(true);
     const apiMessages = compactHistoryForApi(next);
     let errMsg = "";
@@ -299,7 +270,6 @@ function ProcurementPageInner() {
         const decoder = new TextDecoder();
         let fullText = "";
         let buffer = "";
-        let firstChunk = true;
         let priceFetchFired = false;
         let rafPending = false;
         const flushText = () => {
@@ -346,7 +316,6 @@ function ProcurementPageInner() {
               if (parsed.error) throw new Error(parsed.error);
               if (Array.isArray(parsed.price_links)) { setPriceLinks(parsed.price_links); }
               if (parsed.text) {
-                if (firstChunk) { setLoading(false); firstChunk = false; }
                 fullText += parsed.text;
                 // Throttle re-renders to once per animation frame — prevents 1500+ renders per response
                 if (!rafPending) { rafPending = true; requestAnimationFrame(flushText); }
@@ -400,7 +369,14 @@ function ProcurementPageInner() {
     }
 
     if (errMsg) {
-      setMessages(prev => [...prev, { role: "assistant", content: errMsg }]);
+      // Replace the pre-added empty assistant bubble (or partial stream) with the error
+      setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant") {
+          return [...prev.slice(0, -1), { role: "assistant", content: errMsg }];
+        }
+        return [...prev, { role: "assistant", content: errMsg }];
+      });
     }
     setLoading(false);
   }
@@ -520,21 +496,6 @@ function ProcurementPageInner() {
             </div>
           ))}
 
-          {loading && (
-            <div style={{ ...S.msgRow, justifyContent: "flex-start" }}>
-              <div style={S.avatar}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0A84FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-              </div>
-              <div style={{ ...S.aiBubble, padding: "12px 16px" }}>
-                <div style={{ fontSize: 13, color: "#0A84FF", display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ animation: "spin 1.2s linear infinite", display: "inline-block", lineHeight: 1 }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0A84FF" strokeWidth="2.5" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                  </span>
-                  {loadingMsg}
-                </div>
-              </div>
-            </div>
-          )}
           <div ref={bottomRef} />
         </div>
       </div>
@@ -611,8 +572,6 @@ function ProcurementPageInner() {
       </div>
 
       <style>{`
-        @keyframes blink { 0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.9; } }
       `}</style>
     </main>
@@ -638,8 +597,6 @@ const S: Record<string, React.CSSProperties> = {
   avatar:     { width: 30, height: 30, borderRadius: "50%", background: "rgba(10,132,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0, marginTop: 2 },
   userBubble: { background: "#1E293B", color: "#F1F5F9", borderRadius: "16px 16px 4px 16px", padding: "12px 16px", fontSize: 14, lineHeight: 1.6, maxWidth: "80%", whiteSpace: "pre-wrap" },
   aiBubble:   { background: "rgba(10,132,255,0.05)", border: "1px solid rgba(10,132,255,0.15)", color: "#E2E8F0", borderRadius: "16px 16px 16px 4px", padding: "14px 16px", fontSize: 14, maxWidth: "85%" },
-  typing:     { display: "flex", gap: 4, alignItems: "center", padding: "14px 18px" },
-  dot:        { width: 7, height: 7, borderRadius: "50%", background: "#0A84FF", display: "inline-block", animation: "blink 1.2s infinite" },
   inputArea:  { flexShrink: 0, padding: "12px 16px 16px", borderTop: "1px solid rgba(255,255,255,0.07)" },
   inputRow:   { maxWidth: 760, margin: "0 auto", display: "flex", gap: 10 },
   input:      { flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "12px 16px", color: "#F1F5F9", fontSize: 14, outline: "none" },
