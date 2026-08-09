@@ -284,6 +284,11 @@ function ProcurementPageInner() {
         let buffer = "";
         let firstChunk = true;
         let priceFetchFired = false;
+        let rafPending = false;
+        const flushText = () => {
+          setMessages([...next, { role: "assistant", content: fullText }]);
+          rafPending = false;
+        };
 
         const fetchPrices = (prodName: string) => {
           if (!prodName || !token) return;
@@ -326,7 +331,8 @@ function ProcurementPageInner() {
               if (parsed.text) {
                 if (firstChunk) { setLoading(false); firstChunk = false; }
                 fullText += parsed.text;
-                setMessages([...next, { role: "assistant", content: fullText }]);
+                // Throttle re-renders to once per animation frame — prevents 1500+ renders per response
+                if (!rafPending) { rafPending = true; requestAnimationFrame(flushText); }
                 // Fire /prices the moment PRODUCT_GRID is fully received — don't wait for stream end
                 if (!priceFetchFired && fullText.includes("END_PRODUCT_GRID")) {
                   priceFetchFired = true;
