@@ -390,7 +390,7 @@ export default function LandingPage() {
 }
 
 const S: Record<string, React.CSSProperties> = {
-  page:           { minHeight: "100vh", background: "radial-gradient(ellipse 90% 55% at 50% -5%, rgba(10,132,255,0.22) 0%, rgba(10,132,255,0.06) 45%, transparent 70%), radial-gradient(ellipse 50% 40% at 90% 110%, rgba(10,132,255,0.10) 0%, transparent 55%), radial-gradient(ellipse 40% 35% at 10% 100%, rgba(10,80,200,0.08) 0%, transparent 50%), #05080F", fontFamily: "system-ui,-apple-system,sans-serif", display: "flex", flexDirection: "column", color: "#F1F5F9" },
+  page:           { minHeight: "100vh", background: "radial-gradient(ellipse 70% 50% at 50% -15%, rgba(99,179,255,0.16) 0%, transparent 60%), linear-gradient(180deg, #0F172A 0%, #1E293B 100%)", fontFamily: "system-ui,-apple-system,sans-serif", display: "flex", flexDirection: "column", color: "#F1F5F9" },
 
   /* Nav */
   nav:            { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 48px", height: 64, borderBottom: "1px solid rgba(255,255,255,0.06)", position: "sticky", top: 0, background: "rgba(5,8,15,0.75)", backdropFilter: "blur(32px) saturate(180%)", zIndex: 100 },
