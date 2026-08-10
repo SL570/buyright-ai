@@ -166,7 +166,6 @@ export default function AboutPage() {
               <Link href="/sign-in" style={S.planBtnGhost}>Start free</Link>
             </div>
             <div style={{ ...S.pricingCard, border: "1px solid rgba(10,132,255,0.35)", position: "relative" }}>
-              <div style={S.pricingBadge}>Most popular</div>
               <p style={S.planLabel}>Pro</p>
               <p style={S.planPrice}><span style={S.planPer}>Coming soon</span></p>
               <ul style={S.planFeats}>
