@@ -168,7 +168,7 @@ export default function AboutPage() {
             <div style={{ ...S.pricingCard, border: "1px solid rgba(10,132,255,0.35)", position: "relative" }}>
               <div style={S.pricingBadge}>Most popular</div>
               <p style={S.planLabel}>Pro</p>
-              <p style={S.planPrice}>$9<span style={S.planPer}>/month</span></p>
+              <p style={S.planPrice}><span style={S.planPer}>Coming soon</span></p>
               <ul style={S.planFeats}>
                 {["Everything in Free", "Consumer Procurement agent", "Automated negotiation", "Post-purchase fulfillment", "Group & collective deals", "Cancel anytime"].map(f => (
                   <li key={f} style={S.planFeat}><span style={{ color: "#0A84FF", marginRight: 8 }}>✓</span>{f}</li>
